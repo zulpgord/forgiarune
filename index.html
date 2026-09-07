@@ -228,7 +228,6 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <button data-tab="risultati">Responso</button>
     <button data-tab="simulazione">Simulazione</button>
     <button data-tab="yamazumi">Yamazumi</button>
-    <button data-tab="rodaggio">Apprendistato</button>
     <button data-tab="scorte">Magazzini</button>
     <button data-tab="vsm">Mappa del flusso</button>
     <button data-tab="scenari">Scenari</button>
@@ -280,6 +279,10 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <summary><h2>Distribuzione delle consegne</h2></summary>
     <p class="hint">Quota del forecast annuo consegnata in ogni mese, in percentuale. Serve a trovare il picco: il dimensionamento resta sul medio. Se lasci tutto uniforme, picco e media coincidono.</p>
     <div class="scroller"><table id="tblMensile" class="matrix"></table></div>
+    <div class="seg" id="mensMode">
+      <button data-mode="pz" aria-pressed="true">Pezzi</button>
+      <button data-mode="pc" aria-pressed="false">Percentuali</button>
+    </div>
     <div class="row-actions"><button class="act ghost" id="resetMensile">Riporta tutte a uniforme</button></div>
   </details>
 
@@ -412,6 +415,24 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
   </div>
 
   <div class="panel">
+    <h2>Piano di assunzione</h2>
+    <p class="hint">Una persona nuova non rende come una esperta. Dichiara quante celle apri per reparto, in che mese entrano e con che curva salgono: la curva è in percentuale della capacità di una cella a regime, un valore per trimestre di anzianità. Reparti diversi imparano a velocità diverse.</p>
+    <div class="scroller"><table id="tblAssunzioni"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Capacità mese per mese</h2>
+    <p class="hint">Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Risente delle leve qui sopra, così puoi provare forecast e turni diversi. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.</p>
+    <div class="scroller"><table id="tblRodaggio"></table></div>
+    <div id="rodNote"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Ore erogate per mese</h2>
+    <p class="hint">Le ore che ogni reparto mette a disposizione mese per mese, già ridotte dal rodaggio delle celle nuove. È il piano di capacità da confrontare con il carico: l'ultima riga è il totale dello stabilimento.</p>
+    <div class="scroller"><table id="tblOreMese"></table></div>
+  </div>
+
+  <div class="panel">
     <h2>Con le celle di oggi</h2>
     <p class="hint">Quanto regge la struttura attuale davanti a questo forecast.</p>
     <div class="scroller"><table id="tblSimOggi"></table></div>
@@ -434,20 +455,6 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <div id="yamaWrap"></div>
     <div class="legend" id="yamaLegend"></div>
     <div class="row-actions"><button class="act" id="dlYama">Scarica il grafico</button></div>
-  </div>
-</section>
-
-<section id="tab-rodaggio" hidden>
-  <div class="panel">
-    <h2>Piano di assunzione</h2>
-    <p class="hint">Una persona nuova non rende come una esperta. Dichiara quante celle apri per reparto, in che mese entrano e con che curva salgono: la curva è in percentuale della capacità di una cella a regime, un valore per trimestre di anzianità. Reparti diversi imparano a velocità diverse.</p>
-    <div class="scroller"><table id="tblPiano"></table></div>
-  </div>
-  <div class="panel">
-    <h2>Capacità mese per mese</h2>
-    <p class="hint">Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.</p>
-    <div class="scroller"><table id="tblRodaggio"></table></div>
-    <div id="rodNote"></div>
   </div>
 </section>
 
@@ -514,7 +521,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v2.4";
+const VERSION = "v2.6";
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -737,9 +744,12 @@ const EN = {
   "Ore standard per cella": "Standard hours per cell",
   "Apprendistato": "Ramp-up",
   "Piano di assunzione": "Hiring plan",
+  "Ore erogate per mese": "Hours delivered per month",
+  "Le ore che ogni reparto mette a disposizione mese per mese, già ridotte dal rodaggio delle celle nuove. È il piano di capacità da confrontare con il carico: l'ultima riga è il totale dello stabilimento.": "The hours each department makes available month by month, already reduced by the ramp-up of new cells. This is the capacity plan to compare against the load: the last row is the plant total.",
+  "Pezzi": "Pieces", "Percentuali": "Percentages", "Somma / forecast": "Sum / forecast", "Anno": "Year",
   "Una persona nuova non rende come una esperta. Dichiara quante celle apri per reparto, in che mese entrano e con che curva salgono: la curva è in percentuale della capacità di una cella a regime, un valore per trimestre di anzianità. Reparti diversi imparano a velocità diverse.": "A new hire does not perform like an experienced one. State how many cells you open per department, the month they start and the curve they climb: the curve is a percentage of a fully trained cell's capacity, one value per quarter of seniority. Different departments learn at different speeds.",
   "Capacità mese per mese": "Capacity month by month",
-  "Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.": "Saturation of every department month by month, with the new cells ramping up. Red means that month's load exceeds the capacity available in that month. Annual capacity is spread evenly over the twelve months: if you have a summer shutdown, keep it in mind.",
+  "Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Risente delle leve qui sopra, così puoi provare forecast e turni diversi. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.": "Saturation of every department month by month, with the new cells ramping up. It reacts to the levers above, so you can try different forecasts and shifts. Red means that month's load exceeds the capacity available in that month. Annual capacity is spread evenly over the twelve months: if you have a summer shutdown, keep it in mind.",
   "Celle nuove": "New cells", "Mese di ingresso": "Start month",
   "1º trim. %": "1st qtr %", "2º trim. %": "2nd qtr %", "3º trim. %": "3rd qtr %", "4º trim. %": "4th qtr %",
   "Mesi scoperti": "Months short", "Celle guadagnate": "Cells gained", "Assumi entro": "Hire by",
@@ -1192,16 +1202,29 @@ function renderFamiglie() {
     + "<td colspan='" + (S.fasi.length + 3) + "'></td></tr></tfoot>";
 }
 
+let MENS_MODE = "pz";
+
 function renderMensile() {
   const el = document.getElementById("tblMensile");
   if (!S.famiglie.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Compare qui appena aggiungi una famiglia.") + "</td></tr></tbody>"; return; }
-  el.innerHTML = "<thead><tr>" + th("Famiglia") + MESI_IT.map(m => '<th class="num">' + t(m) + "</th>").join("") + th("Somma", "num") + "</tr></thead><tbody>"
+  const anno = S.meta.anno || 0, pz = MENS_MODE === "pz";
+  el.innerHTML = "<thead><tr>" + th("Famiglia") + MESI_IT.map(m => '<th class="num">' + t(m) + "</th>").join("")
+    + th(pz ? "Somma / forecast" : "Somma", "num") + "</tr></thead><tbody>"
     + S.famiglie.map(f => {
+      const fc = nz(f.forecastAnni[anno]);
       const tot = f.mensile.reduce((a, b) => a + nz(b), 0);
       const bad = Math.abs(tot - 100) > 0.5;
-      return "<tr><td>" + esc(f.nome) + "</td>"
-        + f.mensile.map((v, i) => '<td class="num"><input type="number" style="width:62px" min="0" step="0.5" value="' + (Math.round(nz(v) * 10) / 10) + '" data-k="mese" data-id="' + f.id + '" data-m="' + i + '"></td>').join("")
-        + '<td class="num" style="color:' + (bad ? "var(--warn-fg)" : "var(--dim)") + '">' + nf(tot, 1) + "%</td></tr>";
+      const cella = (v, i) => {
+        const val = pz ? Math.round(nz(v) * fc / 100) : Math.round(nz(v) * 10) / 10;
+        const off = pz && fc <= 0;
+        return '<td class="num"><input type="number" style="width:' + (pz ? 72 : 62) + 'px" min="0" step="' + (pz ? 1 : 0.5) + '" value="'
+          + (off ? "" : val) + '"' + (off ? " disabled" : "") + ' data-k="mese" data-id="' + f.id + '" data-m="' + i + '"></td>';
+      };
+      const somma = pz
+        ? nf(Math.round(tot * fc / 100)) + " / " + nf(fc)
+        : nf(tot, 1) + "%";
+      return "<tr><td>" + esc(f.nome) + "</td>" + f.mensile.map(cella).join("")
+        + '<td class="num" style="color:' + (bad ? "var(--warn-fg)" : "var(--dim)") + '">' + somma + "</td></tr>";
     }).join("")
     + "</tbody>";
 }
@@ -1264,7 +1287,7 @@ function renderControlli() {
 }
 
 function renderPianoAssunzioni() {
-  const el = document.getElementById("tblPiano");
+  const el = document.getElementById("tblAssunzioni");
   if (!S.reparti.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; return; }
   const opts = v => MESI_IT.map((m, i) => '<option value="' + (i + 1) + '"' + (i + 1 === Math.round(nz(v)) ? " selected" : "") + ">" + t(m) + "</option>").join("");
   el.innerHTML = "<thead><tr>" + th("Reparto") + th("Celle oggi", "num") + th("Celle nuove", "num") + th("Mese di ingresso")
@@ -1279,7 +1302,8 @@ function renderPianoAssunzioni() {
 
 function renderRodaggio() {
   const el = document.getElementById("tblRodaggio"), note = document.getElementById("rodNote");
-  const R = computeRodaggio();
+  const ov = SIM ? { mult: SIM.mult / 100, turni: SIM.turni, ore: SIM.ore, eff: SIM.eff, target: SIM.target } : undefined;
+  const R = computeRodaggio(ov);
   if (!R.righe.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; note.innerHTML = ""; return; }
   el.innerHTML = "<thead><tr>" + th("Reparto") + MESI_IT.map(m => '<th class="num">' + t(m) + "</th>").join("")
     + th("Mesi scoperti", "num") + th("Celle guadagnate", "num") + th("Assumi entro") + "</tr></thead><tbody>"
@@ -1303,6 +1327,22 @@ function renderRodaggio() {
     + (perse > 0 ? t("Ore perse in rodaggio nell'anno") + ": <b>" + nf(perse) + "</b> " + t("ore") + ". " : "")
     + (scoperti > 0 ? t("Mesi in cui il carico supera la capacità") + ": <b>" + scoperti + "</b>. " : t("Nessun mese scoperto. "))
     + t("«Assumi entro» è l'ultimo mese in cui puoi far entrare le persone restando coperto tutto l'anno.") + "</p>";
+}
+
+function renderOreMese() {
+  const el = document.getElementById("tblOreMese");
+  const ov = SIM ? { mult: SIM.mult / 100, turni: SIM.turni, ore: SIM.ore, eff: SIM.eff, target: SIM.target } : undefined;
+  const R = computeRodaggio(ov);
+  if (!R.righe.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; return; }
+  const tot = Array(12).fill(0);
+  R.righe.forEach(x => x.cap.forEach((v, m) => tot[m] += v));
+  el.innerHTML = "<thead><tr>" + th("Reparto") + MESI_IT.map(m => '<th class="num">' + t(m) + "</th>").join("") + th("Anno", "num") + "</tr></thead><tbody>"
+    + R.righe.map(x => "<tr><td>" + esc(x.r.nome) + "</td>"
+      + x.cap.map(v => '<td class="num">' + nf(v) + "</td>").join("")
+      + '<td class="num">' + nf(x.cap.reduce((a, b) => a + b, 0)) + "</td></tr>").join("")
+    + "</tbody><tfoot><tr><td>" + t("Totale") + "</td>"
+    + tot.map(v => '<td class="num">' + nf(v) + "</td>").join("")
+    + '<td class="num">' + nf(tot.reduce((a, b) => a + b, 0)) + "</td></tr></tfoot>";
 }
 
 function renderRisultati() {
@@ -1692,7 +1732,7 @@ function renderVSM() {
 /* ============================================================
    REFRESH
    ============================================================ */
-function refreshOutputs() { renderControlli(); renderRodaggio(); renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { renderControlli(); renderRodaggio(); renderOreMese(); renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
@@ -1761,11 +1801,15 @@ document.addEventListener("input", e => {
   }
   else if (k === "mese") {
     const f = findById(S.famiglie, el.dataset.id);
-    f.mensile[+el.dataset.m] = el.value === "" ? 0 : parseFloat(el.value);
+    const v = el.value === "" ? 0 : parseFloat(el.value);
+    const fc = nz(f.forecastAnni[S.meta.anno || 0]);
+    /* in pezzi: quello che scrivo diventa la quota di quel mese sul forecast dell'anno */
+    f.mensile[+el.dataset.m] = MENS_MODE === "pz" ? (fc > 0 ? v / fc * 100 : 0) : v;
     const tds = el.closest("tr").querySelectorAll("td");
     const tot = f.mensile.reduce((a, b) => a + nz(b), 0);
     const last = tds[tds.length - 1];
-    last.textContent = nf(tot, 1) + "%"; last.style.color = Math.abs(tot - 100) > .5 ? "var(--warn-fg)" : "var(--dim)";
+    last.textContent = MENS_MODE === "pz" ? nf(Math.round(tot * fc / 100)) + " / " + nf(fc) : nf(tot, 1) + "%";
+    last.style.color = Math.abs(tot - 100) > .5 ? "var(--warn-fg)" : "var(--dim)";
     refreshOutputs();
   }
   queueSave();
@@ -1824,6 +1868,13 @@ document.getElementById("coUsa").onclick = () => {
   queueSave(); refreshAll();
 };
 
+document.getElementById("mensMode").addEventListener("click", e => {
+  const b = e.target.closest("button[data-mode]"); if (!b) return;
+  MENS_MODE = b.dataset.mode;
+  [...e.currentTarget.querySelectorAll("button")].forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  renderMensile();
+});
+
 document.getElementById("resetMensile").onclick = () => { S.famiglie.forEach(f => f.mensile = uniform()); queueSave(); renderMensile(); refreshOutputs(); };
 
 document.getElementById("loadDemo").onclick = () => {
@@ -1860,7 +1911,7 @@ document.getElementById("wipeBtn").onclick = () => {
   document.getElementById(id).addEventListener("input", e => {
     if (!SIM) SIM = simDefaults();
     SIM[{ sMult: "mult", sTurni: "turni", sOre: "ore", sEff: "eff", sTarget: "target" }[id]] = parseFloat(e.target.value);
-    renderSimulazione();
+    renderSimulazione(); renderRodaggio(); renderOreMese();
   });
 });
 document.getElementById("simReset").onclick = () => { SIM = simDefaults(); renderSimulazione(); };
