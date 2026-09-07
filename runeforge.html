@@ -1,0 +1,1934 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runeforge — dimensionamento del flusso produttivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#15110E; --bg-glow:#2A211A;
+  --panel:#1D1814; --panel-2:#28211B; --input:#15110E;
+  --border:#3A3026; --border-2:#28211B;
+  --ink:#DED6C6; --dim:#9C9282; --faint:#6E665C;
+  --gold:#C9A227; --brass:#9C7B36; --ember:#E2571F; --moss:#5C8C6A;
+  --ok-bg:#1B2A20; --ok-fg:#8FC49F; --ok-br:#3C5E47;
+  --warn-bg:#2C2413; --warn-fg:#E8C46A; --warn-br:#6A5423;
+  --bad-bg:#2E1712; --bad-fg:#EFA093; --bad-br:#6A2E26;
+  --cons-bg1:#2C1712; --cons-bg2:#1E120F; --cons-br:#A63A2E;
+  --cons-k:#E9A08F; --cons-v:#FF8A5B; --cons-p:#D9BDB4;
+  --shadow:rgba(0,0,0,.55);
+}
+body.light{
+  --bg:#F1EADB; --bg-glow:#FBF6EA;
+  --panel:#FBF6EA; --panel-2:#EEE4CE; --input:#FFFDF7;
+  --border:#CDBFA1; --border-2:#E2D6BC;
+  --ink:#2B2318; --dim:#6B6151; --faint:#8A806E;
+  --gold:#8A6B1F; --brass:#A98B45; --ember:#C2481A; --moss:#3F7A54;
+  --ok-bg:#E6F0E4; --ok-fg:#2E5B3A; --ok-br:#A9C6AE;
+  --warn-bg:#F7EDD3; --warn-fg:#7A5D12; --warn-br:#D6BE7E;
+  --bad-bg:#F8E2DC; --bad-fg:#8C2F22; --bad-br:#D9A79C;
+  --cons-bg1:#FBEBE4; --cons-bg2:#F6E0D6; --cons-br:#C0503A;
+  --cons-k:#8C2F22; --cons-v:#B3421A; --cons-p:#6B4B42;
+  --shadow:rgba(90,70,40,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(900px 500px at 50% -10%, var(--bg-glow) 0%, rgba(0,0,0,0) 70%), var(--bg);
+  color:var(--ink);
+  font-family:"Alegreya Sans","Segoe UI",system-ui,sans-serif;
+  font-size:16px;line-height:1.5;min-height:100vh;
+}
+h1,h2,h3,.display{font-family:"Cinzel",Georgia,serif;font-weight:700;letter-spacing:.06em;margin:0}
+
+header{border-bottom:2px solid var(--border);background:var(--panel-2);box-shadow:0 6px 24px var(--shadow)}
+.head-inner{max-width:1180px;margin:0 auto;padding:20px 22px 0;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.mark{width:74px;height:74px;flex:none;filter:drop-shadow(0 0 14px rgba(226,87,31,.35))}
+.wordmark{font-size:34px;color:var(--gold);letter-spacing:.22em;line-height:1}
+.tagline{color:var(--dim);font-size:15px;margin-top:6px;max-width:56ch}
+.head-right{margin-left:auto;text-align:right;font-size:14px;color:var(--dim);display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.head-right input{width:190px}
+.chrome{display:flex;gap:8px;align-items:center}
+
+nav{max-width:1180px;margin:16px auto 0;padding:0 22px;display:flex;gap:2px;flex-wrap:wrap}
+nav button{font-family:"Cinzel",serif;font-size:14px;letter-spacing:.1em;background:var(--panel);color:var(--dim);
+  border:2px solid var(--border);border-bottom:none;padding:10px 18px;cursor:pointer;border-radius:3px 3px 0 0}
+nav button:hover{color:var(--ink)}
+nav button[aria-current="true"]{background:var(--panel-2);color:var(--gold);border-color:var(--brass);position:relative;top:2px}
+nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+
+main{max-width:1180px;margin:0 auto;padding:26px 22px 40px}
+section[hidden]{display:none}
+
+.panel{background:var(--panel);border:2px solid var(--border);border-radius:3px;padding:18px 20px 22px;margin-bottom:22px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 4px 18px var(--shadow)}
+.panel > h2{font-size:19px;color:var(--gold);margin-bottom:4px}
+.panel > .hint{color:var(--dim);font-size:14px;margin:0 0 16px;max-width:78ch}
+
+button.act{font-family:"Alegreya Sans",sans-serif;font-size:14px;font-weight:700;background:var(--panel-2);color:var(--ink);
+  border:1px solid var(--brass);border-radius:3px;padding:7px 14px;cursor:pointer}
+button.act:hover{color:var(--gold)}
+button.ghost{border-color:var(--border);color:var(--dim)}
+button.danger{border:1px solid var(--bad-br);background:transparent;color:var(--bad-fg);padding:4px 9px;font-size:13px;border-radius:3px;cursor:pointer;font-family:inherit}
+button.danger:hover{background:var(--bad-bg)}
+.row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+input,select{background:var(--input);color:var(--ink);border:1px solid var(--border);border-radius:2px;padding:6px 8px;font-family:inherit;font-size:15px}
+input[type=number]{width:92px;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{accent-color:var(--ember);width:100%;padding:0}
+input.wide{width:210px}
+input:disabled{opacity:.35}
+
+.scroller{overflow-x:auto;margin:0 -4px;padding:0 4px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border-2)}
+thead th{font-family:"Cinzel",serif;font-size:12.5px;font-weight:500;color:var(--brass);letter-spacing:.05em;border-bottom:2px solid var(--border);white-space:nowrap}
+tbody tr:hover{background:rgba(155,123,54,.08)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td{border-top:2px solid var(--border);border-bottom:none;font-weight:700}
+.empty{color:var(--dim);font-style:italic;padding:18px 2px}
+
+.matrix th.phase{text-align:center;min-width:112px}
+.matrix td.cellphase{text-align:center;white-space:nowrap}
+.matrix input[type=checkbox]{accent-color:var(--gold);width:16px;height:16px;vertical-align:-2px;margin-right:4px}
+.off input[type=number]{opacity:.3}
+
+.satbar{position:relative;height:16px;background:var(--input);border:1px solid var(--border);border-radius:2px;min-width:110px;overflow:hidden}
+.satbar i{position:absolute;inset:0 auto 0 0;display:block}
+.satbar .mark100{position:absolute;top:0;bottom:0;width:1px;background:var(--dim);opacity:.6}
+.tag{font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:2px;border:1px solid;white-space:nowrap}
+.t-ok{color:var(--ok-fg);border-color:var(--ok-br);background:var(--ok-bg)}
+.t-warn{color:var(--warn-fg);border-color:var(--warn-br);background:var(--warn-bg)}
+.t-bad{color:var(--bad-fg);border-color:var(--bad-br);background:var(--bad-bg)}
+.t-idle{color:var(--dim);border-color:var(--border)}
+
+.constraint{border:2px solid var(--cons-br);background:linear-gradient(180deg,var(--cons-bg1),var(--cons-bg2));
+  border-radius:3px;padding:16px 20px;margin-bottom:22px}
+.constraint .k{font-family:"Cinzel",serif;color:var(--cons-k);font-size:13px;letter-spacing:.12em;margin:0 0 6px}
+.constraint .v{font-family:"Cinzel",serif;font-size:27px;color:var(--cons-v);line-height:1.15}
+.constraint p{margin:8px 0 0;color:var(--cons-p);font-size:15px;max-width:75ch}
+
+.kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.kpi{flex:1 1 165px;background:var(--panel-2);border:1px solid var(--border);border-radius:3px;padding:12px 14px}
+.kpi .n{font-family:"Cinzel",serif;font-size:25px;color:var(--gold);line-height:1.15}
+.kpi .l{font-size:13.5px;color:var(--dim);margin-top:3px}
+
+.levers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px 26px}
+.lever label{display:block;font-size:14px;color:var(--dim);margin-bottom:5px}
+.lever .val{font-family:"Cinzel",serif;color:var(--gold);font-size:17px}
+
+#vsmWrap,#yamaWrap{overflow-x:auto;background:var(--input);border:1px solid var(--border);border-radius:3px;padding:10px}
+svg.vsm{display:block;min-width:760px}
+svg.yama{display:block;min-width:640px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:3px;overflow:hidden;margin-bottom:14px}
+.seg button{background:var(--panel);color:var(--dim);border:none;padding:7px 15px;font-family:inherit;font-size:14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--gold);font-weight:700}
+.seg button + button{border-left:1px solid var(--border)}
+.seg.mini button{padding:5px 11px;font-size:13px}
+.seg.mini{margin-bottom:0}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--dim);margin-top:12px}
+.legend span{display:flex;align-items:center;gap:6px}
+.swatch{width:12px;height:12px;border-radius:2px;display:inline-block}
+
+.foot{color:var(--dim);font-size:13.5px;margin-top:26px;border-top:1px solid var(--border-2);padding-top:14px;max-width:80ch}
+.saved{color:var(--moss);font-size:13px;min-height:18px}
+
+footer{border-top:2px solid var(--border);background:var(--panel-2);margin-top:20px}
+.foot-inner{max-width:1180px;margin:0 auto;padding:18px 22px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap;align-items:center}
+.ver{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.14em;color:var(--brass)}
+.by{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.28em;color:var(--gold)}
+textarea{background:var(--input);color:var(--ink);border:1px solid var(--border);border-radius:2px;padding:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+@media print{
+  body{background:#fff;color:#000}
+  header nav,.row-actions,.seg,#pasteBox,footer .by{display:none!important}
+  section[hidden]{display:block!important}
+  .panel{break-inside:avoid;box-shadow:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header>
+  <div class="head-inner">
+    <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <radialGradient id="glow" cx="50%" cy="62%" r="42%">
+          <stop offset="0%" stop-color="#FFB169" stop-opacity=".85"/>
+          <stop offset="60%" stop-color="#E2571F" stop-opacity=".28"/>
+          <stop offset="100%" stop-color="#E2571F" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="52" r="30" fill="url(#glow)"/>
+      <circle cx="50" cy="50" r="42" fill="none" stroke="#9C7B36" stroke-width="2"/>
+      <circle cx="50" cy="50" r="36" fill="none" stroke="#9C7B36" stroke-width="1" stroke-opacity=".55"/>
+      <g stroke="#C9A227" stroke-width="2.4" stroke-linecap="square" fill="none">
+        <path d="M50 8v6M92 50h-6M50 92v-6M8 50h6"/>
+        <path d="M79.7 20.3l-4.2 4.2M79.7 79.7l-4.2-4.2M20.3 79.7l4.2-4.2M20.3 20.3l4.2 4.2" stroke-opacity=".6"/>
+      </g>
+      <path d="M31 64h38l-4 8H35z" fill="#3A302E" stroke="#C9A227" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M26 56c6-3 12-4 18-4h14c5 0 9-2 12-6l4 6c-2 6-8 10-15 10H37c-5 0-9-2-11-6z" fill="#4A3B31" stroke="#C9A227" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M50 20v20M42 27l8-7 8 7M46 40h8" stroke="#E2571F" stroke-width="3" fill="none" stroke-linecap="square" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="wordmark">RUNEFORGE</div>
+      <p class="tagline">Dal forecast alle celle: carico, saturazione, vincolo e mappa del flusso.</p>
+    </div>
+    <div class="head-right">
+      <div class="chrome">
+        <div class="seg mini" id="langSeg">
+          <button data-lang="it" aria-pressed="true">IT</button>
+          <button data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <button class="act ghost" id="themeBtn">Tema chiaro</button>
+      </div>
+      <div class="chrome"><span style="font-size:13px">Anno</span><div class="seg mini" id="annoSeg"></div></div>
+      <div>
+        <label for="scenName">Scenario</label>
+        <input id="scenName" data-meta="nome" placeholder="Nome scenario">
+      </div>
+      <div class="saved" id="savedFlag"></div>
+    </div>
+  </div>
+  <nav id="nav">
+    <button data-tab="setup" aria-current="true">Fucina</button>
+    <button data-tab="rilievi">Rilievi</button>
+    <button data-tab="risultati">Responso</button>
+    <button data-tab="simulazione">Simulazione</button>
+    <button data-tab="yamazumi">Yamazumi</button>
+    <button data-tab="scorte">Magazzini</button>
+    <button data-tab="vsm">Mappa del flusso</button>
+    <button data-tab="scenari">Scenari</button>
+  </nav>
+</header>
+
+<main>
+<section id="tab-setup">
+  <div class="panel">
+    <h2>Fasi di lavorazione</h2>
+    <p class="hint">L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.</p>
+    <div class="scroller"><table id="tblFasi"></table></div>
+    <div class="row-actions"><button class="act" id="addFase">Aggiungi fase</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Reparti e celle</h2>
+    <p class="hint">Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Lascia le ore vuote per usare il valore generale.</p>
+    <div class="scroller"><table id="tblReparti"></table></div>
+    <div class="row-actions"><button class="act" id="addReparto">Aggiungi reparto</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Incolla da Excel</h2>
+    <p class="hint">Copia le colonne dal foglio e incollale qui: l'app crea o aggiorna le righe da sola. Le famiglie già presenti vengono riconosciute dal nome e aggiornate, non duplicate.</p>
+    <div class="seg" id="pasteMode">
+      <button data-pmode="famiglie" aria-pressed="true">Famiglie e forecast</button>
+      <button data-pmode="tempi" aria-pressed="false">Tempi per fase</button>
+    </div>
+    <p class="hint" id="pasteHelp"></p>
+    <textarea id="pasteBox" rows="6" style="width:100%"></textarea>
+    <div class="row-actions">
+      <button class="act" id="pasteApply">Importa le righe</button>
+      <button class="act ghost" id="pasteClear">Svuota il riquadro</button>
+    </div>
+    <p class="hint" id="pasteReport" style="margin-top:12px"></p>
+  </div>
+
+  <div class="panel">
+    <h2>Famiglie di prodotto e tempi</h2>
+    <p class="hint">Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.</p>
+    <div class="scroller"><table id="tblFamiglie" class="matrix"></table></div>
+    <div class="row-actions">
+      <button class="act" id="addFamiglia">Aggiungi famiglia</button>
+      <button class="act ghost" id="loadDemo">Carica dati di esempio</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Distribuzione delle consegne</h2>
+    <p class="hint">Quota del forecast annuo consegnata in ogni mese, in percentuale. Serve a trovare il picco: il dimensionamento resta sul medio. Se lasci tutto uniforme, picco e media coincidono.</p>
+    <div class="scroller"><table id="tblMensile"></table></div>
+    <div class="row-actions"><button class="act ghost" id="resetMensile">Riporta tutte a uniforme</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Parametri generali</h2>
+    <p class="hint">Valori di partenza per tutti i reparti. Sono ipotesi di lavoro: correggili con i tuoi dati reali appena li hai.</p>
+    <div class="levers">
+      <div class="lever"><label for="pOre">Ore annue per cella, un turno</label><input type="number" id="pOre" data-param="oreAnnuePerCella" min="1" step="10"></div>
+      <div class="lever"><label for="pEff">Efficienza in percentuale</label><input type="number" id="pEff" data-param="efficienza" min="1" max="100" step="1"></div>
+      <div class="lever"><label for="pTurni">Turni di riferimento</label><input type="number" id="pTurni" data-param="turni" min="1" max="3" step="1"></div>
+      <div class="lever"><label for="pTarget">Saturazione obiettivo</label><input type="number" id="pTarget" data-param="targetSaturazione" min="10" max="100" step="1"></div>
+      <div class="lever"><label for="pGG">Giorni lavorativi all'anno</label><input type="number" id="pGG" data-param="giorniLavorativi" min="1" max="365" step="1"></div>
+      <div class="lever"><label for="pSic">Giorni di scorta di sicurezza</label><input type="number" id="pSic" data-param="giorniSicurezza" min="0" step="0.5"></div>
+      <div class="lever"><label for="pCostoOra">Costo orario di una cella</label><input type="number" id="pCostoOra" data-param="costoOraCella" min="0" step="1"></div>
+      <div class="lever"><label for="pCostoCella">Costo annuo di una cella in più</label><input type="number" id="pCostoCella" data-param="costoCellaAnno" min="0" step="100"></div>
+      <div class="lever"><label for="pAnno0">Nomi degli anni del piano</label>
+        <input id="pAnno0" data-anno="0" style="width:88px"> <input data-anno="1" style="width:88px"> <input data-anno="2" style="width:88px"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Dati</h2>
+    <p class="hint">Il lavoro si salva da solo nel browser. Esporta un file per il backup o per spostarti tra computer.</p>
+    <div class="row-actions">
+      <button class="act" id="exportBtn">Esporta file</button>
+      <button class="act" id="importBtn">Importa file</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <button class="act" id="csvBtn">Esporta risultati CSV</button>
+      <button class="act" id="printBtn">Stampa</button>
+      <button class="act ghost" id="wipeBtn">Svuota tutto</button>
+    </div>
+  </div>
+</section>
+
+<section id="tab-rilievi" hidden>
+  <div class="panel">
+    <h2>Rilevazione dei tempi</h2>
+    <p class="hint">Registra qui le singole misure a bordo linea. L'app calcola media e dispersione, e con un clic porta la media dentro i tempi della famiglia. Finché non misuri, i tempi restano stime tue.</p>
+    <div class="levers">
+      <div class="lever"><label for="rvFam">Famiglia</label><select id="rvFam"></select></div>
+      <div class="lever"><label for="rvFase">Fase</label><select id="rvFase"></select></div>
+      <div class="lever"><label for="rvTipo">Tipo di tempo</label><select id="rvTipo">
+        <option value="min">Lavoro uomo</option><option value="minMacchina">Tempo macchina</option><option value="setup">Attrezzaggio</option></select></div>
+      <div class="lever"><label for="rvVal">Minuti rilevati</label><input type="number" id="rvVal" min="0" step="0.1"></div>
+      <div class="lever" style="align-self:end"><button class="act" id="rvAdd">Registra la misura</button></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Sintesi delle misure</h2>
+    <p class="hint">Con meno di cinque misure la dispersione dice poco: prendila come indicazione, non come dato.</p>
+    <div class="scroller"><table id="tblRilSintesi"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Misure registrate</h2>
+    <div class="scroller"><table id="tblRilievi"></table></div>
+  </div>
+</section>
+
+<section id="tab-risultati" hidden>
+  <div id="constraintBox"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="panel">
+    <h2>Carico e celle per reparto</h2>
+    <p class="hint">Calcolo sul forecast annuo medio, con i parametri generali e le celle che hai oggi.</p>
+    <div class="scroller"><table id="tblRisultati"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Quanto costa</h2>
+    <p class="hint">Traduzione in denaro del dimensionamento, con i costi che hai messo nei parametri. Se lasci i costi a zero questa tabella resta vuota.</p>
+    <div class="scroller"><table id="tblCosti"></table></div>
+  </div>
+
+  <div class="panel">
+    <h2>Se gli operatori fossero polivalenti</h2>
+    <p class="hint">Oggi ogni operatore è legato al suo reparto, quindi ogni frazione di cella va arrotondata per eccesso reparto per reparto. Con la polivalenza le frazioni si sommano prima di arrotondare: qui vedi quante celle e quante ore recupereresti.</p>
+    <div class="scroller"><table id="tblPoliv"></table></div>
+  </div>
+
+  <div class="panel">
+    <h2>Picco di consegna</h2>
+    <p class="hint">Stesso calcolo sul mese più carico, contro la capacità di un mese. Qui non dimensioni: scegli fra tre strade. L'anticipo per livellare è la terza: quanti pezzi produrre prima del picco per attraversarlo senza aggiungere né celle né ore.</p>
+    <div class="scroller"><table id="tblPicco"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Ritmo della domanda</h2>
+    <p class="hint">Il takt è il tempo che hai a disposizione per pezzo se lavorasse una cella sola. Diviso per le celle del reparto ottieni il ritmo reale da tenere; il tempo di lavoro medio deve starci dentro.</p>
+    <div class="scroller"><table id="tblTakt"></table></div>
+  </div>
+</section>
+
+<section id="tab-simulazione" hidden>
+  <div class="panel">
+    <h2>Leve</h2>
+    <p class="hint">Cambia lo scenario senza toccare i dati di setup. Le leve valgono solo qui dentro.</p>
+    <div class="levers">
+      <div class="lever"><label for="sMult">Forecast <span class="val" id="sMultV"></span></label><input type="range" id="sMult" min="25" max="250" step="5"></div>
+      <div class="lever"><label for="sTurni">Turni <span class="val" id="sTurniV"></span></label><input type="range" id="sTurni" min="1" max="3" step="1"></div>
+      <div class="lever"><label for="sOre">Ore annue per cella, un turno <span class="val" id="sOreV"></span></label><input type="range" id="sOre" min="800" max="2200" step="20"></div>
+      <div class="lever"><label for="sEff">Efficienza <span class="val" id="sEffV"></span></label><input type="range" id="sEff" min="40" max="100" step="1"></div>
+      <div class="lever"><label for="sTarget">Saturazione obiettivo <span class="val" id="sTargetV"></span></label><input type="range" id="sTarget" min="50" max="100" step="1"></div>
+      <div class="lever" style="align-self:end"><button class="act ghost" id="simReset">Riporta ai parametri di setup</button></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Ricerca obiettivo</h2>
+    <p class="hint">Invece di muovere le leve a tentativi: l'app cerca il minimo che ti porta sotto la saturazione obiettivo in tutti i reparti, tenendo le celle di oggi.</p>
+    <div class="row-actions"><button class="act" id="goalBtn">Trova il minimo</button></div>
+    <div id="goalOut" class="hint" style="margin-top:14px"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Piano pluriennale</h2>
+    <p class="hint">Le celle necessarie anno per anno con i parametri di setup. Serve a rispondere non se una cella servirà, ma quando.</p>
+    <div class="scroller"><table id="tblPiano"></table></div>
+  </div>
+
+  <div class="panel">
+    <h2>Con le celle di oggi</h2>
+    <p class="hint">Quanto regge la struttura attuale davanti a questo forecast.</p>
+    <div class="scroller"><table id="tblSimOggi"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Celle suggerite</h2>
+    <p class="hint">Quante celle servirebbero per stare alla saturazione obiettivo. Il numero pieno mostra il fabbisogno reale, l'intero è quello che puoi davvero mettere in officina.</p>
+    <div class="scroller"><table id="tblSimSugg"></table></div>
+  </div>
+</section>
+
+<section id="tab-yamazumi" hidden>
+  <div class="panel">
+    <h2>Bilanciamento dei reparti</h2>
+    <p class="hint">Ogni barra è un reparto, divisa per famiglia di prodotto e attrezzaggio. La linea è il limite da non superare: il takt nella prima vista, la capacità delle celle nella seconda. Chi sfora la linea è il collo di bottiglia; chi resta molto sotto ha margine da cui attingere.</p>
+    <div class="seg" id="yamaMode">
+      <button data-mode="pz" aria-pressed="true">Minuti per pezzo</button>
+      <button data-mode="ore" aria-pressed="false">Ore annue per cella</button>
+    </div>
+    <div id="yamaWrap"></div>
+    <div class="legend" id="yamaLegend"></div>
+    <div class="row-actions"><button class="act" id="dlYama">Scarica il grafico</button></div>
+  </div>
+</section>
+
+<section id="tab-scorte" hidden>
+  <div class="panel">
+    <h2>Magazzini di reparto consigliati</h2>
+    <p class="hint">Il buffer che sta a valle di ogni reparto e alimenta la fase successiva. Somma di tre pezzi: la scorta di ciclo che copre il tempo di ripristino, la scorta di sicurezza per l'imprevisto, e metà lotto se il reparto produce a lotti. I giorni di copertura ti dicono quanto dura quel magazzino se il reparto si ferma.</p>
+    <div class="seg" id="scorteBase">
+      <button data-base="media" aria-pressed="true">Sul consumo medio</button>
+      <button data-base="picco" aria-pressed="false">Sul mese di picco</button>
+    </div>
+    <div class="scroller"><table id="tblScorte"></table></div>
+    <p class="foot">Tempo di ripristino e lotto si impostano nella Fucina, reparto per reparto. Giorni lavorativi e giorni di sicurezza stanno nei parametri generali. L'EPEI dice ogni quanti giorni riesci a ripassare tutte le famiglie del reparto, con le ore che ti restano dopo il lavoro: il magazzino non può coprire meno di quel numero, qualunque formula applichi.</p>
+  </div>
+  <div class="panel">
+    <h2>Dettaglio per famiglia</h2>
+    <p class="hint">Il magazzino vero lo gestisci per codice, non per reparto: qui la quantità di buffer spetta a ogni famiglia in ogni reparto che attraversa. La classe è calcolata da volume e regolarità: alto e regolare va a flusso con lotti piccoli, sporadica conviene farla a ordine invece di tenerla a scorta.</p>
+    <div class="scroller"><table id="tblScorteFam" class="matrix"></table></div>
+  </div>
+</section>
+
+<section id="tab-vsm" hidden>
+  <div class="panel">
+    <h2>Mappa del flusso</h2>
+    <p class="hint">Le fasi in sequenza con celle, tempo di lavoro, carico e saturazione calcolati sui parametri di setup. Il vincolo è evidenziato: è lui a dettare il ritmo dell'intera catena.</p>
+    <div id="vsmWrap"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:#5C8C6A"></i>fino all'85%</span>
+      <span><i class="swatch" style="background:#C9A227"></i>85-100%</span>
+      <span><i class="swatch" style="background:#A63A2E"></i>oltre il 100%</span>
+      <span><i class="swatch" style="background:#3A302E;border:1px solid #9C7B36"></i>nessuna cella impostata</span>
+    </div>
+    <div class="row-actions"><button class="act" id="dlSvg">Scarica la mappa</button></div>
+    <p class="foot">È una mappa di flusso con i dati dell'app, non una VSM nel formalismo standard: mancano le frecce push e pull e i flussi informativi.</p>
+  </div>
+</section>
+</main>
+
+<section id="tab-scenari" hidden>
+  <div class="panel">
+    <h2>Scenari salvati</h2>
+    <p class="hint">Fotografa lo stato attuale con un nome e tienilo da parte. Serve per confrontare as-is e to-be senza esportare e reimportare file.</p>
+    <div class="row-actions">
+      <input id="snapNome" class="wide" placeholder="Nome della fotografia">
+      <button class="act" id="snapAdd">Salva lo stato attuale</button>
+    </div>
+    <div class="scroller" style="margin-top:16px"><table id="tblSnap"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Confronto</h2>
+    <p class="hint">Scegli una fotografia e vedi il delta rispetto a come stanno le cose adesso, reparto per reparto.</p>
+    <div class="row-actions"><select id="snapSel"></select></div>
+    <div class="scroller" style="margin-top:16px"><table id="tblConfronto"></table></div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-inner">
+    <span class="ver">RUNEFORGE <span id="verNum"></span></span>
+    <span class="by">MADE BY LUCA CENCI</span>
+  </div>
+</footer>
+<script>
+/* ============================================================
+   VERSIONE / LINGUA / TEMA
+   ============================================================ */
+const VERSION = "v1.5";
+const KEY = "runeforge:state:v1";
+let LANG = "it", THEME = "dark";
+
+const EN = {
+  /* intestazione e navigazione */
+  "Dal forecast alle celle: carico, saturazione, vincolo e mappa del flusso.": "From forecast to cells: load, utilisation, constraint and flow map.",
+  "Scenario": "Scenario", "Nome scenario": "Scenario name",
+  "Tema chiaro": "Light theme", "Tema scuro": "Dark theme",
+  "Fucina": "Forge", "Responso": "Results", "Simulazione": "Simulation", "Magazzini": "Buffers", "Mappa del flusso": "Flow map",
+  /* setup */
+  "Fasi di lavorazione": "Process steps",
+  "L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.": "The order here sets the flow sequence and the order on the map. Add or remove steps when the process changes.",
+  "Aggiungi fase": "Add step",
+  "Reparti e celle": "Departments and cells",
+  "Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Lascia le ore vuote per usare il valore generale.": "Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. Leave hours empty to use the general value.",
+  "Aggiungi reparto": "Add department",
+  "Famiglie di prodotto e tempi": "Product families and times",
+  "Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.": "Switch on the steps a family goes through and enter the times per piece in minutes: labour, machine time and changeover. A step switched off means no load on that department.",
+  "Aggiungi famiglia": "Add family", "Carica dati di esempio": "Load sample data",
+  "Distribuzione delle consegne": "Delivery profile",
+  "Quota del forecast annuo consegnata in ogni mese, in percentuale. Serve a trovare il picco: il dimensionamento resta sul medio. Se lasci tutto uniforme, picco e media coincidono.": "Share of the annual forecast delivered in each month, as a percentage. It is used to find the peak: sizing still runs on the average. Leave it flat and peak equals average.",
+  "Riporta tutte a uniforme": "Reset to a flat profile",
+  "Parametri generali": "General parameters",
+  "Valori di partenza per tutti i reparti. Sono ipotesi di lavoro: correggili con i tuoi dati reali appena li hai.": "Starting values for every department. They are working assumptions: replace them with your real data as soon as you have it.",
+  "Ore annue per cella, un turno": "Annual hours per cell, one shift",
+  "Efficienza in percentuale": "Efficiency as a percentage",
+  "Turni di riferimento": "Reference shifts",
+  "Saturazione obiettivo": "Target utilisation",
+  "Giorni lavorativi all'anno": "Working days per year",
+  "Giorni di scorta di sicurezza": "Safety stock days",
+  "Dati": "Data",
+  "Il lavoro si salva da solo nel browser. Esporta un file per il backup o per spostarti tra computer.": "Your work saves itself in the browser. Export a file for backup or to move between computers.",
+  "Esporta file": "Export file", "Importa file": "Import file", "Svuota tutto": "Reset everything",
+  /* risultati */
+  "Carico e celle per reparto": "Load and cells by department",
+  "Calcolo sul forecast annuo medio, con i parametri generali e le celle che hai oggi.": "Calculated on the average annual forecast, with the general parameters and the cells you have today.",
+  "Picco di consegna": "Delivery peak",
+  "Stesso calcolo sul mese più carico, contro la capacità di un mese. Qui non dimensioni: vedi dove serviranno straordinari, turno aggiuntivo o anticipo di produzione.": "The same calculation on the busiest month, against one month of capacity. You do not size here: you see where overtime, an extra shift or building ahead will be needed.",
+  "Ritmo della domanda": "Demand rhythm",
+  "Il takt è il tempo che hai a disposizione per pezzo se lavorasse una cella sola. Diviso per le celle del reparto ottieni il ritmo reale da tenere; il tempo di lavoro medio deve starci dentro.": "Takt is the time available per piece if a single cell were working. Divided by the department cells you get the real rhythm to hold; average work content has to fit inside it.",
+  /* simulazione */
+  "Leve": "Levers",
+  "Cambia lo scenario senza toccare i dati di setup. Le leve valgono solo qui dentro.": "Change the scenario without touching the setup data. These levers apply here only.",
+  "Forecast": "Forecast", "Turni": "Shifts", "Efficienza": "Efficiency",
+  "Riporta ai parametri di setup": "Back to setup values",
+  "Con le celle di oggi": "With today's cells",
+  "Quanto regge la struttura attuale davanti a questo forecast.": "How far the current structure holds against this forecast.",
+  "Celle suggerite": "Suggested cells",
+  "Quante celle servirebbero per stare alla saturazione obiettivo. Il numero pieno mostra il fabbisogno reale, l'intero è quello che puoi davvero mettere in officina.": "How many cells you would need to sit at target utilisation. The fractional figure shows the real requirement, the integer is what you can actually put on the shop floor.",
+  /* yamazumi */
+  "Bilanciamento dei reparti": "Department balancing",
+  "Ogni barra è un reparto, divisa per famiglia di prodotto e attrezzaggio. La linea è il limite da non superare: il takt nella prima vista, la capacità delle celle nella seconda. Chi sfora la linea è il collo di bottiglia; chi resta molto sotto ha margine da cui attingere.": "Each bar is a department, split by product family and changeover. The line is the limit not to cross: takt in the first view, cell capacity in the second. Whatever goes over the line is the bottleneck; whatever sits far below has slack to draw on.",
+  "Minuti per pezzo": "Minutes per piece", "Ore annue per cella": "Annual hours per cell",
+  "Scarica il grafico": "Download chart",
+  /* magazzini */
+  "Magazzini di reparto consigliati": "Suggested department buffers",
+  "Il buffer che sta a valle di ogni reparto e alimenta la fase successiva. Somma di tre pezzi: la scorta di ciclo che copre il tempo di ripristino, la scorta di sicurezza per l'imprevisto, e metà lotto se il reparto produce a lotti. I giorni di copertura ti dicono quanto dura quel magazzino se il reparto si ferma.": "The buffer downstream of each department that feeds the next step. Three parts added together: cycle stock covering the replenishment time, safety stock for the unexpected, and half a batch if the department runs in batches. Days of cover tell you how long that stock lasts if the department stops.",
+  "Sul consumo medio": "On average demand", "Sul mese di picco": "On the peak month",
+  "Tempo di ripristino e lotto si impostano nella Fucina, reparto per reparto. Giorni lavorativi e giorni di sicurezza stanno nei parametri generali.": "Replenishment time and batch size are set in the Forge, department by department. Working days and safety days live in the general parameters.",
+  "Dettaglio per famiglia": "Breakdown by family",
+  "Il magazzino vero lo gestisci per codice, non per reparto: qui la quantità di buffer spetta a ogni famiglia in ogni reparto che attraversa.": "Real stock is managed by part number, not by department: here is the buffer quantity each family takes in every department it passes through.",
+  /* vsm */
+  "Le fasi in sequenza con celle, tempo di lavoro, carico e saturazione calcolati sui parametri di setup. Il vincolo è evidenziato: è lui a dettare il ritmo dell'intera catena.": "The steps in sequence with cells, work content, load and utilisation from the setup parameters. The constraint is highlighted: it sets the pace of the whole chain.",
+  "fino all'85%": "up to 85%", "85-100%": "85-100%", "oltre il 100%": "over 100%", "nessuna cella impostata": "no cells set",
+  "Scarica la mappa": "Download map",
+  "È una mappa di flusso con i dati dell'app, non una VSM nel formalismo standard: mancano le frecce push e pull e i flussi informativi.": "This is a flow map built on the app data, not a VSM in the standard notation: push and pull arrows and information flows are missing.",
+  /* tabelle e testi generati */
+  "Fase": "Step", "Ordine": "Order", "Su": "Up", "Giù": "Down", "Elimina": "Delete",
+  "Nessuna fase. Aggiungine una per iniziare.": "No steps yet. Add one to get started.",
+  "Nessun reparto.": "No departments.",
+  "Reparto": "Department", "Fase lavorata": "Step worked", "Celle oggi": "Cells today", "Celle max": "Max cells",
+  "Macchine": "Machines", "Ripristino (gg)": "Replenish (d)", "Lotto (pz)": "Batch (pcs)", "Buffer": "Buffer",
+  "Tieni un magazzino a valle": "Keep a downstream buffer",
+  "Nessuna famiglia. Aggiungine una, oppure carica i dati di esempio per vedere l'app in funzione.": "No families yet. Add one, or load the sample data to see the app working.",
+  "Famiglia": "Family", "Cluster": "Cluster", "Pezzi/anno": "Pieces/year", "Scarto %": "Scrap %",
+  "uomo · macchina · setup": "labour · machine · changeover",
+  "Minuti uomo per pezzo": "Labour minutes per piece", "Minuti macchina per pezzo": "Machine minutes per piece",
+  "Minuti di attrezzaggio per cambio": "Changeover minutes per batch", "Fase attiva": "Step active",
+  "Totale": "Total", "Somma": "Sum",
+  "Compare qui appena aggiungi una famiglia.": "This appears as soon as you add a family.",
+  "Il vincolo del flusso": "The constraint of the flow",
+  "limite di macchina": "machine-limited", "limite di manodopera": "labour-limited",
+  "È il reparto più carico: detta il ritmo di tutta la catena, quindi ogni cella o ora aggiunta altrove non aumenta la produzione.": "It is the busiest department: it sets the pace of the whole chain, so any cell or hour added elsewhere adds no output.",
+  "celle coprono": "cells cover", "ore contro un carico di": "hours against a load of", "di cui": "of which",
+  "di attrezzaggio.": "of changeover.",
+  "Con la struttura di oggi la catena porta a casa circa": "With today's structure the chain delivers about",
+  "pezzi all'anno": "pieces a year", "cioè il": "which is",
+  "di quello che il forecast chiede": "of what the forecast asks for",
+  "Nessun carico da calcolare. Inserisci famiglie, forecast e tempi nella Fucina.": "Nothing to calculate yet. Add families, forecast and times in the Forge.",
+  "pezzi a forecast": "pieces forecast", "ore di lavoro all'anno": "work hours a year",
+  "di cui attrezzaggio": "of which changeover", "celle installate": "cells installed",
+  "celle al minimo tecnico": "cells at bare minimum", "ore di capacità non usata": "hours of unused capacity",
+  "Pezzi lanciati": "Pieces launched", "Ore lavoro": "Work hours", "Ore setup": "Changeover hours",
+  "Ore per cella": "Hours per cell", "Limite": "Limit", "Celle necessarie": "Cells needed",
+  "Gap": "Gap", "Saturazione": "Utilisation", "Esito": "Verdict",
+  "macchina": "machine", "uomo": "labour",
+  "nessun carico": "no load", "nessuna cella": "no cells", "non regge": "does not hold",
+  "al limite": "at the limit", "regge": "holds",
+  "Mese di picco": "Peak month", "Ore nel mese": "Hours in the month", "Capacità del mese": "Month capacity",
+  "serve capacità extra": "extra capacity needed",
+  "Takt, una cella": "Takt, one cell", "Takt con le celle di oggi": "Takt with today's cells",
+  "Solo lavoro": "Work only", "Lavoro + setup": "Work + changeover", "Variabilità": "Variability",
+  "Target consigliato": "Suggested target", "dentro il takt": "inside takt", "fuori takt": "outside takt",
+  "Ore carico": "Load hours", "Ore coperte": "Hours covered", "Da aggiungere": "To add", "Tetto max": "Ceiling",
+  "oltre il tetto di": "beyond the ceiling of", "celle da aggiungere": "cells to add",
+  "margine disponibile": "slack available", "dimensionato": "sized",
+  "Magazzino a valle di": "Buffer downstream of", "Consumo al giorno": "Daily consumption",
+  "Ripristino": "Replenishment", "Scorta di ciclo": "Cycle stock", "Sicurezza": "Safety",
+  "Mezzo lotto": "Half batch", "Buffer consigliato": "Suggested buffer", "Copertura": "Cover", "Nota": "Note",
+  "nessun flusso": "no flow", "flusso teso, nessun buffer": "continuous flow, no buffer",
+  "nessun buffer richiesto": "no buffer required", "copertura lunga, verifica il lotto": "long cover, check the batch size",
+  "Nessuna famiglia da ripartire.": "No families to split.",
+  "Niente da bilanciare: servono famiglie con forecast e tempi.": "Nothing to balance: families need a forecast and times.",
+  "Nessuna fase da mappare.": "No steps to map.",
+  "Attrezzaggio": "Changeover", "attrezzaggio": "changeover", "limite": "limit",
+  "ore/anno per cella": "hours/year per cell", "minuti per pezzo": "minutes per piece",
+  "di saturazione": "utilisation",
+  "Linea tratteggiata: ore disponibili per cella.": "Dashed line: hours available per cell.",
+  "Linea tratteggiata: takt disponibile con le celle di oggi.": "Dashed line: takt available with today's cells.",
+  "Celle": "Cells", "Tempo medio": "Average time", "Carico": "Load", "Capacità": "Capacity",
+  "VINCOLO": "CONSTRAINT", "pezzi/anno": "pieces/year", "famiglie": "families", "turno/i": "shift(s)",
+  "efficienza": "efficiency", "Attraversamento stimato": "Estimated lead time",
+  "giorni:": "days:", "di attesa nei magazzini e": "waiting in buffers and", "di lavorazione.": "in processing.",
+  "Lavoro per pezzo": "Work per piece", "con attrezzaggio": "with changeover",
+  "efficienza di flusso": "flow efficiency", "Non sono contate le code interne ai reparti.": "Queues inside departments are not counted.",
+  /* messaggi */
+  "Salvato": "Saved",
+  "Non salvato nel browser — usa Esporta file": "Not saved in the browser — use Export file",
+  "File importato": "File imported",
+  "File non leggibile: non è un salvataggio Runeforge": "Unreadable file: this is not a Runeforge save",
+  "Aggiungi prima una fase: ogni reparto ne lavora una.": "Add a step first: every department works one.",
+  "Carico due famiglie di esempio con numeri inventati, solo per provare l'app. Continuo?": "This loads two sample families with made-up numbers, just to try the app. Continue?",
+  "Cancello fasi, reparti e famiglie e riparto dalla struttura iniziale. Continuo?": "This clears steps, departments and families and restarts from the initial structure. Continue?",
+  "Nuova fase": "New step", "Nuovo reparto": "New department", "Nuova famiglia": "New family",
+  "Scenario base": "Base scenario", "nessun reparto": "no department",
+  /* v1.4 */
+  "Rilievi": "Time study", "Scenari": "Scenarios", "Anno": "Year", "Anni": "Years",
+  "Incolla da Excel": "Paste from Excel",
+  "Copia le colonne dal foglio e incollale qui: l'app crea o aggiorna le righe da sola. Le famiglie già presenti vengono riconosciute dal nome e aggiornate, non duplicate.": "Copy the columns from your sheet and paste them here: the app creates or updates the rows for you. Families that already exist are matched by name and updated, not duplicated.",
+  "Famiglie e forecast": "Families and forecast", "Tempi per fase": "Times by step",
+  "Importa le righe": "Import the rows", "Svuota il riquadro": "Clear the box",
+  "Colonne attese: nome famiglia, anno 1, anno 2, anno 3, scarto %, valore pezzo. Bastano le prime due.": "Expected columns: family name, year 1, year 2, year 3, scrap %, piece value. The first two are enough.",
+  "Colonne attese: nome famiglia, fase, minuti uomo, minuti macchina, minuti di attrezzaggio. Bastano le prime tre.": "Expected columns: family name, step, labour minutes, machine minutes, changeover minutes. The first three are enough.",
+  "Il riquadro è vuoto.": "The box is empty.",
+  "Righe create": "Rows created", "aggiornate": "updated", "saltate": "skipped", "nomi non riconosciuti": "names not recognised",
+  "Costo orario di una cella": "Hourly cost of a cell", "Costo annuo di una cella in più": "Annual cost of one extra cell",
+  "Nomi degli anni del piano": "Names of the plan years", "Valore pezzo": "Piece value",
+  "Esporta risultati CSV": "Export results as CSV", "Stampa": "Print",
+  "Quanto costa": "What it costs",
+  "Traduzione in denaro del dimensionamento, con i costi che hai messo nei parametri. Se lasci i costi a zero questa tabella resta vuota.": "The sizing translated into money, using the costs you entered in the parameters. Leave the costs at zero and this table stays empty.",
+  "Voce": "Item", "Quantità": "Quantity", "Valore": "Value",
+  "Celle da aggiungere per stare al target": "Cells to add to reach the target",
+  "Ore di attrezzaggio all'anno": "Changeover hours per year",
+  "Ore di capacità non usata": "Hours of unused capacity",
+  "Pezzi fermi nei magazzini di reparto": "Pieces sitting in department buffers",
+  "Se gli operatori fossero polivalenti": "If operators were cross-trained",
+  "Oggi ogni operatore è legato al suo reparto, quindi ogni frazione di cella va arrotondata per eccesso reparto per reparto. Con la polivalenza le frazioni si sommano prima di arrotondare: qui vedi quante celle e quante ore recupereresti.": "Today each operator is tied to one department, so every fraction of a cell is rounded up department by department. With cross-training the fractions add up before rounding: here is how many cells and hours you would get back.",
+  "Con operatori dedicati, come oggi": "With dedicated operators, as today",
+  "Con operatori polivalenti": "With cross-trained operators",
+  "Recuperabile con la polivalenza": "Recovered through cross-training",
+  "Ore": "Hours", "Famiglie": "Families",
+  "Ricerca obiettivo": "Goal seek",
+  "Invece di muovere le leve a tentativi: l'app cerca il minimo che ti porta sotto la saturazione obiettivo in tutti i reparti, tenendo le celle di oggi.": "Instead of nudging the levers by trial and error: the app finds the minimum that brings every department below target utilisation, keeping today's cells.",
+  "Trova il minimo": "Find the minimum",
+  "Non esiste soluzione: questi reparti hanno carico ma nessuna cella": "No solution exists: these departments carry load but have no cells",
+  "Per stare sotto": "To stay below", "in ogni reparto": "in every department",
+  "Nessun carico da coprire.": "No load to cover.", "bastano": "you need", "ore annue per cella": "annual hours per cell",
+  "oggi": "today", "non basta nemmeno il massimo delle ore": "not even the maximum hours are enough",
+  "Piano pluriennale": "Multi-year plan",
+  "Le celle necessarie anno per anno con i parametri di setup. Serve a rispondere non se una cella servirà, ma quando.": "The cells needed year by year with the setup parameters. It answers not whether a cell will be needed, but when.",
+  "Totale celle suggerite": "Total suggested cells", "Vincolo": "Constraint",
+  "Rilevazione dei tempi": "Time study",
+  "Registra qui le singole misure a bordo linea. L'app calcola media e dispersione, e con un clic porta la media dentro i tempi della famiglia. Finché non misuri, i tempi restano stime tue.": "Record each individual measurement from the shop floor here. The app works out the mean and the spread, and with one click writes the mean into the family times. Until you measure, the times stay your own estimates.",
+  "Tipo di tempo": "Type of time", "Lavoro uomo": "Labour", "Tempo macchina": "Machine time",
+  "Minuti rilevati": "Minutes measured", "Registra la misura": "Record the measurement",
+  "Sintesi delle misure": "Summary of measurements",
+  "Con meno di cinque misure la dispersione dice poco: prendila come indicazione, non come dato.": "With fewer than five measurements the spread tells you little: treat it as an indication, not as data.",
+  "Misure registrate": "Recorded measurements", "Nessuna misura registrata.": "No measurements recorded.",
+  "Tipo": "Type", "Misure": "Measurements", "Media": "Mean", "Dev. standard": "Std deviation",
+  "Minimo": "Minimum", "Massimo": "Maximum", "Usa come tempo": "Use as the time", "Minuti": "Minutes",
+  "Servono famiglia, fase e un valore numerico.": "A family, a step and a number are required.",
+  "Tempo aggiornato": "Time updated",
+  "Scenari salvati": "Saved scenarios",
+  "Fotografa lo stato attuale con un nome e tienilo da parte. Serve per confrontare as-is e to-be senza esportare e reimportare file.": "Take a named snapshot of the current state and keep it aside. It lets you compare as-is and to-be without exporting and reimporting files.",
+  "Nome della fotografia": "Snapshot name", "Salva lo stato attuale": "Save the current state",
+  "Nessuno scenario salvato.": "No scenario saved.", "Salvato il": "Saved on", "Celle installate": "Cells installed",
+  "Carica": "Load",
+  "Confronto": "Comparison",
+  "Scegli una fotografia e vedi il delta rispetto a come stanno le cose adesso, reparto per reparto.": "Pick a snapshot and see the delta against how things stand now, department by department.",
+  "Salva uno scenario per poterlo confrontare.": "Save a scenario to be able to compare it.",
+  "Adesso": "Now", "Delta celle": "Cell delta",
+  "Sostituisco i dati attuali con quelli dello scenario salvato. Continuo?": "This replaces the current data with the saved scenario. Continue?",
+  "Tempo di ripristino e lotto si impostano nella Fucina, reparto per reparto. Giorni lavorativi e giorni di sicurezza stanno nei parametri generali. L'EPEI dice ogni quanti giorni riesci a ripassare tutte le famiglie del reparto, con le ore che ti restano dopo il lavoro: il magazzino non può coprire meno di quel numero, qualunque formula applichi.": "Replenishment time and batch size are set in the Forge, department by department. Working days and safety days live in the general parameters. EPEI tells you how many days it takes to run through every family in the department, with the hours left after the work itself: the buffer cannot cover less than that number, whatever formula you apply.",
+  "Il magazzino vero lo gestisci per codice, non per reparto: qui la quantità di buffer spetta a ogni famiglia in ogni reparto che attraversa. La classe è calcolata da volume e regolarità: alto e regolare va a flusso con lotti piccoli, sporadica conviene farla a ordine invece di tenerla a scorta.": "Real stock is managed by part number, not by department: here is the buffer quantity each family takes in every department it passes through. The class is derived from volume and regularity: high and steady runs in small batches, sporadic is better made to order than held in stock.",
+  "Stesso calcolo sul mese più carico, contro la capacità di un mese. Qui non dimensioni: scegli fra tre strade. L'anticipo per livellare è la terza: quanti pezzi produrre prima del picco per attraversarlo senza aggiungere né celle né ore.": "The same calculation on the busiest month, against one month of capacity. You do not size here: you choose between three routes. Build-ahead to level is the third one: how many pieces to make before the peak to get through it without adding cells or hours.",
+  /* v1.5 */
+  "Anticipo per livellare": "Build-ahead to level", "EPEI": "EPEI",
+  "nessuna ora per i cambi": "no hours left for changeovers",
+  "copertura sotto l'EPEI": "cover below EPEI",
+  "Classe": "Class", "Alto e regolare": "High and steady", "Ricorrente": "Recurring",
+  "Sporadica": "Sporadic", "Nessun volume": "No volume",
+  /* unità */
+  "gg": "d", "pz": "pcs", "min": "min", "h": "h", "ore": "hours", "pezzi": "pieces", "celle": "cells",
+  "Gen": "Jan", "Feb": "Feb", "Mar": "Mar", "Apr": "Apr", "Mag": "May", "Giu": "Jun",
+  "Lug": "Jul", "Ago": "Aug", "Set": "Sep", "Ott": "Oct", "Nov": "Nov", "Dic": "Dec"
+};
+function t(s) { return LANG === "it" ? s : (EN[s] !== undefined ? EN[s] : s); }
+const MESI_IT = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+const mese = i => t(MESI_IT[i]);
+
+const THEMES = {
+  dark:  { bg:"#15110E", panel:"#1D1814", head:"#28211B", ink:"#DED6C6", dim:"#9C9282", faint:"#6E665C",
+           line:"#3A302E", grid:"#28211B", gold:"#C9A227", brass:"#9C7B36", ember:"#E2571F",
+           setup:"#6E5A3A", vinc:"#FF8A5B", ok:"#5C8C6A", okTxt:"#8FC49F", warn:"#C9A227", bad:"#A63A2E", tri:"#2A211A" },
+  light: { bg:"#FFFDF7", panel:"#F3ECDC", head:"#E7DCC2", ink:"#2B2318", dim:"#6B6151", faint:"#8A806E",
+           line:"#C9BDA3", grid:"#E4DAC4", gold:"#8A6B1F", brass:"#A98B45", ember:"#C2481A",
+           setup:"#B29A6A", vinc:"#B3421A", ok:"#3F7A54", okTxt:"#2E5B3A", warn:"#A5851C", bad:"#A63A2E", tri:"#EFE6D0" }
+};
+const TH = () => THEMES[THEME];
+
+/* traduzione dei testi statici della pagina */
+const statNodes = [], statAttrs = [];
+function captureStatic() {
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) { const v = n.nodeValue.trim(); if (v && EN[v] !== undefined) statNodes.push([n, v]); }
+  document.querySelectorAll("[placeholder],[aria-label],[title]").forEach(el => {
+    ["placeholder", "aria-label", "title"].forEach(a => {
+      const v = el.getAttribute(a); if (v && EN[v] !== undefined) statAttrs.push([el, a, v]);
+    });
+  });
+}
+function applyStatic() {
+  statNodes.forEach(p => p[0].nodeValue = t(p[1]));
+  statAttrs.forEach(p => p[0].setAttribute(p[1], t(p[2])));
+  document.documentElement.lang = LANG;
+  document.getElementById("verNum").textContent = VERSION;
+  document.getElementById("themeBtn").textContent = THEME === "dark" ? t("Tema chiaro") : t("Tema scuro");
+  document.querySelectorAll("#langSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === LANG ? "true" : "false"));
+}
+function applyTheme() {
+  document.body.classList.toggle("light", THEME === "light");
+  document.getElementById("themeBtn").textContent = THEME === "dark" ? t("Tema chiaro") : t("Tema scuro");
+}
+
+/* ============================================================
+   STATO
+   ============================================================ */
+let saveTimer = null;
+const uid = () => Math.random().toString(36).slice(2, 9);
+const uniform = () => Array(12).fill(100 / 12);
+
+function blankState() {
+  const fasi = ["Saldatura","Pressatura","Assemblaggio","Cablaggio","Test","Finitura"].map(n => ({ id: uid(), nome: n }));
+  const celle = { Saldatura: [3, 6], Assemblaggio: [8, 12] };
+  return {
+    meta: { nome: "Scenario base", lang: "it", theme: "dark", version: VERSION, anno: 0, anni: ["Anno 1", "Anno 2", "Anno 3"] },
+    params: { oreAnnuePerCella: 1600, efficienza: 85, turni: 1, targetSaturazione: 85, giorniLavorativi: 220, giorniSicurezza: 1, costoOraCella: 0, costoCellaAnno: 0 },
+    fasi,
+    reparti: fasi.map(f => ({
+      id: uid(), nome: f.nome, faseId: f.id,
+      celleAttuali: celle[f.nome] ? celle[f.nome][0] : 1,
+      celleMax: celle[f.nome] ? celle[f.nome][1] : 4,
+      oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true
+    })),
+    famiglie: [], rilievi: [], snapshots: []
+  };
+}
+let S = blankState();
+
+function migrate(o) {
+  const b = blankState();
+  if (!o || typeof o !== "object") return b;
+  o.meta = Object.assign({ nome: "Scenario base", lang: "it", theme: "dark", anno: 0, anni: ["Anno 1", "Anno 2", "Anno 3"] }, o.meta);
+  if (!Array.isArray(o.meta.anni) || o.meta.anni.length !== 3) o.meta.anni = ["Anno 1", "Anno 2", "Anno 3"];
+  if (!(o.meta.anno >= 0 && o.meta.anno <= 2)) o.meta.anno = 0;
+  o.rilievi = Array.isArray(o.rilievi) ? o.rilievi : [];
+  o.snapshots = Array.isArray(o.snapshots) ? o.snapshots : [];
+  o.meta.version = VERSION;
+  o.params = Object.assign({}, b.params, o.params);
+  o.fasi = Array.isArray(o.fasi) ? o.fasi : b.fasi;
+  o.reparti = Array.isArray(o.reparti) ? o.reparti : [];
+  o.reparti.forEach(r => {
+    if (r.ltGiorni == null) r.ltGiorni = 1;
+    if (r.lotto == null) r.lotto = 0;
+    if (r.macchine == null) r.macchine = 0;
+    if (r.buffer == null) r.buffer = true;
+  });
+  o.famiglie = Array.isArray(o.famiglie) ? o.famiglie : [];
+  o.famiglie.forEach(f => {
+    f.tempi = f.tempi || {};
+    if (f.scarto == null) f.scarto = 0;
+    if (f.valore == null) f.valore = 0;
+    if (!Array.isArray(f.forecastAnni) || f.forecastAnni.length !== 3) f.forecastAnni = [nz(f.forecast), 0, 0];
+    delete f.forecast;
+    if (!Array.isArray(f.mensile) || f.mensile.length !== 12) f.mensile = uniform();
+    o.fasi.forEach(fa => {
+      if (!f.tempi[fa.id]) f.tempi[fa.id] = { on: false, min: 0, minMacchina: 0, setup: 0 };
+      const x = f.tempi[fa.id];
+      if (x.minMacchina == null) x.minMacchina = 0;
+      if (x.setup == null) x.setup = 0;
+    });
+  });
+  return o;
+}
+
+async function save() {
+  S.meta.lang = LANG; S.meta.theme = THEME; S.meta.version = VERSION;
+  try {
+    const r = await window.storage.set(KEY, JSON.stringify(S));
+    if (!r) throw new Error("no result");
+    flag(t("Salvato"));
+  } catch (e) {
+    flag(t("Non salvato nel browser — usa Esporta file"), true);
+  }
+}
+function queueSave() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 700); }
+function flag(msg, bad) {
+  const el = document.getElementById("savedFlag");
+  el.textContent = msg; el.style.color = bad ? "var(--bad-fg)" : "var(--moss)";
+  if (!bad) setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, 1800);
+}
+async function load() {
+  try {
+    const r = await window.storage.get(KEY);
+    if (r && r.value) {
+      S = migrate(JSON.parse(r.value));
+      if (S.meta.lang === "en" || S.meta.lang === "it") LANG = S.meta.lang;
+      if (S.meta.theme === "light" || S.meta.theme === "dark") THEME = S.meta.theme;
+    }
+  } catch (e) { /* nessun dato salvato */ }
+}
+
+/* ============================================================
+   CALCOLO
+   ============================================================ */
+function nz(v) { const n = parseFloat(v); return isFinite(n) ? n : 0; }
+
+function compute(ov) {
+  ov = ov || {};
+  const P = S.params;
+  const mult = ov.mult != null ? ov.mult : 1;
+  const turni = ov.turni != null ? ov.turni : nz(P.turni) || 1;
+  const oreBase = ov.ore != null ? ov.ore : nz(P.oreAnnuePerCella);
+  const eff = (ov.eff != null ? ov.eff : nz(P.efficienza)) / 100;
+  const target = (ov.target != null ? ov.target : nz(P.targetSaturazione)) / 100;
+  const anno = ov.anno != null ? ov.anno : (S.meta.anno || 0);
+
+  const righe = S.fasi.map(fase => {
+    const rep = S.reparti.find(r => r.faseId === fase.id) || null;
+    const ore = rep && rep.oreOverride != null && rep.oreOverride !== "" ? nz(rep.oreOverride) : oreBase;
+    const capCella = ore * turni * eff;
+    const celle = rep ? nz(rep.celleAttuali) : 0;
+    const max = rep ? nz(rep.celleMax) : 0;
+    const macchine = rep ? nz(rep.macchine) : 0;
+    const lotto = rep ? nz(rep.lotto) : 0;
+
+    let oreUomo = 0, oreMacc = 0, oreSetup = 0, pezzi = 0, pezziNetti = 0, cambi = 0;
+    const meseH = Array(12).fill(0), mesePz = Array(12).fill(0), contrib = [];
+    S.famiglie.forEach(f => {
+      const x = f.tempi[fase.id];
+      if (!x || !x.on) return;
+      const netto = nz(f.forecastAnni[anno]) * mult;
+      if (netto <= 0) return;
+      const scarto = Math.min(nz(f.scarto), 95) / 100;
+      const q = netto / (1 - scarto);
+      const hU = q * nz(x.min) / 60;
+      const hM = q * nz(x.minMacchina) / 60;
+      const nCambi = lotto > 0 ? q / lotto : 0;
+      const hS = nCambi * nz(x.setup) / 60;
+      if (hU + hM + hS <= 0) return;
+      oreUomo += hU; oreMacc += hM; oreSetup += hS; cambi += nCambi;
+      pezzi += q; pezziNetti += netto;
+      contrib.push({ id: f.id, nome: f.nome, ore: hU, setup: hS, oreMacc: hM, pezzi: q, min: nz(x.min), setupMin: nz(x.setup) });
+      const tot = f.mensile.reduce((a, b) => a + nz(b), 0) || 100;
+      for (let m = 0; m < 12; m++) { meseH[m] += (hU + hS) * nz(f.mensile[m]) / tot; mesePz[m] += q * nz(f.mensile[m]) / tot; }
+    });
+
+    const caricoU = oreUomo + oreSetup;
+    const caricoM = macchine > 0 ? oreMacc + oreSetup : 0;
+    const caricoH = caricoU;
+    const necUomo = capCella > 0 ? caricoU / capCella : 0;
+    const necMacc = capCella > 0 && macchine > 0 ? caricoM / capCella : 0;
+    const capTot = celle * capCella;
+    const satU = capTot > 0 ? caricoU / capTot : null;
+    const satM = macchine > 0 && capCella > 0 ? caricoM / (macchine * capCella) : null;
+    const sat = satM != null && (satU == null || satM > satU) ? satM : satU;
+    const risorsa = necMacc > necUomo ? "macchina" : "uomo";
+    const necFraz = Math.max(necUomo, necMacc);
+    const suggFraz = target > 0 ? necFraz / target : 0;
+    const sugg = Math.max(0, Math.ceil(suggFraz - 1e-9));
+
+    const picH = Math.max.apply(null, meseH);
+    const picIdx = meseH.indexOf(picH);
+    const capMese = capTot / 12;
+    const satPicco = capMese > 0 ? picH / capMese : null;
+
+    const taktMin = pezzi > 0 ? capCella * 60 / pezzi : null;
+    const tcMedio = pezzi > 0 ? caricoU * 60 / pezzi : null;
+    const tcVA = pezzi > 0 ? oreUomo * 60 / pezzi : null;
+    const tcMacc = pezzi > 0 && macchine > 0 ? caricoM * 60 / pezzi : null;
+    const maxU = tcMedio > 0 ? capTot * 60 / tcMedio : null;
+    const maxM = tcMacc > 0 ? macchine * capCella * 60 / tcMacc : null;
+    const maxPezzi = maxM != null && (maxU == null || maxM < maxU) ? maxM : maxU;
+
+    const mediaH = meseH.reduce((a, b) => a + b, 0) / 12;
+    let cv = 0;
+    if (mediaH > 0) {
+      const varz = meseH.reduce((a, h) => a + (h - mediaH) * (h - mediaH), 0) / 12;
+      cv = Math.sqrt(varz) / mediaH;
+    }
+    const targetCons = Math.max(65, Math.min(92, 95 - 40 * cv));
+
+    // EPEI: ogni quanti giorni riesci a ripassare tutte le famiglie del reparto
+    const setupGiro = contrib.reduce((a, k) => a + k.setupMin, 0);
+    const ggLav = nz(P.giorniLavorativi) || 1;
+    const setupDispGG = (capTot - oreUomo) / ggLav;
+    const epei = setupGiro <= 0 ? 0 : (setupDispGG > 0 ? (setupGiro / 60) / setupDispGG : null);
+
+    // livellamento: ore da produrre in anticipo per attraversare il picco senza capacità extra
+    // produzione livellata al ritmo medio: scorta di anticipo = massimo scostamento cumulato
+    // l'escursione fra il massimo e il minimo dello scostamento cumulato non dipende
+    // da quale mese si prende come inizio dell'anno
+    let cum = 0, maxCum = 0, minCum = 0;
+    const mediaMese = caricoU / 12;
+    for (let m = 0; m < 12; m++) {
+      cum += meseH[m] - mediaMese;
+      if (cum > maxCum) maxCum = cum;
+      if (cum < minCum) minCum = cum;
+    }
+    const swing = maxCum - minCum;
+    // se la capacità annua non basta, anticipare non risolve: il livellamento non è una strada
+    const anticipoOre = (capTot > 0 && sat != null && sat <= 1) ? swing : 0;
+    const anticipoPz = tcMedio > 0 ? anticipoOre * 60 / tcMedio : null;
+
+    return {
+      fase, rep, nome: rep ? rep.nome : fase.nome + " (" + t("nessun reparto") + ")",
+      ore, capCella, celle, max, macchine, caricoH, pezzi, pezziNetti,
+      oreUomo, oreMacc, oreSetup, cambi, lotto,
+      necUomo, necMacc, risorsa, satU, satM,
+      necFraz, necInt: Math.ceil(necFraz - 1e-9), sat,
+      suggFraz, sugg, gap: sugg - celle, oltreMax: max > 0 && sugg > max,
+      picH, picIdx, satPicco, taktMin, tcMedio, tcVA, maxPezzi, cv, targetCons, meseH,
+      mesePz, picPz: Math.max.apply(null, mesePz), contrib,
+      epei, setupGiro, anticipoOre, anticipoPz,
+      ltGiorni: rep ? nz(rep.ltGiorni) : 0, buffer: rep ? rep.buffer !== false : false
+    };
+  });
+
+  const attive = righe.filter(r => r.caricoH > 0 && r.sat != null);
+  const vincolo = attive.length ? attive.reduce((a, b) => b.sat > a.sat ? b : a) : null;
+  const conCarico = righe.filter(r => r.caricoH > 0 && r.maxPezzi != null);
+  const throughput = conCarico.length ? Math.min.apply(null, conCarico.map(r => r.maxPezzi)) : null;
+  const domanda = righe.length ? Math.max.apply(null, righe.map(r => r.pezzi)) : 0;
+  const oreFerme = righe.filter(r => r.caricoH > 0).reduce((a, r) => a + Math.max(0, (r.celle - r.necFraz)) * r.capCella, 0);
+  const oreSetupTot = righe.reduce((a, r) => a + r.oreSetup, 0);
+  const costoOra = nz(P.costoOraCella), costoCella = nz(P.costoCellaAnno);
+  const celleDaAggiungere = righe.reduce((a, r) => a + Math.max(0, r.sugg - r.celle), 0);
+  const capMedia = conCarico.length ? conCarico.reduce((a, r) => a + r.capCella, 0) / conCarico.length : 0;
+  const necTot = righe.reduce((a, r) => a + r.necFraz, 0);
+  const cellePool = Math.ceil(necTot - 1e-9);
+  const celleDedicate = righe.reduce((a, r) => a + r.necInt, 0);
+  const costi = { gap: celleDaAggiungere * costoCella, ferme: oreFerme * costoOra, setup: oreSetupTot * costoOra };
+  const poliv = { pool: cellePool, dedicate: celleDedicate, risparmio: Math.max(0, celleDedicate - cellePool), ore: Math.max(0, celleDedicate - cellePool) * capMedia };
+  return { righe, vincolo, throughput, domanda, oreFerme, oreSetupTot, celleDaAggiungere, costi, poliv, anno, mult, turni, target };
+}
+
+/* ============================================================
+   FORMATTAZIONE
+   ============================================================ */
+const nf = (v, d) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString(LANG === "it" ? "it-IT" : "en-GB", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+const pct = v => v == null ? "—" : nf(v * 100, 0) + "%";
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const U = { gg: () => t("gg"), pz: () => t("pz"), min: () => t("min"), h: () => t("h") };
+
+function satColor(s) { const C = TH(); if (s == null) return C.line; if (s > 1) return C.bad; if (s >= .85) return C.warn; return C.ok; }
+function satCell(s) {
+  if (s == null) return '<td class="num">—</td>';
+  const w = Math.min(s, 1.4) / 1.4 * 100;
+  return '<td><div class="satbar" title="' + pct(s) + '"><i style="width:' + w.toFixed(1) + '%;background:' + satColor(s) + '"></i>'
+       + '<span class="mark100" style="left:' + (100 / 1.4).toFixed(1) + '%"></span></div></td>'
+       + '<td class="num">' + pct(s) + '</td>';
+}
+function verdict(r) {
+  if (r.caricoH <= 0) return '<span class="tag t-idle">' + t("nessun carico") + "</span>";
+  if (r.celle <= 0) return '<span class="tag t-bad">' + t("nessuna cella") + "</span>";
+  if (r.sat > 1) return '<span class="tag t-bad">' + t("non regge") + "</span>";
+  if (r.sat >= .85) return '<span class="tag t-warn">' + t("al limite") + "</span>";
+  return '<span class="tag t-ok">' + t("regge") + "</span>";
+}
+const th = (label, cls, style) => "<th" + (cls ? ' class="' + cls + '"' : "") + (style ? ' style="' + style + '"' : "") + ">" + t(label) + "</th>";
+
+/* ============================================================
+   SETUP — render
+   ============================================================ */
+function renderFasi() {
+  const el = document.getElementById("tblFasi");
+  if (!S.fasi.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna fase. Aggiungine una per iniziare.") + "</td></tr></tbody>"; return; }
+  el.innerHTML = "<thead><tr>" + th("#", null, "width:52px") + th("Fase") + th("Ordine", null, "width:180px") + "<th style='width:90px'></th></tr></thead><tbody>"
+    + S.fasi.map((f, i) =>
+      '<tr><td class="num">' + (i + 1) + "</td>"
+      + '<td><input class="wide" value="' + esc(f.nome) + '" data-k="fase" data-id="' + f.id + '" data-f="nome"></td>'
+      + '<td><button class="act ghost" data-move="fase" data-id="' + f.id + '" data-dir="-1"' + (i === 0 ? " disabled" : "") + ">" + t("Su") + "</button> "
+      + '<button class="act ghost" data-move="fase" data-id="' + f.id + '" data-dir="1"' + (i === S.fasi.length - 1 ? " disabled" : "") + ">" + t("Giù") + "</button></td>"
+      + '<td><button class="danger" data-del="fase" data-id="' + f.id + '">' + t("Elimina") + "</button></td></tr>").join("")
+    + "</tbody>";
+}
+
+function renderReparti() {
+  const el = document.getElementById("tblReparti");
+  if (!S.reparti.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; return; }
+  const opts = f => S.fasi.map(x => '<option value="' + x.id + '"' + (x.id === f ? " selected" : "") + ">" + esc(x.nome) + "</option>").join("");
+  el.innerHTML = "<thead><tr>" + th("Reparto") + th("Fase lavorata") + th("Celle oggi", "num") + th("Celle max", "num")
+    + th("Macchine", "num") + th("Ore annue per cella", "num") + th("Ripristino (gg)", "num") + th("Lotto (pz)", "num")
+    + th("Buffer") + "<th style='width:90px'></th></tr></thead><tbody>"
+    + S.reparti.map(r =>
+      '<tr><td><input class="wide" value="' + esc(r.nome) + '" data-k="reparto" data-id="' + r.id + '" data-f="nome"></td>'
+      + '<td><select data-k="reparto" data-id="' + r.id + '" data-f="faseId">' + opts(r.faseId) + "</select></td>"
+      + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleAttuali) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleAttuali"></td>'
+      + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleMax) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleMax"></td>'
+      + '<td class="num"><input type="number" min="0" step="1" style="width:76px" value="' + nz(r.macchine) + '" data-k="reparto" data-id="' + r.id + '" data-f="macchine"></td>'
+      + '<td class="num"><input type="number" min="0" step="10" placeholder="' + nz(S.params.oreAnnuePerCella) + '" value="' + (r.oreOverride == null ? "" : r.oreOverride) + '" data-k="reparto" data-id="' + r.id + '" data-f="oreOverride"></td>'
+      + '<td class="num"><input type="number" min="0" step="0.5" style="width:78px" value="' + nz(r.ltGiorni) + '" data-k="reparto" data-id="' + r.id + '" data-f="ltGiorni"></td>'
+      + '<td class="num"><input type="number" min="0" step="1" style="width:82px" value="' + nz(r.lotto) + '" data-k="reparto" data-id="' + r.id + '" data-f="lotto"></td>'
+      + '<td><input type="checkbox" ' + (r.buffer !== false ? "checked" : "") + ' data-k="reparto" data-id="' + r.id + '" data-f="buffer" aria-label="' + t("Tieni un magazzino a valle") + '"></td>'
+      + '<td><button class="danger" data-del="reparto" data-id="' + r.id + '">' + t("Elimina") + "</button></td></tr>").join("")
+    + "</tbody>";
+}
+
+function renderFamiglie() {
+  const el = document.getElementById("tblFamiglie");
+  if (!S.famiglie.length) {
+    el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna famiglia. Aggiungine una, oppure carica i dati di esempio per vedere l'app in funzione.") + "</td></tr></tbody>";
+    return;
+  }
+  const A = S.meta.anni;
+  const head = "<thead><tr>" + th("Famiglia") + th("Cluster")
+    + A.map(a => '<th class="num">' + esc(a) + "</th>").join("")
+    + th("Scarto %", "num") + th("Valore pezzo", "num")
+    + S.fasi.map(f => '<th class="phase">' + esc(f.nome) + "<br><span style=\"font-weight:400;letter-spacing:0\">" + t("uomo · macchina · setup") + "</span></th>").join("")
+    + "<th style='width:90px'></th></tr></thead>";
+  const body = S.famiglie.map(fa => {
+    const cells = S.fasi.map(f => {
+      const x = fa.tempi[f.id] || { on: false, min: 0, minMacchina: 0, setup: 0 };
+      const inp = (field, val, tip) => '<input type="number" min="0" step="0.5" style="width:52px" title="' + t(tip) + '" value="' + nz(val) + '" data-k="tempo" data-id="' + fa.id + '" data-fase="' + f.id + '" data-f="' + field + '"' + (x.on ? "" : " disabled") + ">";
+      return '<td class="cellphase' + (x.on ? "" : " off") + '">'
+        + '<input type="checkbox" ' + (x.on ? "checked" : "") + ' data-k="tempo" data-id="' + fa.id + '" data-fase="' + f.id + '" data-f="on" aria-label="' + t("Fase attiva") + '">'
+        + inp("min", x.min, "Minuti uomo per pezzo")
+        + inp("minMacchina", x.minMacchina, "Minuti macchina per pezzo")
+        + inp("setup", x.setup, "Minuti di attrezzaggio per cambio") + "</td>";
+    }).join("");
+    return '<tr><td><input value="' + esc(fa.nome) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="nome"></td>'
+      + '<td><input style="width:120px" value="' + esc(fa.cluster) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="cluster"></td>'
+      + [0, 1, 2].map(i => '<td class="num"><input type="number" min="0" step="1" style="width:88px" value="' + nz(fa.forecastAnni[i]) + '" data-k="anno" data-id="' + fa.id + '" data-y="' + i + '"></td>').join("")
+      + '<td class="num"><input type="number" min="0" max="95" step="0.5" style="width:70px" value="' + nz(fa.scarto) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="scarto"></td>' 
+      + '<td class="num"><input type="number" min="0" step="1" style="width:82px" value="' + nz(fa.valore) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="valore"></td>' 
+      + cells
+      + '<td><button class="danger" data-del="famiglia" data-id="' + fa.id + '">' + t("Elimina") + "</button></td></tr>";
+  }).join("");
+  el.innerHTML = head + "<tbody>" + body + "</tbody><tfoot><tr><td colspan='2'>" + t("Totale") + "</td>"
+    + [0, 1, 2].map(i => "<td class='num'>" + nf(S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[i]), 0)) + "</td>").join("")
+    + "<td colspan='" + (S.fasi.length + 3) + "'></td></tr></tfoot>";
+}
+
+function renderMensile() {
+  const el = document.getElementById("tblMensile");
+  if (!S.famiglie.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Compare qui appena aggiungi una famiglia.") + "</td></tr></tbody>"; return; }
+  el.innerHTML = "<thead><tr>" + th("Famiglia") + MESI_IT.map(m => '<th class="num">' + t(m) + "</th>").join("") + th("Somma", "num") + "</tr></thead><tbody>"
+    + S.famiglie.map(f => {
+      const tot = f.mensile.reduce((a, b) => a + nz(b), 0);
+      const bad = Math.abs(tot - 100) > 0.5;
+      return "<tr><td>" + esc(f.nome) + "</td>"
+        + f.mensile.map((v, i) => '<td class="num"><input type="number" style="width:62px" min="0" step="0.5" value="' + (Math.round(nz(v) * 10) / 10) + '" data-k="mese" data-id="' + f.id + '" data-m="' + i + '"></td>').join("")
+        + '<td class="num" style="color:' + (bad ? "var(--warn-fg)" : "var(--dim)") + '">' + nf(tot, 1) + "%</td></tr>";
+    }).join("")
+    + "</tbody>";
+}
+
+function renderParams() {
+  document.getElementById("pOre").value = S.params.oreAnnuePerCella;
+  document.getElementById("pEff").value = S.params.efficienza;
+  document.getElementById("pTurni").value = S.params.turni;
+  document.getElementById("pTarget").value = S.params.targetSaturazione;
+  document.getElementById("pGG").value = S.params.giorniLavorativi;
+  document.getElementById("pSic").value = S.params.giorniSicurezza;
+  document.getElementById("pCostoOra").value = S.params.costoOraCella;
+  document.getElementById("pCostoCella").value = S.params.costoCellaAnno;
+  document.querySelectorAll("[data-anno]").forEach(el => el.value = S.meta.anni[+el.dataset.anno] || "");
+  document.getElementById("scenName").value = S.meta.nome || "";
+}
+function renderSetup() { renderFasi(); renderReparti(); renderFamiglie(); renderMensile(); renderParams(); }
+
+/* ============================================================
+   RISULTATI
+   ============================================================ */
+function kpi(n, l) { return '<div class="kpi"><div class="n">' + n + '</div><div class="l">' + t(l) + "</div></div>"; }
+
+function renderRisultati() {
+  const c = compute();
+  const box = document.getElementById("constraintBox");
+  if (c.vincolo) {
+    const v = c.vincolo;
+    const tp = c.throughput != null ? c.throughput : 0;
+    const copre = c.domanda > 0 ? tp / c.domanda : null;
+    box.innerHTML = '<div class="constraint"><p class="k">' + t("Il vincolo del flusso") + "</p>"
+      + '<div class="v">' + esc(v.nome) + " — " + pct(v.sat) + ", " + t(v.risorsa === "macchina" ? "limite di macchina" : "limite di manodopera") + "</div>"
+      + "<p>" + t("È il reparto più carico: detta il ritmo di tutta la catena, quindi ogni cella o ora aggiunta altrove non aumenta la produzione.") + " "
+      + nf(v.celle) + " " + t("celle coprono") + " " + nf(v.celle * v.capCella) + " " + t("ore contro un carico di") + " " + nf(v.caricoH) + ", " + t("di cui") + " " + nf(v.oreSetup) + " " + t("di attrezzaggio.") + "</p>"
+      + "<p>" + t("Con la struttura di oggi la catena porta a casa circa") + " <strong>" + nf(tp) + " " + t("pezzi all'anno") + "</strong>"
+      + (copre != null ? ", " + t("cioè il") + " " + pct(copre) + " " + t("di quello che il forecast chiede") : "") + ".</p></div>";
+  } else {
+    box.innerHTML = '<div class="panel"><p class="empty" style="margin:0">' + t("Nessun carico da calcolare. Inserisci famiglie, forecast e tempi nella Fucina.") + "</p></div>";
+  }
+
+  const tot = c.righe.reduce((a, r) => a + r.caricoH, 0);
+  const setupTot = c.righe.reduce((a, r) => a + r.oreSetup, 0);
+  const celleOggi = c.righe.reduce((a, r) => a + r.celle, 0);
+  const celleServ = c.righe.reduce((a, r) => a + r.necInt, 0);
+  const pezzi = S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[S.meta.anno || 0]), 0);
+  document.getElementById("kpis").innerHTML =
+    kpi(nf(pezzi), "pezzi a forecast") + kpi(nf(tot), "ore di lavoro all'anno") + kpi(nf(setupTot), "di cui attrezzaggio")
+    + kpi(nf(celleOggi), "celle installate") + kpi(nf(celleServ), "celle al minimo tecnico") + kpi(nf(c.oreFerme), "ore di capacità non usata");
+
+  document.getElementById("tblRisultati").innerHTML =
+    "<thead><tr>" + th("Reparto") + th("Pezzi lanciati", "num") + th("Ore lavoro", "num") + th("Ore setup", "num")
+    + th("Ore per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
+    + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
+    + (c.righe.length ? c.righe.map(r =>
+      "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.oreUomo) + "</td>"
+      + '<td class="num" style="color:' + (r.oreSetup > 0 ? "var(--warn-fg)" : "var(--dim)") + '">' + nf(r.oreSetup) + "</td>"
+      + '<td class="num">' + nf(r.capCella) + "</td>"
+      + "<td>" + (r.caricoH <= 0 ? "—" : r.risorsa === "macchina" ? '<span class="tag t-warn">' + t("macchina") + "</span>" : '<span class="tag t-idle">' + t("uomo") + "</span>") + "</td>"
+      + '<td class="num">' + nf(r.necFraz, 2) + " <span style=\"color:var(--dim)\">→ " + nf(r.necInt) + "</span></td>"
+      + '<td class="num">' + nf(r.celle) + "</td>"
+      + '<td class="num" style="color:' + (r.necInt - r.celle > 0 ? "var(--bad-fg)" : "var(--dim)") + '">' + (r.necInt - r.celle > 0 ? "+" : "") + nf(r.necInt - r.celle) + "</td>"
+      + satCell(r.sat) + "<td>" + verdict(r) + "</td></tr>").join("") : '<tr><td class="empty">—</td></tr>')
+    + "</tbody>";
+
+  document.getElementById("tblPicco").innerHTML =
+    "<thead><tr>" + th("Reparto") + th("Mese di picco") + th("Ore nel mese", "num") + th("Capacità del mese", "num")
+    + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Anticipo per livellare", "num") + th("Esito") + "</tr></thead><tbody>"
+    + c.righe.map(r => {
+      const ok = r.caricoH > 0;
+      return "<tr><td>" + esc(r.nome) + "</td><td>" + (ok ? mese(r.picIdx) : "—") + "</td>"
+        + '<td class="num">' + (ok ? nf(r.picH) : "—") + "</td>"
+        + '<td class="num">' + nf(r.celle * r.capCella / 12) + "</td>"
+        + satCell(ok ? r.satPicco : null)
+        + '<td class="num">' + (ok && r.anticipoOre > 0 ? nf(r.anticipoPz) + " " + U.pz() + ' <span style="color:var(--dim)">(' + nf(r.anticipoOre) + " " + U.h() + ")</span>" : "—") + "</td>"
+        + "<td>" + (!ok ? '<span class="tag t-idle">' + t("nessun carico") + "</span>"
+          : r.satPicco > 1 ? '<span class="tag t-bad">' + t("serve capacità extra") + "</span>"
+          : r.satPicco >= .85 ? '<span class="tag t-warn">' + t("al limite") + "</span>"
+          : '<span class="tag t-ok">' + t("regge") + "</span>") + "</td></tr>";
+    }).join("") + "</tbody>";
+
+  document.getElementById("tblTakt").innerHTML =
+    "<thead><tr>" + th("Reparto") + th("Takt, una cella", "num") + th("Takt con le celle di oggi", "num")
+    + th("Solo lavoro", "num") + th("Lavoro + setup", "num") + th("Variabilità", "num") + th("Target consigliato", "num") + th("Esito") + "</tr></thead><tbody>"
+    + c.righe.map(r => {
+      const taktReale = r.taktMin != null && r.celle > 0 ? r.taktMin * r.celle : null;
+      const ok = taktReale != null && r.tcMedio != null ? r.tcMedio <= taktReale : null;
+      return "<tr><td>" + esc(r.nome) + '</td><td class="num">' + (r.taktMin != null ? nf(r.taktMin, 1) + " " + U.min() : "—") + "</td>"
+        + '<td class="num">' + (taktReale != null ? nf(taktReale, 1) + " " + U.min() : "—") + "</td>"
+        + '<td class="num">' + (r.tcVA != null ? nf(r.tcVA, 1) + " " + U.min() : "—") + "</td>"
+        + '<td class="num">' + (r.tcMedio != null ? nf(r.tcMedio, 1) + " " + U.min() : "—") + "</td>"
+        + '<td class="num">' + (r.caricoH > 0 ? nf(r.cv * 100, 0) + "%" : "—") + "</td>"
+        + '<td class="num">' + (r.caricoH > 0 ? nf(r.targetCons, 0) + "%" : "—") + "</td>"
+        + "<td>" + (ok == null ? '<span class="tag t-idle">—</span>' : ok ? '<span class="tag t-ok">' + t("dentro il takt") + "</span>" : '<span class="tag t-bad">' + t("fuori takt") + "</span>") + "</td></tr>";
+    }).join("") + "</tbody>";
+}
+
+/* ============================================================
+   SIMULAZIONE
+   ============================================================ */
+let SIM = null;
+function simDefaults() {
+  return { mult: 100, turni: nz(S.params.turni) || 1, ore: nz(S.params.oreAnnuePerCella), eff: nz(S.params.efficienza), target: nz(S.params.targetSaturazione) };
+}
+function renderSimControls() {
+  if (!SIM) SIM = simDefaults();
+  const set = (id, v) => { document.getElementById(id).value = v; };
+  set("sMult", SIM.mult); set("sTurni", SIM.turni); set("sOre", SIM.ore); set("sEff", SIM.eff); set("sTarget", SIM.target);
+  document.getElementById("sMultV").textContent = SIM.mult + "%";
+  document.getElementById("sTurniV").textContent = SIM.turni;
+  document.getElementById("sOreV").textContent = nf(SIM.ore) + " " + U.h();
+  document.getElementById("sEffV").textContent = SIM.eff + "%";
+  document.getElementById("sTargetV").textContent = SIM.target + "%";
+}
+function renderSimulazione() {
+  if (!SIM) SIM = simDefaults();
+  renderSimControls();
+  const c = compute({ mult: SIM.mult / 100, turni: SIM.turni, ore: SIM.ore, eff: SIM.eff, target: SIM.target });
+
+  document.getElementById("tblSimOggi").innerHTML =
+    "<thead><tr>" + th("Reparto") + th("Ore carico", "num") + th("Celle oggi", "num") + th("Ore coperte", "num")
+    + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
+    + c.righe.map(r => "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.caricoH) + '</td><td class="num">' + nf(r.celle) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
+      + satCell(r.sat) + "<td>" + verdict(r) + "</td></tr>").join("") + "</tbody>";
+
+  document.getElementById("tblSimSugg").innerHTML =
+    "<thead><tr>" + th("Reparto") + th("Celle necessarie", "num") + th("Celle suggerite", "num") + th("Celle oggi", "num")
+    + th("Da aggiungere", "num") + th("Tetto max", "num") + th("Esito") + "</tr></thead><tbody>"
+    + c.righe.map(r => {
+      const add = r.sugg - r.celle;
+      return "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.suggFraz, 2) + "</td>"
+        + '<td class="num" style="color:var(--gold);font-weight:700">' + (r.caricoH > 0 ? nf(r.sugg) : "—") + "</td>"
+        + '<td class="num">' + nf(r.celle) + "</td>"
+        + '<td class="num" style="color:' + (add > 0 ? "var(--bad-fg)" : add < 0 ? "var(--ok-fg)" : "var(--dim)") + '">' + (r.caricoH > 0 ? (add > 0 ? "+" : "") + nf(add) : "—") + "</td>"
+        + '<td class="num">' + nf(r.max) + "</td>"
+        + "<td>" + (r.caricoH <= 0 ? '<span class="tag t-idle">' + t("nessun carico") + "</span>"
+          : r.oltreMax ? '<span class="tag t-bad">' + t("oltre il tetto di") + " " + nf(r.max) + "</span>"
+          : add > 0 ? '<span class="tag t-warn">' + t("celle da aggiungere") + "</span>"
+          : add < 0 ? '<span class="tag t-ok">' + t("margine disponibile") + "</span>"
+          : '<span class="tag t-ok">' + t("dimensionato") + "</span>") + "</td></tr>";
+    }).join("") + "</tbody>";
+}
+
+/* ============================================================
+   MAGAZZINI
+   ============================================================ */
+let SCORTE_BASE = "media";
+function computeBuffers(c, base) {
+  const gg = nz(S.params.giorniLavorativi) || 1;
+  const sicGG = nz(S.params.giorniSicurezza);
+  const ggMese = gg / 12;
+  return c.righe.map(r => {
+    const domGG = base === "picco" ? (ggMese > 0 ? r.picPz / ggMese : 0) : r.pezzi / gg;
+    const ciclo = domGG * r.ltGiorni;
+    const sic = domGG * sicGG;
+    const attivo = r.pezzi > 0 && r.buffer;
+    const mezzoLotto = attivo ? r.lotto / 2 : 0;
+    const tot = attivo ? ciclo + sic + mezzoLotto : 0;
+    const fam = r.contrib.map(k => {
+      const quota = r.pezzi > 0 ? k.pezzi / r.pezzi : 0;
+      return { id: k.id, nome: k.nome, pz: tot * quota, domGG: domGG * quota };
+    });
+    return { r, domGG, ciclo, sic, mezzoLotto, tot, totInt: Math.ceil(tot - 1e-9), giorni: domGG > 0 ? tot / domGG : null, fam };
+  });
+}
+
+function renderScorte() {
+  const c = compute();
+  const B = computeBuffers(c, SCORTE_BASE);
+  document.querySelectorAll("#scorteBase button").forEach(b => b.setAttribute("aria-pressed", b.dataset.base === SCORTE_BASE ? "true" : "false"));
+
+  document.getElementById("tblScorte").innerHTML =
+    "<thead><tr>" + th("Magazzino a valle di") + th("Consumo al giorno", "num") + th("Ripristino", "num")
+    + th("Scorta di ciclo", "num") + th("Sicurezza", "num") + th("Mezzo lotto", "num")
+    + th("Buffer consigliato", "num") + th("Copertura", "num") + th("EPEI", "num") + th("Nota") + "</tr></thead><tbody>"
+    + B.map(b => {
+      const r = b.r;
+      return "<tr><td>" + esc(r.nome) + "</td>"
+        + '<td class="num">' + (b.domGG > 0 ? nf(b.domGG, 1) + " " + U.pz() : "—") + "</td>"
+        + '<td class="num">' + nf(r.ltGiorni, 1) + " " + U.gg() + "</td>"
+        + '<td class="num">' + nf(b.ciclo) + '</td><td class="num">' + nf(b.sic) + '</td><td class="num">' + nf(b.mezzoLotto) + "</td>"
+        + '<td class="num" style="color:var(--gold);font-weight:700">' + (b.tot > 0 ? nf(b.totInt) + " " + U.pz() : "—") + "</td>"
+        + '<td class="num">' + (b.giorni != null && b.tot > 0 ? nf(b.giorni, 1) + " " + U.gg() : "—") + "</td>"
+        + '<td class="num">' + (r.setupGiro <= 0 ? "—" : r.epei == null ? '<span class="tag t-bad">' + t("nessuna ora per i cambi") + "</span>" : nf(r.epei, 1) + " " + U.gg()) + "</td>"
+        + "<td>" + (r.pezzi <= 0 ? '<span class="tag t-idle">' + t("nessun flusso") + "</span>"
+          : r.epei != null && r.epei > 0 && b.giorni != null && b.tot > 0 && b.giorni < r.epei ? '<span class="tag t-bad">' + t("copertura sotto l'EPEI") + "</span>"
+          : !r.buffer ? '<span class="tag t-idle">' + t("flusso teso, nessun buffer") + "</span>"
+          : b.tot <= 0 ? '<span class="tag t-idle">' + t("nessun buffer richiesto") + "</span>"
+          : b.giorni > 10 ? '<span class="tag t-warn">' + t("copertura lunga, verifica il lotto") + "</span>"
+          : '<span class="tag t-ok">' + t("dimensionato") + "</span>") + "</td></tr>";
+    }).join("") + "</tbody>";
+
+  const t2 = document.getElementById("tblScorteFam");
+  if (!S.famiglie.length) { t2.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna famiglia da ripartire.") + "</td></tr></tbody>"; return; }
+  const CL = classiFamiglie();
+  t2.innerHTML = "<thead><tr>" + th("Famiglia") + th("Classe") + B.map(b => '<th class="phase">' + esc(b.r.nome) + "</th>").join("") + "</tr></thead><tbody>"
+    + S.famiglie.map(f =>
+      "<tr><td>" + esc(f.nome) + "</td><td>" + classeTag(CL[f.id]) + "</td>"
+      + B.map(b => {
+        const k = b.fam.find(x => x.id === f.id);
+        return '<td class="num">' + (k && k.pz > 0 ? nf(Math.ceil(k.pz - 1e-9)) : "—") + "</td>";
+      }).join("") + "</tr>").join("")
+    + "</tbody>";
+}
+
+/* ============================================================
+   SEGMENTAZIONE DELLE FAMIGLIE (calcolata dai dati esistenti)
+   ============================================================ */
+function classiFamiglie() {
+  const anno = S.meta.anno || 0;
+  const vol = S.famiglie.map(f => ({ f: f, q: nz(f.forecastAnni[anno]) }));
+  const tot = vol.reduce((a, x) => a + x.q, 0);
+  const ord = vol.slice().sort((a, b) => b.q - a.q);
+  const out = {};
+  let cum = 0;
+  ord.forEach(x => {
+    const quota = tot > 0 ? x.q / tot : 0;
+    const cumPrima = cum;
+    cum += quota;
+    const mens = x.f.mensile, sm = mens.reduce((a, b) => a + nz(b), 0) / 12;
+    let cv = 0;
+    if (sm > 0) cv = Math.sqrt(mens.reduce((a, v) => a + (nz(v) - sm) * (nz(v) - sm), 0) / 12) / sm;
+    let classe = "Ricorrente";
+    if (x.q <= 0) classe = "Nessun volume";
+    else if (cumPrima < 0.8 && cv <= 0.4) classe = "Alto e regolare";
+    else if (quota < 0.02 || cv > 0.8) classe = "Sporadica";
+    out[x.f.id] = { classe: classe, quota: quota, cv: cv };
+  });
+  return out;
+}
+function classeTag(c) {
+  if (!c) return "—";
+  const k = c.classe;
+  const cls = k === "Alto e regolare" ? "t-ok" : k === "Sporadica" ? "t-warn" : k === "Nessun volume" ? "t-idle" : "t-idle";
+  return '<span class="tag ' + cls + '">' + t(k) + "</span>";
+}
+
+/* ============================================================
+   YAMAZUMI
+   ============================================================ */
+const PAL = ["#C9A227","#E2571F","#5C8C6A","#8C6FA6","#3F7C94","#B8863B","#A63A2E","#7E9C4A","#C77F5B","#5E6EA8","#6FA69B","#B5695E"];
+let YAMA_MODE = "pz";
+const famColor = id => PAL[Math.max(0, S.famiglie.findIndex(f => f.id === id)) % PAL.length];
+
+function renderYamazumi() {
+  document.querySelectorAll("#yamaMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === YAMA_MODE ? "true" : "false"));
+  const C = TH();
+  const c = compute();
+  const wrap = document.getElementById("yamaWrap");
+  const bars = c.righe.map(r => {
+    const div = YAMA_MODE === "ore" ? (r.celle > 0 ? r.celle : 1) : (r.pezzi > 0 ? r.pezzi : 1);
+    const segs = r.contrib.map(k => ({ id: k.id, nome: k.nome, v: YAMA_MODE === "ore" ? k.ore / div : k.pezzi * k.min / div }));
+    const setupV = YAMA_MODE === "ore" ? r.oreSetup / div : r.oreSetup * 60 / div;
+    if (setupV > 0) segs.push({ id: "__setup", nome: t("Attrezzaggio"), v: setupV, setup: true });
+    const totB = segs.reduce((a, s) => a + s.v, 0);
+    const limite = YAMA_MODE === "ore" ? r.capCella : (r.taktMin != null && r.celle > 0 ? r.taktMin * r.celle : null);
+    return { r, segs, tot: totB, limite, noCelle: r.celle <= 0 };
+  });
+  const maxV = Math.max(0, ...bars.map(b => Math.max(b.tot, b.limite || 0)));
+  if (!bars.length || maxV <= 0) {
+    wrap.innerHTML = '<p class="empty">' + t("Niente da bilanciare: servono famiglie con forecast e tempi.") + "</p>";
+    document.getElementById("yamaLegend").innerHTML = "";
+    return;
+  }
+  const BW = 92, GAP = 40, L = 74, TOPM = 34, PLOT = 320, BOTM = 66;
+  const W = L + bars.length * (BW + GAP) + 30, H = TOPM + PLOT + BOTM;
+  const scale = v => PLOT * v / (maxV * 1.12);
+  const unit = t(YAMA_MODE === "ore" ? "ore/anno per cella" : "minuti per pezzo");
+  const dec = YAMA_MODE === "ore" ? 0 : 1;
+  const FS = 'font-family="Alegreya Sans,sans-serif"';
+
+  let s = '<svg class="yama" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
+  s += '<rect width="' + W + '" height="' + H + '" fill="' + C.bg + '"/>';
+  s += '<text x="12" y="20" fill="' + C.dim + '" ' + FS + ' font-size="13">' + unit + "</text>";
+  for (let g = 0; g <= 4; g++) {
+    const v = maxV * 1.12 * g / 4, y = TOPM + PLOT - scale(v);
+    s += '<line x1="' + L + '" y1="' + y.toFixed(1) + '" x2="' + (W - 16) + '" y2="' + y.toFixed(1) + '" stroke="' + C.grid + '"/>';
+    s += '<text x="' + (L - 8) + '" y="' + (y + 4).toFixed(1) + '" fill="' + C.faint + '" ' + FS + ' font-size="11.5" text-anchor="end">' + nf(v, dec) + "</text>";
+  }
+  s += '<line x1="' + L + '" y1="' + (TOPM + PLOT) + '" x2="' + (W - 16) + '" y2="' + (TOPM + PLOT) + '" stroke="' + C.line + '" stroke-width="2"/>';
+
+  bars.forEach((b, i) => {
+    const x = L + 18 + i * (BW + GAP);
+    let y = TOPM + PLOT;
+    b.segs.forEach(sg => {
+      const h = scale(sg.v);
+      if (h <= 0) return;
+      y -= h;
+      s += '<rect x="' + x + '" y="' + y.toFixed(1) + '" width="' + BW + '" height="' + h.toFixed(1) + '" fill="' + (sg.setup ? C.setup : famColor(sg.id)) + '" stroke="' + C.bg + '" stroke-width="1"' + (sg.setup ? ' stroke-dasharray="4 3"' : "") + "><title>" + esc(sg.nome) + ": " + nf(sg.v, dec) + "</title></rect>";
+      if (h > 15) s += '<text x="' + (x + BW / 2) + '" y="' + (y + h / 2 + 4).toFixed(1) + '" fill="' + (THEME === "dark" ? "#15110E" : "#FFFDF7") + '" ' + FS + ' font-size="11.5" text-anchor="middle">' + nf(sg.v, dec) + "</text>";
+    });
+    if (b.tot > 0) s += '<text x="' + (x + BW / 2) + '" y="' + (y - 7).toFixed(1) + '" fill="' + C.ink + '" ' + FS + ' font-size="12.5" text-anchor="middle">' + nf(b.tot, dec) + "</text>";
+    if (b.limite > 0) {
+      const yl = TOPM + PLOT - scale(b.limite);
+      s += '<line x1="' + (x - 12) + '" y1="' + yl.toFixed(1) + '" x2="' + (x + BW + 12) + '" y2="' + yl.toFixed(1) + '" stroke="' + C.ember + '" stroke-width="2" stroke-dasharray="7 4"/>';
+      s += '<text x="' + (x + BW + 14) + '" y="' + (yl + 4).toFixed(1) + '" fill="' + C.ember + '" ' + FS + ' font-size="11">' + nf(b.limite, dec) + "</text>";
+    }
+    const lab = b.r.nome.length > 13 ? b.r.nome.slice(0, 12) + "…" : b.r.nome;
+    s += '<text x="' + (x + BW / 2) + '" y="' + (TOPM + PLOT + 20) + '" fill="' + C.ink + '" font-family="Cinzel,serif" font-size="12.5" text-anchor="middle">' + esc(lab) + "</text>";
+    const sub = b.r.sat != null ? pct(b.r.sat) + " " + t("di saturazione") : (b.noCelle ? t("nessuna cella") : "—");
+    s += '<text x="' + (x + BW / 2) + '" y="' + (TOPM + PLOT + 38) + '" fill="' + satColor(b.r.sat) + '" ' + FS + ' font-size="11.5" text-anchor="middle">' + sub + "</text>";
+  });
+  s += '<text x="' + L + '" y="' + (H - 10) + '" fill="' + C.faint + '" ' + FS + ' font-size="12">'
+     + t(YAMA_MODE === "ore" ? "Linea tratteggiata: ore disponibili per cella." : "Linea tratteggiata: takt disponibile con le celle di oggi.") + "</text>";
+  s += "</svg>";
+  wrap.innerHTML = s;
+
+  document.getElementById("yamaLegend").innerHTML =
+    S.famiglie.filter(f => nz(f.forecastAnni[S.meta.anno || 0]) > 0).map(f => '<span><i class="swatch" style="background:' + famColor(f.id) + '"></i>' + esc(f.nome) + "</span>").join("")
+    + '<span><i class="swatch" style="background:' + C.setup + '"></i>' + t("attrezzaggio") + "</span>"
+    + '<span><i class="swatch" style="background:' + C.ember + '"></i>' + t("limite") + "</span>";
+}
+
+/* ============================================================
+   MAPPA DEL FLUSSO
+   ============================================================ */
+function renderVSM() {
+  const C = TH();
+  const c = compute();
+  const R = c.righe;
+  const B = computeBuffers(c, "media");
+  const W = 236, H = 150, GAP = 96, PADX = 34, TOP = 96;
+  const width = PADX * 2 + R.length * W + Math.max(0, R.length - 1) * GAP;
+  const height = TOP + H + 200;
+  const FS = 'font-family="Alegreya Sans,sans-serif"';
+
+  if (!R.length) { document.getElementById("vsmWrap").innerHTML = '<p class="empty">' + t("Nessuna fase da mappare.") + "</p>"; return; }
+
+  let s = '<svg class="vsm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + width + " " + height + '" width="' + width + '" height="' + height + '">';
+  s += '<defs><marker id="arw" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0l10 4L0 8z" fill="' + C.brass + '"/></marker></defs>';
+  s += '<rect width="' + width + '" height="' + height + '" fill="' + C.bg + '"/>';
+  s += '<text x="' + PADX + '" y="36" fill="' + C.gold + '" font-family="Cinzel,serif" font-size="19" letter-spacing="2">' + esc(S.meta.nome || "Scenario") + "</text>";
+  const pezzi = S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[S.meta.anno || 0]), 0);
+  s += '<text x="' + PADX + '" y="60" fill="' + C.dim + '" ' + FS + ' font-size="14">'
+     + nf(pezzi) + " " + t("pezzi/anno") + " · " + nf(S.famiglie.length) + " " + t("famiglie") + " · " + nz(S.params.turni) + " " + t("turno/i") + " · " + nz(S.params.efficienza) + "% " + t("efficienza") + "</text>";
+
+  R.forEach((r, i) => {
+    const x = PADX + i * (W + GAP);
+    const col = satColor(r.sat);
+    s += '<rect x="' + x + '" y="' + TOP + '" width="' + W + '" height="' + H + '" fill="' + C.panel + '" stroke="' + col + '" stroke-width="2" rx="3"/>';
+    s += '<rect x="' + x + '" y="' + TOP + '" width="' + W + '" height="30" fill="' + C.head + '"/>';
+    s += '<text x="' + (x + 12) + '" y="' + (TOP + 20) + '" fill="' + C.ink + '" font-family="Cinzel,serif" font-size="14">' + esc(r.nome.slice(0, 24)) + "</text>";
+    const L = [
+      [t("Celle"), nf(r.celle) + (r.max ? " / " + nf(r.max) : "")],
+      [t("Tempo medio"), r.tcMedio != null ? nf(r.tcMedio, 1) + " " + U.min() + "/" + U.pz() : "—"],
+      [t("Carico"), nf(r.caricoH) + " " + U.h()],
+      [t("Capacità"), nf(r.celle * r.capCella) + " " + U.h()]
+    ];
+    L.forEach((p, k) => {
+      const y = TOP + 52 + k * 20;
+      s += '<text x="' + (x + 12) + '" y="' + y + '" fill="' + C.dim + '" ' + FS + ' font-size="13">' + p[0] + "</text>";
+      s += '<text x="' + (x + W - 12) + '" y="' + y + '" fill="' + C.ink + '" ' + FS + ' font-size="13" text-anchor="end">' + p[1] + "</text>";
+    });
+    const bw = W - 24, fw = r.sat == null ? 0 : Math.min(r.sat, 1.4) / 1.4 * bw;
+    const by = TOP + H - 24;
+    s += '<rect x="' + (x + 12) + '" y="' + by + '" width="' + bw + '" height="12" fill="' + C.bg + '" stroke="' + C.line + '"/>';
+    if (fw > 0) s += '<rect x="' + (x + 12) + '" y="' + by + '" width="' + fw.toFixed(1) + '" height="12" fill="' + col + '"/>';
+    s += '<line x1="' + (x + 12 + bw / 1.4).toFixed(1) + '" y1="' + by + '" x2="' + (x + 12 + bw / 1.4).toFixed(1) + '" y2="' + (by + 12) + '" stroke="' + C.dim + '"/>';
+    s += '<text x="' + (x + W - 12) + '" y="' + (by - 4) + '" fill="' + col + '" ' + FS + ' font-size="12.5" text-anchor="end">' + pct(r.sat) + "</text>";
+    if (c.vincolo && r.fase.id === c.vincolo.fase.id) {
+      s += '<text x="' + (x + W / 2) + '" y="' + (TOP - 12) + '" fill="' + C.vinc + '" font-family="Cinzel,serif" font-size="13" text-anchor="middle" letter-spacing="1.5">' + t("VINCOLO") + "</text>";
+    }
+    if (i < R.length - 1) {
+      const y = TOP + H / 2, mid = x + W + GAP / 2, b = B[i];
+      const hasBuf = b && b.tot > 0;
+      s += '<line x1="' + (x + W + 8) + '" y1="' + y + '" x2="' + (mid - (hasBuf ? 26 : 6)) + '" y2="' + y + '" stroke="' + C.brass + '" stroke-width="2"' + (hasBuf ? "" : ' marker-end="url(#arw)"') + "/>";
+      if (hasBuf) {
+        s += '<line x1="' + (mid + 26) + '" y1="' + y + '" x2="' + (x + W + GAP - 10) + '" y2="' + y + '" stroke="' + C.brass + '" stroke-width="2" marker-end="url(#arw)"/>';
+        s += '<path d="M' + mid + " " + (y - 26) + "L" + (mid + 20) + " " + (y + 6) + "L" + (mid - 20) + " " + (y + 6) + 'Z" fill="' + C.tri + '" stroke="' + C.gold + '" stroke-width="1.8" stroke-linejoin="round"/>';
+        s += '<text x="' + mid + '" y="' + (y + 24) + '" fill="' + C.ink + '" ' + FS + ' font-size="12" text-anchor="middle">' + nf(b.totInt) + " " + U.pz() + "</text>";
+        s += '<text x="' + mid + '" y="' + (y + 40) + '" fill="' + C.dim + '" ' + FS + ' font-size="11.5" text-anchor="middle">' + (b.giorni != null ? nf(b.giorni, 1) + " " + U.gg() : "") + "</text>";
+      }
+    }
+  });
+
+  const yTop = TOP + H + 52, yLow = yTop + 30;
+  const oreGG = nz(S.params.giorniLavorativi) > 0 ? nz(S.params.oreAnnuePerCella) * (nz(S.params.turni) || 1) / nz(S.params.giorniLavorativi) : 8;
+  let ggAttesa = 0, minVA = 0, minTot = 0;
+  R.forEach((r, i) => {
+    const x = PADX + i * (W + GAP);
+    if (r.tcMedio != null) { minVA += r.tcVA || 0; minTot += r.tcMedio; }
+    s += '<line x1="' + x + '" y1="' + yLow + '" x2="' + (x + W) + '" y2="' + yLow + '" stroke="' + C.ok + '" stroke-width="2.5"/>';
+    s += '<text x="' + (x + W / 2) + '" y="' + (yLow + 18) + '" fill="' + C.okTxt + '" ' + FS + ' font-size="12" text-anchor="middle">'
+       + (r.tcMedio != null ? nf(r.tcMedio, 1) + " " + U.min() : "—") + "</text>";
+    const b = B[i];
+    if (i < R.length - 1) {
+      const x2 = x + W, x3 = x + W + GAP;
+      const gg = b && b.tot > 0 && b.giorni != null ? b.giorni : 0;
+      ggAttesa += gg;
+      const y = gg > 0 ? yTop : yLow;
+      s += '<line x1="' + x2 + '" y1="' + yLow + '" x2="' + x2 + '" y2="' + y + '" stroke="' + C.line + '" stroke-width="1.5"/>';
+      s += '<line x1="' + x2 + '" y1="' + y + '" x2="' + x3 + '" y2="' + y + '" stroke="' + (gg > 0 ? C.gold : C.ok) + '" stroke-width="2.5"/>';
+      s += '<line x1="' + x3 + '" y1="' + y + '" x2="' + x3 + '" y2="' + yLow + '" stroke="' + C.line + '" stroke-width="1.5"/>';
+      if (gg > 0) s += '<text x="' + ((x2 + x3) / 2) + '" y="' + (yTop - 8) + '" fill="' + C.gold + '" ' + FS + ' font-size="12" text-anchor="middle">' + nf(gg, 1) + " " + U.gg() + "</text>";
+    }
+  });
+  const ggLav = oreGG > 0 ? minTot / 60 / oreGG : 0;
+  const leadTot = ggAttesa + ggLav;
+  const flow = leadTot > 0 ? (minVA / 60 / oreGG) / leadTot : null;
+  s += '<text x="' + PADX + '" y="' + (yLow + 52) + '" fill="' + C.ink + '" ' + FS + ' font-size="14">'
+     + t("Attraversamento stimato") + " " + nf(leadTot, 1) + " " + t("giorni:") + " " + nf(ggAttesa, 1) + " " + t("di attesa nei magazzini e") + " " + nf(ggLav, 2) + " " + t("di lavorazione.") + "</text>";
+  s += '<text x="' + PADX + '" y="' + (yLow + 72) + '" fill="' + C.dim + '" ' + FS + ' font-size="13">'
+     + t("Lavoro per pezzo") + " " + nf(minVA, 1) + " " + U.min() + ", " + t("con attrezzaggio") + " " + nf(minTot, 1) + " " + U.min()
+     + (flow != null ? " · " + t("efficienza di flusso") + " " + pct(flow) : "") + ". " + t("Non sono contate le code interne ai reparti.") + "</text>";
+  s += "</svg>";
+  document.getElementById("vsmWrap").innerHTML = s;
+}
+
+/* ============================================================
+   REFRESH
+   ============================================================ */
+function refreshOutputs() { renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
+
+/* ============================================================
+   EVENTI
+   ============================================================ */
+document.getElementById("nav").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  document.querySelectorAll("#nav button").forEach(x => x.setAttribute("aria-current", x === b ? "true" : "false"));
+  ["setup", "rilievi", "risultati", "simulazione", "yamazumi", "scorte", "vsm", "scenari"].forEach(k => document.getElementById("tab-" + k).hidden = (k !== b.dataset.tab));
+  window.scrollTo({ top: 0 });
+});
+document.getElementById("langSeg").addEventListener("click", e => {
+  const b = e.target.closest("button[data-lang]"); if (!b || b.dataset.lang === LANG) return;
+  LANG = b.dataset.lang; queueSave(); refreshAll();
+});
+document.getElementById("themeBtn").onclick = () => {
+  THEME = THEME === "dark" ? "light" : "dark";
+  applyTheme(); queueSave(); refreshOutputs();
+};
+
+function findById(arr, id) { return arr.find(x => x.id === id); }
+
+document.addEventListener("input", e => {
+  const el = e.target, k = el.dataset.k;
+  if (el.dataset.meta) { S.meta.nome = el.value; queueSave(); renderVSM(); return; }
+  if (el.dataset.anno != null && el.dataset.k == null) {
+    S.meta.anni[+el.dataset.anno] = el.value; queueSave(); renderAnnoSeg(); renderFamiglie(); renderPiano(); return;
+  }
+  if (el.dataset.param) {
+    S.params[el.dataset.param] = el.value === "" ? 0 : parseFloat(el.value);
+    queueSave(); SIM = null; refreshOutputs(); renderReparti(); return;
+  }
+  if (!k) return;
+  if (k === "fase") { findById(S.fasi, el.dataset.id).nome = el.value; renderVSM(); renderRisultati(); renderSimulazione(); }
+  else if (k === "reparto") {
+    const r = findById(S.reparti, el.dataset.id), f = el.dataset.f;
+    if (f === "oreOverride") r[f] = el.value === "" ? null : parseFloat(el.value);
+    else if (f === "buffer") r[f] = el.checked;
+    else if (f === "nome" || f === "faseId") r[f] = el.value;
+    else r[f] = el.value === "" ? 0 : parseFloat(el.value);
+    refreshOutputs();
+  }
+  else if (k === "famiglia") {
+    const f = findById(S.famiglie, el.dataset.id), fld = el.dataset.f;
+    f[fld] = (fld === "scarto" || fld === "valore") ? (el.value === "" ? 0 : parseFloat(el.value)) : el.value;
+    if (fld === "nome") renderMensile();
+    refreshOutputs();
+  }
+  else if (k === "tempo") {
+    const fa = findById(S.famiglie, el.dataset.id), x = fa.tempi[el.dataset.fase] || (fa.tempi[el.dataset.fase] = { on: false, min: 0, minMacchina: 0, setup: 0 });
+    if (el.dataset.f === "on") {
+      x.on = el.checked;
+      const td = el.closest("td"); td.classList.toggle("off", !x.on);
+      td.querySelectorAll("input[type=number]").forEach(n => n.disabled = !x.on);
+    } else x[el.dataset.f] = el.value === "" ? 0 : parseFloat(el.value);
+    refreshOutputs();
+  }
+  else if (k === "anno") {
+    const f = findById(S.famiglie, el.dataset.id);
+    f.forecastAnni[+el.dataset.y] = el.value === "" ? 0 : parseFloat(el.value);
+    refreshOutputs();
+  }
+  else if (k === "mese") {
+    const f = findById(S.famiglie, el.dataset.id);
+    f.mensile[+el.dataset.m] = el.value === "" ? 0 : parseFloat(el.value);
+    const tds = el.closest("tr").querySelectorAll("td");
+    const tot = f.mensile.reduce((a, b) => a + nz(b), 0);
+    const last = tds[tds.length - 1];
+    last.textContent = nf(tot, 1) + "%"; last.style.color = Math.abs(tot - 100) > .5 ? "var(--warn-fg)" : "var(--dim)";
+    refreshOutputs();
+  }
+  queueSave();
+});
+
+document.addEventListener("click", e => {
+  const del = e.target.closest("[data-del]"), mv = e.target.closest("[data-move]");
+  if (del) {
+    const id = del.dataset.id;
+    if (del.dataset.del === "fase") {
+      S.fasi = S.fasi.filter(x => x.id !== id);
+      S.reparti = S.reparti.filter(r => r.faseId !== id);
+      S.famiglie.forEach(f => delete f.tempi[id]);
+    } else if (del.dataset.del === "reparto") S.reparti = S.reparti.filter(x => x.id !== id);
+    else if (del.dataset.del === "rilievo") { S.rilievi = S.rilievi.filter(x => x.id !== id); queueSave(); renderRilievi(); return; }
+    else if (del.dataset.del === "snap") { S.snapshots = S.snapshots.filter(x => x.id !== id); queueSave(); renderScenari(); return; }
+    else S.famiglie = S.famiglie.filter(x => x.id !== id);
+    queueSave(); refreshAll(); return;
+  }
+  if (mv) {
+    const i = S.fasi.findIndex(x => x.id === mv.dataset.id), j = i + parseInt(mv.dataset.dir, 10);
+    if (j >= 0 && j < S.fasi.length) { const x = S.fasi[i]; S.fasi[i] = S.fasi[j]; S.fasi[j] = x; queueSave(); refreshAll(); }
+  }
+});
+
+document.getElementById("addFase").onclick = () => {
+  const f = { id: uid(), nome: t("Nuova fase") };
+  S.fasi.push(f);
+  S.famiglie.forEach(x => x.tempi[f.id] = { on: false, min: 0, minMacchina: 0, setup: 0 });
+  S.reparti.push({ id: uid(), nome: f.nome, faseId: f.id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true });
+  queueSave(); refreshAll();
+};
+document.getElementById("addReparto").onclick = () => {
+  if (!S.fasi.length) { alert(t("Aggiungi prima una fase: ogni reparto ne lavora una.")); return; }
+  S.reparti.push({ id: uid(), nome: t("Nuovo reparto"), faseId: S.fasi[0].id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true });
+  queueSave(); refreshAll();
+};
+document.getElementById("addFamiglia").onclick = () => {
+  const x = {}; S.fasi.forEach(f => x[f.id] = { on: false, min: 0, minMacchina: 0, setup: 0 });
+  S.famiglie.push({ id: uid(), nome: t("Nuova famiglia"), cluster: "", forecastAnni: [0, 0, 0], scarto: 0, valore: 0, tempi: x, mensile: uniform() });
+  queueSave(); refreshAll();
+};
+document.getElementById("resetMensile").onclick = () => { S.famiglie.forEach(f => f.mensile = uniform()); queueSave(); renderMensile(); refreshOutputs(); };
+
+document.getElementById("loadDemo").onclick = () => {
+  if (!confirm(t("Carico due famiglie di esempio con numeri inventati, solo per provare l'app. Continuo?"))) return;
+  const mk = map => { const o = {}; S.fasi.forEach(f => { const v = map[f.nome]; o[f.id] = v ? { on: true, min: v[0], minMacchina: v[1], setup: v[2] } : { on: false, min: 0, minMacchina: 0, setup: 0 }; }); return o; };
+  S.famiglie.push({ id: uid(), nome: "Demo A", cluster: "demo", forecastAnni: [4000, 4600, 5200], valore: 320, scarto: 2, tempi: mk({ Saldatura: [22, 18, 40], Assemblaggio: [45, 0, 10], Test: [12, 12, 5], Finitura: [8, 0, 5] }), mensile: uniform() });
+  S.famiglie.push({ id: uid(), nome: "Demo B", cluster: "demo", forecastAnni: [1500, 1500, 1800], valore: 780, scarto: 3, tempi: mk({ Pressatura: [9, 14, 60], Assemblaggio: [70, 0, 10], Cablaggio: [35, 0, 8], Test: [20, 20, 5] }), mensile: uniform() });
+  queueSave(); refreshAll();
+};
+
+function fname(prefix, ext) { return prefix + (S.meta.nome || "scenario").replace(/[^\w\-]+/g, "_") + "-" + VERSION + "." + ext; }
+document.getElementById("exportBtn").onclick = () => {
+  S.meta.lang = LANG; S.meta.theme = THEME; S.meta.version = VERSION;
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = fname("runeforge-", "json"); a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById("importBtn").onclick = () => document.getElementById("importFile").click();
+document.getElementById("importFile").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try { S = migrate(JSON.parse(rd.result)); SIM = null; save(); refreshAll(); flag(t("File importato")); }
+    catch (err) { flag(t("File non leggibile: non è un salvataggio Runeforge"), true); }
+  };
+  rd.readAsText(f); e.target.value = "";
+};
+document.getElementById("wipeBtn").onclick = () => {
+  if (!confirm(t("Cancello fasi, reparti e famiglie e riparto dalla struttura iniziale. Continuo?"))) return;
+  S = blankState(); SIM = null; save(); refreshAll();
+};
+
+["sMult", "sTurni", "sOre", "sEff", "sTarget"].forEach(id => {
+  document.getElementById(id).addEventListener("input", e => {
+    if (!SIM) SIM = simDefaults();
+    SIM[{ sMult: "mult", sTurni: "turni", sOre: "ore", sEff: "eff", sTarget: "target" }[id]] = parseFloat(e.target.value);
+    renderSimulazione();
+  });
+});
+document.getElementById("simReset").onclick = () => { SIM = simDefaults(); renderSimulazione(); };
+
+document.getElementById("yamaMode").addEventListener("click", e => {
+  const b = e.target.closest("button[data-mode]"); if (!b) return;
+  YAMA_MODE = b.dataset.mode; renderYamazumi();
+});
+document.getElementById("scorteBase").addEventListener("click", e => {
+  const b = e.target.closest("button[data-base]"); if (!b) return;
+  SCORTE_BASE = b.dataset.base; renderScorte();
+});
+function dlSvg(sel, prefix) {
+  const svg = document.querySelector(sel); if (!svg) return;
+  const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = fname(prefix, "svg"); a.click(); URL.revokeObjectURL(a.href);
+}
+document.getElementById("dlYama").onclick = () => dlSvg("svg.yama", "runeforge-yamazumi-");
+document.getElementById("dlSvg").onclick = () => dlSvg("svg.vsm", "runeforge-mappa-");
+
+
+/* ============================================================
+   ANNO ATTIVO
+   ============================================================ */
+function renderAnnoSeg() {
+  document.getElementById("annoSeg").innerHTML = S.meta.anni.map((a, i) =>
+    '<button data-y="' + i + '" aria-pressed="' + (i === (S.meta.anno || 0) ? "true" : "false") + '">' + esc(a) + "</button>").join("");
+}
+document.getElementById("annoSeg").addEventListener("click", e => {
+  const b = e.target.closest("button[data-y]"); if (!b) return;
+  S.meta.anno = +b.dataset.y; queueSave(); renderAnnoSeg(); refreshOutputs();
+});
+
+/* ============================================================
+   INCOLLA DA EXCEL
+   ============================================================ */
+let PASTE_MODE = "famiglie";
+function pasteHelp() {
+  document.getElementById("pasteHelp").textContent = t(PASTE_MODE === "famiglie"
+    ? "Colonne attese: nome famiglia, anno 1, anno 2, anno 3, scarto %, valore pezzo. Bastano le prime due."
+    : "Colonne attese: nome famiglia, fase, minuti uomo, minuti macchina, minuti di attrezzaggio. Bastano le prime tre.");
+  document.querySelectorAll("#pasteMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.pmode === PASTE_MODE ? "true" : "false"));
+}
+function pnum(s) {
+  if (s == null) return 0;
+  let x = String(s).trim().replace(/[^\d,.\-]/g, "");
+  if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(x)) x = x.replace(/\./g, "").replace(",", ".");        // 2.500,75
+  else if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(x)) x = x.replace(/,/g, "");                       // 2,500.75
+  else if (x.indexOf(",") >= 0 && x.indexOf(".") >= 0) x = x.replace(/\./g, "").replace(",", ".");
+  else x = x.replace(",", ".");
+  const v = parseFloat(x); return isFinite(v) ? v : 0;
+}
+function pasteRows(txt) {
+  return txt.split(/\r?\n/).map(r => r.replace(/\s+$/, "")).filter(r => r.trim() !== "")
+    .map(r => (r.indexOf("\t") >= 0 ? r.split("\t") : r.indexOf(";") >= 0 ? r.split(";") : r.split(",")).map(c => c.trim()));
+}
+function findFam(nome) {
+  const k = String(nome).trim().toLowerCase();
+  return S.famiglie.find(f => String(f.nome).trim().toLowerCase() === k);
+}
+function applyPaste() {
+  const rows = pasteRows(document.getElementById("pasteBox").value);
+  let creati = 0, aggiornati = 0, saltati = 0; const ignoti = [];
+  if (!rows.length) { document.getElementById("pasteReport").textContent = t("Il riquadro è vuoto."); return; }
+  const numCol = PASTE_MODE === "famiglie" ? 1 : 2;
+  if (rows.length > 1 && isNaN(parseFloat(String(rows[0][numCol] || "").replace(",", ".")))) rows.shift();
+  rows.forEach(r => {
+    const nome = (r[0] || "").trim();
+    if (!nome) { saltati++; return; }
+    if (PASTE_MODE === "famiglie") {
+      let f = findFam(nome);
+      if (!f) {
+        const x = {}; S.fasi.forEach(fa => x[fa.id] = { on: false, min: 0, minMacchina: 0, setup: 0 });
+        f = { id: uid(), nome: nome, cluster: "", forecastAnni: [0, 0, 0], scarto: 0, valore: 0, tempi: x, mensile: uniform() };
+        S.famiglie.push(f); creati++;
+      } else aggiornati++;
+      [1, 2, 3].forEach(i => { if (r[i] !== undefined && r[i] !== "") f.forecastAnni[i - 1] = pnum(r[i]); });
+      if (r[4] !== undefined && r[4] !== "") f.scarto = pnum(r[4]);
+      if (r[5] !== undefined && r[5] !== "") f.valore = pnum(r[5]);
+    } else {
+      const f = findFam(nome);
+      const fs = S.fasi.find(x => String(x.nome).trim().toLowerCase() === String(r[1] || "").trim().toLowerCase());
+      if (!f || !fs) { saltati++; if (ignoti.length < 4) ignoti.push(nome + (fs ? "" : " / " + (r[1] || "?"))); return; }
+      const x = f.tempi[fs.id] || (f.tempi[fs.id] = { on: false, min: 0, minMacchina: 0, setup: 0 });
+      x.on = true;
+      if (r[2] !== undefined && r[2] !== "") x.min = pnum(r[2]);
+      if (r[3] !== undefined && r[3] !== "") x.minMacchina = pnum(r[3]);
+      if (r[4] !== undefined && r[4] !== "") x.setup = pnum(r[4]);
+      aggiornati++;
+    }
+  });
+  queueSave(); refreshAll();
+  document.getElementById("pasteReport").textContent =
+    t("Righe create") + ": " + creati + " · " + t("aggiornate") + ": " + aggiornati + " · " + t("saltate") + ": " + saltati
+    + (ignoti.length ? " (" + t("nomi non riconosciuti") + ": " + ignoti.join(", ") + ")" : "");
+}
+document.getElementById("pasteMode").addEventListener("click", e => {
+  const b = e.target.closest("button[data-pmode]"); if (!b) return;
+  PASTE_MODE = b.dataset.pmode; pasteHelp();
+});
+document.getElementById("pasteApply").onclick = applyPaste;
+document.getElementById("pasteClear").onclick = () => { document.getElementById("pasteBox").value = ""; document.getElementById("pasteReport").textContent = ""; };
+
+/* ============================================================
+   RILIEVI DEI TEMPI
+   ============================================================ */
+const TIPI = { min: "Lavoro uomo", minMacchina: "Tempo macchina", setup: "Attrezzaggio" };
+function renderRilievi() {
+  const selF = document.getElementById("rvFam"), selP = document.getElementById("rvFase");
+  const keepF = selF.value, keepP = selP.value;
+  selF.innerHTML = S.famiglie.map(f => '<option value="' + f.id + '">' + esc(f.nome) + "</option>").join("");
+  selP.innerHTML = S.fasi.map(f => '<option value="' + f.id + '">' + esc(f.nome) + "</option>").join("");
+  if (keepF) selF.value = keepF;
+  if (keepP) selP.value = keepP;
+
+  const gruppi = {};
+  S.rilievi.forEach(r => {
+    const k = r.fam + "|" + r.fase + "|" + r.tipo;
+    (gruppi[k] || (gruppi[k] = [])).push(nz(r.valore));
+  });
+  const keys = Object.keys(gruppi);
+  const sint = document.getElementById("tblRilSintesi");
+  if (!keys.length) { sint.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna misura registrata.") + "</td></tr></tbody>"; }
+  else {
+    sint.innerHTML = "<thead><tr>" + th("Famiglia") + th("Fase") + th("Tipo") + th("Misure", "num") + th("Media", "num")
+      + th("Dev. standard", "num") + th("Variabilità", "num") + th("Minimo", "num") + th("Massimo", "num") + "<th></th></tr></thead><tbody>"
+      + keys.map(k => {
+        const parts = k.split("|"), v = gruppi[k];
+        const f = findById(S.famiglie, parts[0]), fs = findById(S.fasi, parts[1]);
+        const nn = v.length, media = v.reduce((a, b) => a + b, 0) / nn;
+        const sd = nn > 1 ? Math.sqrt(v.reduce((a, b) => a + (b - media) * (b - media), 0) / (nn - 1)) : 0;
+        return "<tr><td>" + esc(f ? f.nome : "—") + "</td><td>" + esc(fs ? fs.nome : "—") + "</td><td>" + t(TIPI[parts[2]]) + "</td>"
+          + '<td class="num">' + nn + '</td><td class="num" style="color:var(--gold);font-weight:700">' + nf(media, 2) + "</td>"
+          + '<td class="num">' + nf(sd, 2) + '</td><td class="num">' + (media > 0 ? nf(sd / media * 100, 0) + "%" : "—") + "</td>"
+          + '<td class="num">' + nf(Math.min.apply(null, v), 2) + '</td><td class="num">' + nf(Math.max.apply(null, v), 2) + "</td>"
+          + '<td><button class="act ghost" data-use="' + k + '">' + t("Usa come tempo") + "</button></td></tr>";
+      }).join("") + "</tbody>";
+  }
+
+  const tb = document.getElementById("tblRilievi");
+  if (!S.rilievi.length) { tb.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna misura registrata.") + "</td></tr></tbody>"; return; }
+  tb.innerHTML = "<thead><tr>" + th("Famiglia") + th("Fase") + th("Tipo") + th("Minuti", "num") + "<th style='width:90px'></th></tr></thead><tbody>"
+    + S.rilievi.slice().reverse().map(r => {
+      const f = findById(S.famiglie, r.fam), fs = findById(S.fasi, r.fase);
+      return "<tr><td>" + esc(f ? f.nome : "—") + "</td><td>" + esc(fs ? fs.nome : "—") + "</td><td>" + t(TIPI[r.tipo]) + "</td>"
+        + '<td class="num">' + nf(r.valore, 2) + "</td>"
+        + '<td><button class="danger" data-del="rilievo" data-id="' + r.id + '">' + t("Elimina") + "</button></td></tr>";
+    }).join("") + "</tbody>";
+}
+document.getElementById("rvAdd").onclick = () => {
+  const fam = document.getElementById("rvFam").value, fase = document.getElementById("rvFase").value;
+  const tipo = document.getElementById("rvTipo").value, val = parseFloat(document.getElementById("rvVal").value);
+  if (!fam || !fase || !isFinite(val)) { flag(t("Servono famiglia, fase e un valore numerico."), true); return; }
+  S.rilievi.push({ id: uid(), fam: fam, fase: fase, tipo: tipo, valore: val });
+  document.getElementById("rvVal").value = "";
+  queueSave(); renderRilievi();
+};
+document.addEventListener("click", e => {
+  const u = e.target.closest("[data-use]"); if (!u) return;
+  const parts = u.dataset.use.split("|");
+  const v = S.rilievi.filter(r => r.fam === parts[0] && r.fase === parts[1] && r.tipo === parts[2]).map(r => nz(r.valore));
+  if (!v.length) return;
+  const media = v.reduce((a, b) => a + b, 0) / v.length;
+  const f = findById(S.famiglie, parts[0]); if (!f) return;
+  const x = f.tempi[parts[1]] || (f.tempi[parts[1]] = { on: false, min: 0, minMacchina: 0, setup: 0 });
+  x.on = true; x[parts[2]] = Math.round(media * 100) / 100;
+  queueSave(); refreshAll(); flag(t("Tempo aggiornato"));
+});
+
+/* ============================================================
+   COSTI E POLIVALENZA
+   ============================================================ */
+function valoreBuffer(c) {
+  const B = computeBuffers(c, "media");
+  let v = 0;
+  B.forEach(b => b.fam.forEach(k => {
+    const f = findById(S.famiglie, k.id);
+    if (f) v += k.pz * nz(f.valore);
+  }));
+  return v;
+}
+function renderCosti() {
+  const c = compute();
+  const costoOra = nz(S.params.costoOraCella), costoCella = nz(S.params.costoCellaAnno);
+  const vb = valoreBuffer(c);
+  const righe = [
+    [t("Celle da aggiungere per stare al target"), nf(c.celleDaAggiungere), c.celleDaAggiungere * costoCella],
+    [t("Ore di attrezzaggio all'anno"), nf(c.oreSetupTot) + " " + U.h(), c.costi.setup],
+    [t("Ore di capacità non usata"), nf(c.oreFerme) + " " + U.h(), c.costi.ferme],
+    [t("Pezzi fermi nei magazzini di reparto"), nf(computeBuffers(c, "media").reduce((a, b) => a + b.tot, 0)) + " " + U.pz(), vb]
+  ];
+  document.getElementById("tblCosti").innerHTML =
+    "<thead><tr>" + th("Voce") + th("Quantità", "num") + th("Valore", "num") + "</tr></thead><tbody>"
+    + righe.map(r => "<tr><td>" + r[0] + '</td><td class="num">' + r[1] + "</td>"
+      + '<td class="num" style="color:var(--gold);font-weight:700">' + (r[2] > 0 ? nf(r[2]) : "—") + "</td></tr>").join("")
+    + "</tbody>";
+}
+function renderPoliv() {
+  const c = compute();
+  const P = c.poliv;
+  document.getElementById("tblPoliv").innerHTML =
+    "<thead><tr>" + th("Voce") + th("Celle", "num") + th("Ore", "num") + "</tr></thead><tbody>"
+    + "<tr><td>" + t("Con operatori dedicati, come oggi") + '</td><td class="num">' + nf(P.dedicate) + '</td><td class="num">—</td></tr>'
+    + "<tr><td>" + t("Con operatori polivalenti") + '</td><td class="num">' + nf(P.pool) + '</td><td class="num">—</td></tr>'
+    + "<tr><td><strong>" + t("Recuperabile con la polivalenza") + '</strong></td><td class="num" style="color:var(--gold);font-weight:700">' + nf(P.risparmio) + "</td>"
+    + '<td class="num" style="color:var(--gold);font-weight:700">' + nf(P.ore) + " " + U.h() + "</td></tr>"
+    + "</tbody>";
+}
+
+/* ============================================================
+   PIANO PLURIENNALE E RICERCA OBIETTIVO
+   ============================================================ */
+function renderPiano() {
+  const anni = [0, 1, 2].map(y => compute({ anno: y }));
+  document.getElementById("tblPiano").innerHTML =
+    "<thead><tr>" + th("Reparto") + S.meta.anni.map(a => '<th class="num">' + esc(a) + "</th>").join("") + "</tr></thead><tbody>"
+    + S.fasi.map((f, i) => "<tr><td>" + esc(anni[0].righe[i].nome) + "</td>"
+      + anni.map(c => {
+        const r = c.righe[i];
+        const add = r.sugg - r.celle;
+        return '<td class="num">' + (r.caricoH > 0 ? nf(r.sugg) + (add > 0 ? ' <span style="color:var(--bad-fg)">(+' + nf(add) + ")</span>" : "") : "—") + "</td>";
+      }).join("") + "</tr>").join("")
+    + "<tr><td><strong>" + t("Totale celle suggerite") + "</strong></td>"
+    + anni.map(c => '<td class="num"><strong>' + nf(c.righe.reduce((a, r) => a + r.sugg, 0)) + "</strong></td>").join("") + "</tr>"
+    + "<tr><td>" + t("Vincolo") + "</td>" + anni.map(c => "<td class='num'>" + (c.vincolo ? esc(c.vincolo.nome) + " " + pct(c.vincolo.sat) : "—") + "</td>").join("") + "</tr>"
+    + "</tbody>";
+}
+function goalSeek() {
+  const out = document.getElementById("goalOut");
+  const target = nz(S.params.targetSaturazione) / 100;
+  const senzaCelle = compute().righe.filter(r => r.caricoH > 0 && r.celle <= 0).map(r => r.nome);
+  if (senzaCelle.length) { out.innerHTML = t("Non esiste soluzione: questi reparti hanno carico ma nessuna cella") + ": " + senzaCelle.join(", ") + "."; return; }
+  const res = [1, 2, 3].map(turni => {
+    for (let ore = 200; ore <= 3000; ore += 20) {
+      const c = compute({ turni: turni, ore: ore, eff: SIM ? SIM.eff : nz(S.params.efficienza), mult: SIM ? SIM.mult / 100 : 1 });
+      const att = c.righe.filter(r => r.caricoH > 0);
+      if (!att.length) return { turni: turni, ore: null, vuoto: true };
+      if (Math.max.apply(null, att.map(r => r.sat)) <= target) return { turni: turni, ore: ore };
+    }
+    return { turni: turni, ore: null };
+  });
+  out.innerHTML = "<strong>" + t("Per stare sotto") + " " + nf(target * 100, 0) + "% " + t("in ogni reparto") + ":</strong><br>"
+    + res.map(r => r.vuoto ? t("Nessun carico da coprire.")
+      : r.turni + " " + t("turno/i") + ": " + (r.ore != null
+        ? t("bastano") + " " + nf(r.ore) + " " + t("ore annue per cella") + " (" + t("oggi") + ": " + nf(S.params.oreAnnuePerCella) + ")"
+        : t("non basta nemmeno il massimo delle ore"))).join("<br>");
+}
+document.getElementById("goalBtn").onclick = goalSeek;
+
+/* ============================================================
+   SCENARI SALVATI
+   ============================================================ */
+function snapData() { return JSON.parse(JSON.stringify({ params: S.params, fasi: S.fasi, reparti: S.reparti, famiglie: S.famiglie })); }
+function computeSnap(sn, ov) {
+  const bak = { params: S.params, fasi: S.fasi, reparti: S.reparti, famiglie: S.famiglie };
+  S.params = sn.data.params; S.fasi = sn.data.fasi; S.reparti = sn.data.reparti; S.famiglie = sn.data.famiglie;
+  const c = compute(ov);
+  S.params = bak.params; S.fasi = bak.fasi; S.reparti = bak.reparti; S.famiglie = bak.famiglie;
+  return c;
+}
+function renderScenari() {
+  const tb = document.getElementById("tblSnap");
+  if (!S.snapshots.length) tb.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuno scenario salvato.") + "</td></tr></tbody>";
+  else tb.innerHTML = "<thead><tr>" + th("Scenario") + th("Salvato il") + th("Famiglie", "num") + th("Celle installate", "num") + "<th style='width:200px'></th></tr></thead><tbody>"
+    + S.snapshots.map(sn => "<tr><td>" + esc(sn.nome) + "</td><td>" + new Date(sn.ts).toLocaleDateString(LANG === "it" ? "it-IT" : "en-GB") + "</td>"
+      + '<td class="num">' + sn.data.famiglie.length + '</td><td class="num">' + nf(sn.data.reparti.reduce((a, r) => a + nz(r.celleAttuali), 0)) + "</td>"
+      + '<td><button class="act ghost" data-snapload="' + sn.id + '">' + t("Carica") + "</button> "
+      + '<button class="danger" data-del="snap" data-id="' + sn.id + '">' + t("Elimina") + "</button></td></tr>").join("") + "</tbody>";
+
+  const sel = document.getElementById("snapSel");
+  const keep = sel.value;
+  sel.innerHTML = S.snapshots.map(sn => '<option value="' + sn.id + '">' + esc(sn.nome) + "</option>").join("");
+  if (keep) sel.value = keep;
+  const sn = S.snapshots.find(x => x.id === sel.value) || S.snapshots[0];
+  const box = document.getElementById("tblConfronto");
+  if (!sn) { box.innerHTML = '<tbody><tr><td class="empty">' + t("Salva uno scenario per poterlo confrontare.") + "</td></tr></tbody>"; return; }
+  const A = computeSnap(sn), B = compute();
+  box.innerHTML = "<thead><tr>" + th("Reparto") + '<th class="num">' + esc(sn.nome) + "</th>" + th("Adesso", "num") + th("Delta celle", "num")
+    + '<th class="num">' + esc(sn.nome) + " %</th>" + th("Adesso %", "num") + "</tr></thead><tbody>"
+    + B.righe.map((r, i) => {
+      const a = A.righe.find(x => x.fase.id === r.fase.id) || A.righe[i];
+      const d = a ? r.sugg - a.sugg : 0;
+      return "<tr><td>" + esc(r.nome) + '</td><td class="num">' + (a ? nf(a.sugg) : "—") + '</td><td class="num">' + nf(r.sugg) + "</td>"
+        + '<td class="num" style="color:' + (d > 0 ? "var(--bad-fg)" : d < 0 ? "var(--ok-fg)" : "var(--dim)") + '">' + (d > 0 ? "+" : "") + nf(d) + "</td>"
+        + '<td class="num">' + (a ? pct(a.sat) : "—") + '</td><td class="num">' + pct(r.sat) + "</td></tr>";
+    }).join("") + "</tbody>";
+}
+document.getElementById("snapAdd").onclick = () => {
+  const inp = document.getElementById("snapNome");
+  const nome = (inp.value || "").trim() || (S.meta.nome || "Scenario") + " " + (S.snapshots.length + 1);
+  S.snapshots.push({ id: uid(), nome: nome, ts: Date.now(), data: snapData() });
+  inp.value = ""; queueSave(); renderScenari();
+};
+document.getElementById("snapSel").addEventListener("change", renderScenari);
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-snapload]"); if (!b) return;
+  const sn = S.snapshots.find(x => x.id === b.dataset.snapload); if (!sn) return;
+  if (!confirm(t("Sostituisco i dati attuali con quelli dello scenario salvato. Continuo?"))) return;
+  const d = JSON.parse(JSON.stringify(sn.data));
+  S.params = d.params; S.fasi = d.fasi; S.reparti = d.reparti; S.famiglie = d.famiglie;
+  SIM = null; queueSave(); refreshAll();
+});
+
+/* ============================================================
+   ESPORTA CSV E STAMPA
+   ============================================================ */
+function csvNum(v) { if (v == null || !isFinite(v)) return ""; const s = (Math.round(v * 100) / 100).toString(); return LANG === "it" ? s.replace(".", ",") : s; }
+function exportCSV() {
+  const c = compute();
+  const B = computeBuffers(c, "media");
+  const L = [];
+  const push = arr => L.push(arr.map(x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"').join(";"));
+  push([t("Scenario"), S.meta.nome, t("Anno"), S.meta.anni[S.meta.anno || 0], "Runeforge " + VERSION]);
+  L.push("");
+  push([t("Carico e celle per reparto")]);
+  push([t("Reparto"), t("Pezzi lanciati"), t("Ore lavoro"), t("Ore setup"), t("Ore per cella"), t("Limite"), t("Celle necessarie"), t("Celle oggi"), t("Celle suggerite"), t("Saturazione")]);
+  c.righe.forEach(r => push([r.nome, csvNum(r.pezzi), csvNum(r.oreUomo), csvNum(r.oreSetup), csvNum(r.capCella),
+    t(r.risorsa === "macchina" ? "macchina" : "uomo"), csvNum(r.necFraz), csvNum(r.celle), csvNum(r.sugg), csvNum(r.sat != null ? r.sat * 100 : null)]));
+  L.push("");
+  push([t("Ritmo della domanda")]);
+  push([t("Reparto"), t("Takt, una cella"), t("Takt con le celle di oggi"), t("Solo lavoro"), t("Lavoro + setup"), t("Variabilità"), t("Target consigliato")]);
+  c.righe.forEach(r => push([r.nome, csvNum(r.taktMin), csvNum(r.taktMin != null && r.celle > 0 ? r.taktMin * r.celle : null),
+    csvNum(r.tcVA), csvNum(r.tcMedio), csvNum(r.cv * 100), csvNum(r.targetCons)]));
+  L.push("");
+  push([t("Magazzini di reparto consigliati")]);
+  push([t("Magazzino a valle di"), t("Consumo al giorno"), t("Scorta di ciclo"), t("Sicurezza"), t("Mezzo lotto"), t("Buffer consigliato"), t("Copertura")]);
+  B.forEach(b => push([b.r.nome, csvNum(b.domGG), csvNum(b.ciclo), csvNum(b.sic), csvNum(b.mezzoLotto), csvNum(b.totInt), csvNum(b.giorni)]));
+  L.push("");
+  push([t("Piano pluriennale")]);
+  const anni = [0, 1, 2].map(y => compute({ anno: y }));
+  push([t("Reparto")].concat(S.meta.anni));
+  S.fasi.forEach((f, i) => push([anni[0].righe[i].nome].concat(anni.map(x => csvNum(x.righe[i].sugg)))));
+  const blob = new Blob(["\ufeff" + L.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = fname("runeforge-risultati-", "csv"); a.click(); URL.revokeObjectURL(a.href);
+}
+document.getElementById("csvBtn").onclick = exportCSV;
+document.getElementById("printBtn").onclick = () => window.print();
+
+/* ============================================================
+   AVVIO
+   ============================================================ */
+captureStatic();
+(async () => { await load(); applyTheme(); refreshAll(); })();
+</script>
