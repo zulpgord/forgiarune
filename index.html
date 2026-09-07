@@ -111,6 +111,9 @@ tfoot td{border-top:2px solid var(--border);border-bottom:none;font-weight:700}
 .satbar{position:relative;height:16px;background:var(--input);border:1px solid var(--border);border-radius:2px;min-width:110px;overflow:hidden}
 .satbar i{position:absolute;inset:0 auto 0 0;display:block}
 .satbar .mark100{position:absolute;top:0;bottom:0;width:1px;background:var(--dim);opacity:.6}
+td.mese{text-align:center;font-variant-numeric:tabular-nums;font-size:12.5px;padding:6px 4px;min-width:42px}
+td.m-ok{background:rgba(90,140,90,.20)} td.m-warn{background:rgba(190,150,60,.26)}
+td.m-bad{background:rgba(180,70,60,.34);font-weight:700} td.m-off{color:var(--dim)}
 .tag{font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:2px;border:1px solid;white-space:nowrap}
 .t-ok{color:var(--ok-fg);border-color:var(--ok-br);background:var(--ok-bg)}
 .t-warn{color:var(--warn-fg);border-color:var(--warn-br);background:var(--warn-bg)}
@@ -225,6 +228,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <button data-tab="risultati">Responso</button>
     <button data-tab="simulazione">Simulazione</button>
     <button data-tab="yamazumi">Yamazumi</button>
+    <button data-tab="rodaggio">Apprendistato</button>
     <button data-tab="scorte">Magazzini</button>
     <button data-tab="vsm">Mappa del flusso</button>
     <button data-tab="scenari">Scenari</button>
@@ -242,7 +246,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 
   <div class="panel">
     <h2>Reparti e celle</h2>
-    <p class="hint">Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. La colonna delle ore serve solo ai reparti con un orario diverso dagli altri: lasciata vuota eredita il valore dei parametri generali, che vedi in grigio nella casella.</p>
+    <p class="hint">Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.</p>
     <div class="scroller"><table id="tblReparti"></table></div>
     <div class="row-actions"><button class="act" id="addReparto">Aggiungi reparto</button></div>
   </div>
@@ -433,6 +437,20 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
   </div>
 </section>
 
+<section id="tab-rodaggio" hidden>
+  <div class="panel">
+    <h2>Piano di assunzione</h2>
+    <p class="hint">Una persona nuova non rende come una esperta. Dichiara quante celle apri per reparto, in che mese entrano e con che curva salgono: la curva è in percentuale della capacità di una cella a regime, un valore per trimestre di anzianità. Reparti diversi imparano a velocità diverse.</p>
+    <div class="scroller"><table id="tblPiano"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Capacità mese per mese</h2>
+    <p class="hint">Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.</p>
+    <div class="scroller"><table id="tblRodaggio"></table></div>
+    <div id="rodNote"></div>
+  </div>
+</section>
+
 <section id="tab-scorte" hidden>
   <div class="panel">
     <h2>Magazzini di reparto consigliati</h2>
@@ -496,7 +514,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v2.1";
+const VERSION = "v2.4";
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -511,7 +529,7 @@ const EN = {
   "L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.": "The order here sets the flow sequence and the order on the map. Add or remove steps when the process changes.",
   "Aggiungi fase": "Add step",
   "Reparti e celle": "Departments and cells",
-  "Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. La colonna delle ore serve solo ai reparti con un orario diverso dagli altri: lasciata vuota eredita il valore dei parametri generali, che vedi in grigio nella casella.": "Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. The hours column is only for departments on a different schedule from the rest: left blank it inherits the value from the general parameters, shown greyed out in the box.",
+  "Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.": "Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. The hours here are net per cell, already multiplied by shifts and efficiency: they are the real capacity of one cell. Left blank, the box shows in grey the value derived from the general parameters. Type a number only for departments on a different schedule from the rest. Gross hours live only in the general parameters.",
   "Aggiungi reparto": "Add department",
   "Famiglie di prodotto e tempi": "Product families and times",
   "Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.": "Switch on the steps a family goes through and enter the times per piece in minutes: labour, machine time and changeover. A step switched off means no load on that department.",
@@ -715,8 +733,21 @@ const EN = {
   "Usa questo valore": "Use this value",
   "Ore a settimana": "Hours per week", "Settimane lavorate": "Weeks worked",
   "ore": "hours", "generale": "general",
-  "Ore annue: vuoto = generale": "Annual hours: blank = general",
+  "Ore nette per cella: vuoto = generale": "Net hours per cell: blank = general",
   "Ore standard per cella": "Standard hours per cell",
+  "Apprendistato": "Ramp-up",
+  "Piano di assunzione": "Hiring plan",
+  "Una persona nuova non rende come una esperta. Dichiara quante celle apri per reparto, in che mese entrano e con che curva salgono: la curva è in percentuale della capacità di una cella a regime, un valore per trimestre di anzianità. Reparti diversi imparano a velocità diverse.": "A new hire does not perform like an experienced one. State how many cells you open per department, the month they start and the curve they climb: the curve is a percentage of a fully trained cell's capacity, one value per quarter of seniority. Different departments learn at different speeds.",
+  "Capacità mese per mese": "Capacity month by month",
+  "Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.": "Saturation of every department month by month, with the new cells ramping up. Red means that month's load exceeds the capacity available in that month. Annual capacity is spread evenly over the twelve months: if you have a summer shutdown, keep it in mind.",
+  "Celle nuove": "New cells", "Mese di ingresso": "Start month",
+  "1º trim. %": "1st qtr %", "2º trim. %": "2nd qtr %", "3º trim. %": "3rd qtr %", "4º trim. %": "4th qtr %",
+  "Mesi scoperti": "Months short", "Celle guadagnate": "Cells gained", "Assumi entro": "Hire by",
+  "non bastano": "not enough",
+  "Ore perse in rodaggio nell'anno": "Hours lost to ramp-up this year",
+  "Mesi in cui il carico supera la capacità": "Months where load exceeds capacity",
+  "Nessun mese scoperto. ": "No month short. ",
+  "«Assumi entro» è l'ultimo mese in cui puoi far entrare le persone restando coperto tutto l'anno.": "\u201cHire by\u201d is the last month you can bring people in and still stay covered all year.",
   /* v1.5 */
   "Anticipo per livellare": "Build-ahead to level", "EPEI": "EPEI",
   "nessuna ora per i cambi": "no hours left for changeovers",
@@ -800,7 +831,8 @@ function blankState() {
       id: uid(), nome: f.nome, faseId: f.id,
       celleAttuali: celle[f.nome] ? celle[f.nome][0] : 1,
       celleMax: celle[f.nome] ? celle[f.nome][1] : 4,
-      oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true
+      oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true,
+      nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100]
     })),
     famiglie: [], rilievi: [], snapshots: []
   };
@@ -824,6 +856,9 @@ function migrate(o) {
     if (r.lotto == null) r.lotto = 0;
     if (r.macchine == null) r.macchine = 0;
     if (r.buffer == null) r.buffer = true;
+    if (r.nuoveCelle == null) r.nuoveCelle = 0;
+    if (r.meseIngresso == null) r.meseIngresso = 1;
+    if (!Array.isArray(r.curva) || r.curva.length !== 4) r.curva = [50, 75, 90, 100];
   });
   o.famiglie = Array.isArray(o.famiglie) ? o.famiglie : [];
   o.famiglie.forEach(f => {
@@ -1045,12 +1080,68 @@ function renderFasi() {
     + "</tbody>";
 }
 
+function curvaRep(r) {
+  const c = (Array.isArray(r.curva) && r.curva.length === 4) ? r.curva : [50, 75, 90, 100];
+  return c.map(x => Math.max(0, nz(x)) / 100);
+}
+
+/* quanto rende una cella nuova nel mese m, se entra nel mese ing (indici 0..11) */
+function fattoreRodaggio(r, m, ing) {
+  if (m < ing) return 0;
+  const c = curvaRep(r);
+  return c[Math.min(3, Math.floor((m - ing) / 3))];
+}
+
+/* capacità mese per mese di un reparto: celle esistenti a pieno + celle nuove in rodaggio */
+function capMensile(r, capCella, celle, ingOverride) {
+  const base = capCella / 12;
+  const nuove = nz(r.nuoveCelle);
+  const ing = ingOverride != null ? ingOverride : Math.min(11, Math.max(0, Math.round(nz(r.meseIngresso)) - 1));
+  return Array.from({ length: 12 }, (_, m) => base * celle + base * nuove * fattoreRodaggio(r, m, ing));
+}
+
+function computeRodaggio(ov) {
+  const c = compute(ov);
+  const righe = c.righe.filter(r => r.rep).map(r => {
+    const ing = Math.min(11, Math.max(0, Math.round(nz(r.rep.meseIngresso)) - 1));
+    const cap = capMensile(r.rep, r.capCella, r.celle);
+    const sat = cap.map((x, m) => x > 0 ? r.meseH[m] / x : (r.meseH[m] > 0 ? Infinity : 0));
+    const scoperti = sat.filter(s => s > 1.0001).length;
+    const nuove = nz(r.rep.nuoveCelle);
+    const capAnno = cap.reduce((a, b) => a + b, 0);
+    const guadagno = nuove > 0 ? (capAnno - r.celle * r.capCella) / r.capCella : 0;
+    const perse = nuove * r.capCella - guadagno * r.capCella;
+    /* ultimo mese in cui posso far entrare le nuove celle restando coperto tutto l'anno */
+    let ultimo = null;
+    if (nuove > 0) {
+      for (let k = 11; k >= 0; k--) {
+        const p = capMensile(r.rep, r.capCella, r.celle, k);
+        if (p.every((x, m) => r.meseH[m] <= x + 1e-6)) { ultimo = k; break; }
+      }
+    }
+    const bastano = nuove > 0 && ultimo === null
+      ? capMensile(r.rep, r.capCella, r.celle, 0).every((x, m) => r.meseH[m] <= x + 1e-6)
+      : true;
+    return { r, ing, cap, sat, scoperti, nuove, guadagno, perse, ultimo, bastano };
+  });
+  return { c, righe };
+}
+
+function oreNetteParams() {
+  return nz(S.params.oreAnnuePerCella) * (nz(S.params.turni) || 1) * nz(S.params.efficienza) / 100;
+}
+
+function oreNetteReparto(r) {
+  const lorde = r.oreOverride != null && r.oreOverride !== "" ? nz(r.oreOverride) : nz(S.params.oreAnnuePerCella);
+  return lorde * (nz(S.params.turni) || 1) * nz(S.params.efficienza) / 100;
+}
+
 function renderReparti() {
   const el = document.getElementById("tblReparti");
   if (!S.reparti.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; return; }
   const opts = f => S.fasi.map(x => '<option value="' + x.id + '"' + (x.id === f ? " selected" : "") + ">" + esc(x.nome) + "</option>").join("");
   el.innerHTML = "<thead><tr>" + th("Reparto") + th("Fase lavorata") + th("Celle oggi", "num") + th("Celle max", "num")
-    + th("Macchine", "num") + th("Ore annue: vuoto = generale", "num") + th("Ripristino (gg)", "num") + th("Lotto (pz)", "num")
+    + th("Macchine", "num") + th("Ore nette per cella: vuoto = generale", "num") + th("Ripristino (gg)", "num") + th("Lotto (pz)", "num")
     + th("Buffer") + "<th style='width:90px'></th></tr></thead><tbody>"
     + S.reparti.map(r =>
       '<tr><td><input class="wide" value="' + esc(r.nome) + '" data-k="reparto" data-id="' + r.id + '" data-f="nome"></td>'
@@ -1058,7 +1149,7 @@ function renderReparti() {
       + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleAttuali) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleAttuali"></td>'
       + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleMax) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleMax"></td>'
       + '<td class="num"><input type="number" min="0" step="1" style="width:76px" value="' + nz(r.macchine) + '" data-k="reparto" data-id="' + r.id + '" data-f="macchine"></td>'
-      + '<td class="num"><input type="number" min="0" step="10" style="width:106px" placeholder="' + nz(S.params.oreAnnuePerCella) + " " + t("generale") + '" value="' + (r.oreOverride == null ? "" : r.oreOverride) + '" data-k="reparto" data-id="' + r.id + '" data-f="oreOverride"></td>'
+      + '<td class="num"><input type="number" min="0" step="10" style="width:122px" placeholder="' + nf(oreNetteParams()) + " " + t("generale") + '" value="' + (r.oreOverride == null ? "" : Math.round(oreNetteReparto(r) * 10) / 10) + '" data-k="reparto" data-id="' + r.id + '" data-f="oreNette"></td>'
       + '<td class="num"><input type="number" min="0" step="0.5" style="width:78px" value="' + nz(r.ltGiorni) + '" data-k="reparto" data-id="' + r.id + '" data-f="ltGiorni"></td>'
       + '<td class="num"><input type="number" min="0" step="1" style="width:82px" value="' + nz(r.lotto) + '" data-k="reparto" data-id="' + r.id + '" data-f="lotto"></td>'
       + '<td><input type="checkbox" ' + (r.buffer !== false ? "checked" : "") + ' data-k="reparto" data-id="' + r.id + '" data-f="buffer" aria-label="' + t("Tieni un magazzino a valle") + '"></td>'
@@ -1127,7 +1218,7 @@ function renderParams() {
   document.querySelectorAll("[data-anno]").forEach(el => el.value = S.meta.anni[+el.dataset.anno] || "");
   document.getElementById("scenName").value = S.meta.nome || "";
 }
-function renderSetup() { renderFasi(); renderReparti(); renderFamiglie(); renderMensile(); renderParams(); }
+function renderSetup() { renderFasi(); renderReparti(); renderPianoAssunzioni(); renderFamiglie(); renderMensile(); renderParams(); }
 
 /* ============================================================
    RISULTATI
@@ -1170,6 +1261,48 @@ function renderControlli() {
         + (o[0] === "t-bad" ? t("da correggere") : o[0] === "t-warn" ? t("da verificare") : t("nota")) + "</span></td>"
         + "<td>" + o[1] + (o[2] ? ' <span style="color:var(--dim)">— ' + esc(o[2]) + "</span>" : "") + "</td></tr>").join("") + "</tbody></table>"
     : '<p style="margin:0;color:var(--ok-fg)">' + t("Nessun problema rilevato: i dati sono completi.") + "</p>";
+}
+
+function renderPianoAssunzioni() {
+  const el = document.getElementById("tblPiano");
+  if (!S.reparti.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; return; }
+  const opts = v => MESI_IT.map((m, i) => '<option value="' + (i + 1) + '"' + (i + 1 === Math.round(nz(v)) ? " selected" : "") + ">" + t(m) + "</option>").join("");
+  el.innerHTML = "<thead><tr>" + th("Reparto") + th("Celle oggi", "num") + th("Celle nuove", "num") + th("Mese di ingresso")
+    + th("1º trim. %", "num") + th("2º trim. %", "num") + th("3º trim. %", "num") + th("4º trim. %", "num") + "</tr></thead><tbody>"
+    + S.reparti.map(r => '<tr><td>' + esc(r.nome) + '</td><td class="num">' + nf(nz(r.celleAttuali)) + "</td>"
+      + '<td class="num"><input type="number" min="0" step="1" style="width:74px" value="' + nz(r.nuoveCelle) + '" data-k="reparto" data-id="' + r.id + '" data-f="nuoveCelle"></td>'
+      + '<td><select data-k="reparto" data-id="' + r.id + '" data-f="meseIngresso">' + opts(r.meseIngresso) + "</select></td>"
+      + [0, 1, 2, 3].map(i => '<td class="num"><input type="number" min="0" max="100" step="5" style="width:70px" value="'
+        + nz((r.curva || [])[i]) + '" data-k="reparto" data-id="' + r.id + '" data-f="curva" data-i="' + i + '"></td>').join("")
+      + "</tr>").join("") + "</tbody>";
+}
+
+function renderRodaggio() {
+  const el = document.getElementById("tblRodaggio"), note = document.getElementById("rodNote");
+  const R = computeRodaggio();
+  if (!R.righe.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; note.innerHTML = ""; return; }
+  el.innerHTML = "<thead><tr>" + th("Reparto") + MESI_IT.map(m => '<th class="num">' + t(m) + "</th>").join("")
+    + th("Mesi scoperti", "num") + th("Celle guadagnate", "num") + th("Assumi entro") + "</tr></thead><tbody>"
+    + R.righe.map(x => {
+      const celle = x.sat.map(s => {
+        if (!isFinite(s)) return '<td class="mese m-bad">—</td>';
+        const cls = s > 1.0001 ? "m-bad" : s > 0.95 ? "m-warn" : s > 0 ? "m-ok" : "m-off";
+        return '<td class="mese ' + cls + '">' + (s > 0 ? Math.round(s * 100) : "·") + "</td>";
+      }).join("");
+      const entro = x.nuove <= 0 ? "—"
+        : x.ultimo != null ? mese(x.ultimo)
+        : '<span class="tag t-bad">' + t("non bastano") + "</span>";
+      return "<tr><td>" + esc(x.r.nome) + "</td>" + celle
+        + '<td class="num">' + (x.scoperti ? '<span class="tag t-bad">' + x.scoperti + "</span>" : "0") + "</td>"
+        + '<td class="num">' + (x.nuove > 0 ? nf(x.guadagno) + " / " + nf(x.nuove) : "—") + "</td>"
+        + "<td>" + entro + "</td></tr>";
+    }).join("") + "</tbody>";
+  const perse = R.righe.reduce((a, x) => a + x.perse, 0);
+  const scoperti = R.righe.reduce((a, x) => a + x.scoperti, 0);
+  note.innerHTML = '<p class="hint" style="margin-top:12px">'
+    + (perse > 0 ? t("Ore perse in rodaggio nell'anno") + ": <b>" + nf(perse) + "</b> " + t("ore") + ". " : "")
+    + (scoperti > 0 ? t("Mesi in cui il carico supera la capacità") + ": <b>" + scoperti + "</b>. " : t("Nessun mese scoperto. "))
+    + t("«Assumi entro» è l'ultimo mese in cui puoi far entrare le persone restando coperto tutto l'anno.") + "</p>";
 }
 
 function renderRisultati() {
@@ -1559,7 +1692,7 @@ function renderVSM() {
 /* ============================================================
    REFRESH
    ============================================================ */
-function refreshOutputs() { renderControlli(); renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { renderControlli(); renderRodaggio(); renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
@@ -1596,7 +1729,11 @@ document.addEventListener("input", e => {
   if (k === "fase") { findById(S.fasi, el.dataset.id).nome = el.value; renderVSM(); renderRisultati(); renderSimulazione(); }
   else if (k === "reparto") {
     const r = findById(S.reparti, el.dataset.id), f = el.dataset.f;
-    if (f === "oreOverride") r[f] = el.value === "" ? null : parseFloat(el.value);
+    if (f === "curva") { if (!Array.isArray(r.curva)) r.curva = [50, 75, 90, 100]; r.curva[+el.dataset.i] = el.value === "" ? 0 : parseFloat(el.value); }
+    else if (f === "oreNette") {
+      const fattore = (nz(S.params.turni) || 1) * nz(S.params.efficienza) / 100;
+      r.oreOverride = (el.value === "" || fattore <= 0) ? null : parseFloat(el.value) / fattore;
+    }
     else if (f === "buffer") r[f] = el.checked;
     else if (f === "nome" || f === "faseId") r[f] = el.value;
     else r[f] = el.value === "" ? 0 : parseFloat(el.value);
@@ -1658,12 +1795,12 @@ document.getElementById("addFase").onclick = () => {
   const f = { id: uid(), nome: t("Nuova fase") };
   S.fasi.push(f);
   S.famiglie.forEach(x => x.tempi[f.id] = { on: false, min: 0, minMacchina: 0, setup: 0 });
-  S.reparti.push({ id: uid(), nome: f.nome, faseId: f.id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true });
+  S.reparti.push({ id: uid(), nome: f.nome, faseId: f.id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true, nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100] });
   queueSave(); refreshAll();
 };
 document.getElementById("addReparto").onclick = () => {
   if (!S.fasi.length) { alert(t("Aggiungi prima una fase: ogni reparto ne lavora una.")); return; }
-  S.reparti.push({ id: uid(), nome: t("Nuovo reparto"), faseId: S.fasi[0].id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true });
+  S.reparti.push({ id: uid(), nome: t("Nuovo reparto"), faseId: S.fasi[0].id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true, nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100] });
   queueSave(); refreshAll();
 };
 document.getElementById("addFamiglia").onclick = () => {
