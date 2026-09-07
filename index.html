@@ -45,7 +45,7 @@ body{
 h1,h2,h3,.display{font-family:"Cinzel",Georgia,serif;font-weight:700;letter-spacing:.06em;margin:0}
 
 header{border-bottom:2px solid var(--border);background:var(--panel-2);box-shadow:0 6px 24px var(--shadow)}
-.head-inner{max-width:1180px;margin:0 auto;padding:20px 22px 0;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.head-inner{max-width:1280px;margin:0 auto;padding:20px 22px 0;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
 .mark{width:74px;height:74px;flex:none;filter:drop-shadow(0 0 14px rgba(226,87,31,.35))}
 .wordmark{font-size:34px;color:var(--gold);letter-spacing:.22em;line-height:1}
 .tagline{color:var(--dim);font-size:15px;margin-top:6px;max-width:56ch}
@@ -53,14 +53,14 @@ header{border-bottom:2px solid var(--border);background:var(--panel-2);box-shado
 .head-right input{width:190px}
 .chrome{display:flex;gap:8px;align-items:center}
 
-nav{max-width:1180px;margin:16px auto 0;padding:0 22px;display:flex;gap:2px;flex-wrap:wrap}
+nav{max-width:1280px;margin:16px auto 0;padding:0 22px;display:flex;gap:2px;flex-wrap:wrap;overflow-x:auto}
 nav button{font-family:"Cinzel",serif;font-size:14px;letter-spacing:.1em;background:var(--panel);color:var(--dim);
   border:2px solid var(--border);border-bottom:none;padding:10px 18px;cursor:pointer;border-radius:3px 3px 0 0}
 nav button:hover{color:var(--ink)}
 nav button[aria-current="true"]{background:var(--panel-2);color:var(--gold);border-color:var(--brass);position:relative;top:2px}
 nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
 
-main{max-width:1180px;margin:0 auto;padding:26px 22px 40px}
+main{max-width:1280px;margin:0 auto;padding:26px 22px 40px}
 section[hidden]{display:none}
 
 .panel{background:var(--panel);border:2px solid var(--border);border-radius:3px;padding:18px 20px 22px;margin-bottom:22px;
@@ -85,12 +85,19 @@ input:disabled{opacity:.35}
 .scroller{overflow-x:auto;margin:0 -4px;padding:0 4px}
 table{border-collapse:collapse;width:100%;font-size:15px}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border-2)}
-thead th{font-family:"Cinzel",serif;font-size:12.5px;font-weight:500;color:var(--brass);letter-spacing:.05em;border-bottom:2px solid var(--border);white-space:nowrap}
-tbody tr:hover{background:rgba(155,123,54,.08)}
+thead th{font-family:"Alegreya Sans",sans-serif;font-size:13px;font-weight:700;color:var(--brass);
+  letter-spacing:.02em;border-bottom:2px solid var(--border);white-space:nowrap;text-transform:none}
+tbody tr:nth-child(even){background:rgba(155,123,54,.045)}
+tbody tr:hover{background:rgba(155,123,54,.11)}
+tbody tr.vincolo td{box-shadow:inset 0 -1px 0 var(--cons-br)}
+tbody tr.vincolo td:first-child{box-shadow:inset 3px 0 0 var(--cons-br), inset 0 -1px 0 var(--cons-br);font-weight:700}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tfoot td{border-top:2px solid var(--border);border-bottom:none;font-weight:700}
 .empty{color:var(--dim);font-style:italic;padding:18px 2px}
 
+.matrix thead th:first-child,.matrix tbody td:first-child{position:sticky;left:0;background:var(--panel);z-index:2}
+.matrix thead th:first-child{z-index:3}
+.matrix tbody tr:nth-child(even) td:first-child{background:var(--panel-2)}
 .matrix th.phase{text-align:center;min-width:112px}
 .matrix td.cellphase{text-align:center;white-space:nowrap}
 .matrix input[type=checkbox]{accent-color:var(--gold);width:16px;height:16px;vertical-align:-2px;margin-right:4px}
@@ -138,9 +145,19 @@ svg.yama{display:block;min-width:640px}
 .saved{color:var(--moss);font-size:13px;min-height:18px}
 
 footer{border-top:2px solid var(--border);background:var(--panel-2);margin-top:20px}
-.foot-inner{max-width:1180px;margin:0 auto;padding:18px 22px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap;align-items:center}
+.foot-inner{max-width:1280px;margin:0 auto;padding:18px 22px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap;align-items:center}
 .ver{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.14em;color:var(--brass)}
 .by{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.28em;color:var(--gold)}
+details.panel > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+details.panel > summary::-webkit-details-marker{display:none}
+details.panel > summary h2{font-size:19px;color:var(--gold)}
+details.panel > summary::after{content:"+";font-family:"Cinzel",serif;color:var(--brass);font-size:20px;margin-left:auto}
+details.panel[open] > summary::after{content:"–"}
+details.panel[open] > summary{margin-bottom:10px}
+details.paste{border:1px dashed var(--border);border-radius:3px;padding:10px 14px;margin:0 0 18px}
+details.paste summary{cursor:pointer;font-family:"Cinzel",serif;font-size:13.5px;letter-spacing:.06em;color:var(--brass)}
+details.paste summary:hover{color:var(--gold)}
+details.paste[open] summary{margin-bottom:10px}
 textarea{background:var(--input);color:var(--ink);border:1px solid var(--border);border-radius:2px;padding:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
 @media print{
   body{background:#fff;color:#000}
@@ -223,24 +240,23 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
   </div>
 
   <div class="panel">
-    <h2>Incolla da Excel</h2>
-    <p class="hint">Copia le colonne dal foglio e incollale qui: l'app crea o aggiorna le righe da sola. Le famiglie già presenti vengono riconosciute dal nome e aggiornate, non duplicate.</p>
-    <div class="seg" id="pasteMode">
-      <button data-pmode="famiglie" aria-pressed="true">Famiglie e forecast</button>
-      <button data-pmode="tempi" aria-pressed="false">Tempi per fase</button>
-    </div>
-    <p class="hint" id="pasteHelp"></p>
-    <textarea id="pasteBox" rows="6" style="width:100%"></textarea>
-    <div class="row-actions">
-      <button class="act" id="pasteApply">Importa le righe</button>
-      <button class="act ghost" id="pasteClear">Svuota il riquadro</button>
-    </div>
-    <p class="hint" id="pasteReport" style="margin-top:12px"></p>
-  </div>
-
-  <div class="panel">
     <h2>Famiglie di prodotto e tempi</h2>
-    <p class="hint">Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.</p>
+    <p class="hint">È qui che vivono i dati. Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.</p>
+    <details class="paste">
+      <summary>Riempi la tabella incollando da Excel</summary>
+      <p class="hint">Le righe incollate finiscono in questa stessa tabella: non è un secondo archivio. Le famiglie già presenti vengono riconosciute dal nome e aggiornate, non duplicate.</p>
+      <div class="seg" id="pasteMode">
+        <button data-pmode="famiglie" aria-pressed="true">Famiglie e forecast</button>
+        <button data-pmode="tempi" aria-pressed="false">Tempi per fase</button>
+      </div>
+      <p class="hint" id="pasteHelp"></p>
+      <textarea id="pasteBox" rows="5" style="width:100%"></textarea>
+      <div class="row-actions">
+        <button class="act" id="pasteApply">Importa le righe</button>
+        <button class="act ghost" id="pasteClear">Svuota il riquadro</button>
+      </div>
+      <p class="hint" id="pasteReport" style="margin-top:12px"></p>
+    </details>
     <div class="scroller"><table id="tblFamiglie" class="matrix"></table></div>
     <div class="row-actions">
       <button class="act" id="addFamiglia">Aggiungi famiglia</button>
@@ -248,15 +264,15 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Distribuzione delle consegne</h2>
+  <details class="panel">
+    <summary><h2>Distribuzione delle consegne</h2></summary>
     <p class="hint">Quota del forecast annuo consegnata in ogni mese, in percentuale. Serve a trovare il picco: il dimensionamento resta sul medio. Se lasci tutto uniforme, picco e media coincidono.</p>
-    <div class="scroller"><table id="tblMensile"></table></div>
+    <div class="scroller"><table id="tblMensile" class="matrix"></table></div>
     <div class="row-actions"><button class="act ghost" id="resetMensile">Riporta tutte a uniforme</button></div>
-  </div>
+  </details>
 
-  <div class="panel">
-    <h2>Parametri generali</h2>
+  <details class="panel">
+    <summary><h2>Parametri generali</h2></summary>
     <p class="hint">Valori di partenza per tutti i reparti. Sono ipotesi di lavoro: correggili con i tuoi dati reali appena li hai.</p>
     <div class="levers">
       <div class="lever"><label for="pOre">Ore annue per cella, un turno</label><input type="number" id="pOre" data-param="oreAnnuePerCella" min="1" step="10"></div>
@@ -270,10 +286,10 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
       <div class="lever"><label for="pAnno0">Nomi degli anni del piano</label>
         <input id="pAnno0" data-anno="0" style="width:88px"> <input data-anno="1" style="width:88px"> <input data-anno="2" style="width:88px"></div>
     </div>
-  </div>
+  </details>
 
-  <div class="panel">
-    <h2>Dati</h2>
+  <details class="panel">
+    <summary><h2>Dati</h2></summary>
     <p class="hint">Il lavoro si salva da solo nel browser. Esporta un file per il backup o per spostarti tra computer.</p>
     <div class="row-actions">
       <button class="act" id="exportBtn">Esporta file</button>
@@ -283,7 +299,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
       <button class="act" id="printBtn">Stampa</button>
       <button class="act ghost" id="wipeBtn">Svuota tutto</button>
     </div>
-  </div>
+  </details>
 </section>
 
 <section id="tab-rilievi" hidden>
@@ -311,6 +327,11 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 </section>
 
 <section id="tab-risultati" hidden>
+  <div class="panel" id="panControlli">
+    <h2>Controlli</h2>
+    <p class="hint">Le cose che renderebbero poco affidabili i numeri qui sotto. Se questa lista è pulita, del resto ti puoi fidare.</p>
+    <div id="controlliOut"></div>
+  </div>
   <div id="constraintBox"></div>
   <div class="kpis" id="kpis"></div>
   <div class="panel">
@@ -457,7 +478,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v1.6";
+const VERSION = "v1.8";
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -653,6 +674,21 @@ const EN = {
   "Tempo di ripristino e lotto si impostano nella Fucina, reparto per reparto. Giorni lavorativi e giorni di sicurezza stanno nei parametri generali. L'EPEI dice ogni quanti giorni riesci a ripassare tutte le famiglie del reparto, con le ore che ti restano dopo il lavoro: il magazzino non può coprire meno di quel numero, qualunque formula applichi.": "Replenishment time and batch size are set in the Forge, department by department. Working days and safety days live in the general parameters. EPEI tells you how many days it takes to run through every family in the department, with the hours left after the work itself: the buffer cannot cover less than that number, whatever formula you apply.",
   "Il magazzino vero lo gestisci per codice, non per reparto: qui la quantità di buffer spetta a ogni famiglia in ogni reparto che attraversa. La classe è calcolata da volume e regolarità: alto e regolare va a flusso con lotti piccoli, sporadica conviene farla a ordine invece di tenerla a scorta.": "Real stock is managed by part number, not by department: here is the buffer quantity each family takes in every department it passes through. The class is derived from volume and regularity: high and steady runs in small batches, sporadic is better made to order than held in stock.",
   "Stesso calcolo sul mese più carico, contro la capacità di un mese. Qui non dimensioni: scegli fra tre strade. L'anticipo per livellare è la terza: quanti pezzi produrre prima del picco per attraversarlo senza aggiungere né celle né ore.": "The same calculation on the busiest month, against one month of capacity. You do not size here: you choose between three routes. Build-ahead to level is the third one: how many pieces to make before the peak to get through it without adding cells or hours.",
+  "Riempi la tabella incollando da Excel": "Fill the table by pasting from Excel",
+  "È qui che vivono i dati. Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.": "This is where the data lives. Switch on the steps a family goes through and enter the times per piece in minutes: labour, machine time and changeover. A step switched off means no load on that department.",
+  "Le righe incollate finiscono in questa stessa tabella: non è un secondo archivio. Le famiglie già presenti vengono riconosciute dal nome e aggiornate, non duplicate.": "Pasted rows land in this very table: it is not a second store. Families that already exist are matched by name and updated, not duplicated.",
+  "Controlli": "Checks",
+  "Le cose che renderebbero poco affidabili i numeri qui sotto. Se questa lista è pulita, del resto ti puoi fidare.": "The things that would make the numbers below unreliable. If this list is clean, you can trust the rest.",
+  "Non c'è ancora nessuna famiglia: parti dalla Fucina, definisci reparti e celle, poi aggiungi le famiglie con forecast e tempi.": "There are no families yet: start in the Forge, set up departments and cells, then add the families with forecast and times.",
+  "Famiglie con forecast ma senza tempi: non generano carico": "Families with a forecast but no times: they generate no load",
+  "Reparti con carico ma nessuna cella": "Departments with load but no cells",
+  "Profili di consegna che non fanno 100%": "Delivery profiles that do not add up to 100%",
+  "Attrezzaggi non conteggiati: il lotto del reparto è a zero": "Changeovers not counted: the department batch size is zero",
+  "Famiglie senza forecast nell'anno attivo": "Families with no forecast in the active year",
+  "Costi non impostati: la tabella dei costi resta vuota": "Costs not set: the cost table stays empty",
+  "Nessun tempo misurato: i tempi in uso sono stime": "No measured times: the times in use are estimates",
+  "Nessun problema rilevato: i dati sono completi.": "No problems found: the data is complete.",
+  "da correggere": "to fix", "da verificare": "to check", "nota": "note",
   /* v1.5 */
   "Anticipo per livellare": "Build-ahead to level", "EPEI": "EPEI",
   "nessuna ora per i cambi": "no hours left for changeovers",
@@ -1070,6 +1106,44 @@ function renderSetup() { renderFasi(); renderReparti(); renderFamiglie(); render
    ============================================================ */
 function kpi(n, l) { return '<div class="kpi"><div class="n">' + n + '</div><div class="l">' + t(l) + "</div></div>"; }
 
+function renderControlli() {
+  const c = compute(), anno = S.meta.anno || 0, out = [];
+  const nomi = arr => arr.slice(0, 6).join(", ") + (arr.length > 6 ? " +" + (arr.length - 6) : "");
+
+  if (!S.famiglie.length) {
+    document.getElementById("controlliOut").innerHTML =
+      '<p class="empty" style="margin:0">' + t("Non c'è ancora nessuna famiglia: parti dalla Fucina, definisci reparti e celle, poi aggiungi le famiglie con forecast e tempi.") + "</p>";
+    return;
+  }
+  const senzaTempi = S.famiglie.filter(f => nz(f.forecastAnni[anno]) > 0 && !S.fasi.some(fa => {
+    const x = f.tempi[fa.id]; return x && x.on && (nz(x.min) + nz(x.minMacchina)) > 0;
+  })).map(f => f.nome);
+  if (senzaTempi.length) out.push(["t-bad", t("Famiglie con forecast ma senza tempi: non generano carico"), nomi(senzaTempi)]);
+
+  const senzaCelle = c.righe.filter(r => r.caricoH > 0 && r.celle <= 0).map(r => r.nome);
+  if (senzaCelle.length) out.push(["t-bad", t("Reparti con carico ma nessuna cella"), nomi(senzaCelle)]);
+
+  const profili = S.famiglie.filter(f => Math.abs(f.mensile.reduce((a, b) => a + nz(b), 0) - 100) > 0.5).map(f => f.nome);
+  if (profili.length) out.push(["t-warn", t("Profili di consegna che non fanno 100%"), nomi(profili)]);
+
+  const setupPerso = c.righe.filter(r => r.rep && nz(r.rep.lotto) <= 0 && r.contrib.some(k => k.setupMin > 0)).map(r => r.nome);
+  if (setupPerso.length) out.push(["t-warn", t("Attrezzaggi non conteggiati: il lotto del reparto è a zero"), nomi(setupPerso)]);
+
+  const senzaForecast = S.famiglie.filter(f => nz(f.forecastAnni[anno]) <= 0).map(f => f.nome);
+  if (senzaForecast.length) out.push(["t-idle", t("Famiglie senza forecast nell'anno attivo"), nomi(senzaForecast)]);
+
+  if (nz(S.params.costoOraCella) <= 0 && nz(S.params.costoCellaAnno) <= 0)
+    out.push(["t-idle", t("Costi non impostati: la tabella dei costi resta vuota"), ""]);
+
+  if (!S.rilievi.length) out.push(["t-idle", t("Nessun tempo misurato: i tempi in uso sono stime"), ""]);
+
+  document.getElementById("controlliOut").innerHTML = out.length
+    ? '<table><tbody>' + out.map(o => '<tr><td style="width:220px"><span class="tag ' + o[0] + '">'
+        + (o[0] === "t-bad" ? t("da correggere") : o[0] === "t-warn" ? t("da verificare") : t("nota")) + "</span></td>"
+        + "<td>" + o[1] + (o[2] ? ' <span style="color:var(--dim)">— ' + esc(o[2]) + "</span>" : "") + "</td></tr>").join("") + "</tbody></table>"
+    : '<p style="margin:0;color:var(--ok-fg)">' + t("Nessun problema rilevato: i dati sono completi.") + "</p>";
+}
+
 function renderRisultati() {
   const c = compute();
   const box = document.getElementById("constraintBox");
@@ -1101,7 +1175,7 @@ function renderRisultati() {
     + th("Ore per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
     + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
     + (c.righe.length ? c.righe.map(r =>
-      "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.oreUomo) + "</td>"
+      '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.oreUomo) + "</td>"
       + '<td class="num" style="color:' + (r.oreSetup > 0 ? "var(--warn-fg)" : "var(--dim)") + '">' + nf(r.oreSetup) + "</td>"
       + '<td class="num">' + nf(r.capCella) + "</td>"
       + "<td>" + (r.caricoH <= 0 ? "—" : r.risorsa === "macchina" ? '<span class="tag t-warn">' + t("macchina") + "</span>" : '<span class="tag t-idle">' + t("uomo") + "</span>") + "</td>"
@@ -1168,7 +1242,7 @@ function renderSimulazione() {
   document.getElementById("tblSimOggi").innerHTML =
     "<thead><tr>" + th("Reparto") + th("Ore carico", "num") + th("Celle oggi", "num") + th("Ore coperte", "num")
     + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
-    + c.righe.map(r => "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.caricoH) + '</td><td class="num">' + nf(r.celle) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
+    + c.righe.map(r => '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.caricoH) + '</td><td class="num">' + nf(r.celle) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
       + satCell(r.sat) + "<td>" + verdict(r) + "</td></tr>").join("") + "</tbody>";
 
   document.getElementById("tblSimSugg").innerHTML =
@@ -1457,7 +1531,7 @@ function renderVSM() {
 /* ============================================================
    REFRESH
    ============================================================ */
-function refreshOutputs() { renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { renderControlli(); renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
