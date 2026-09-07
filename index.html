@@ -154,6 +154,9 @@ details.panel > summary h2{font-size:19px;color:var(--gold)}
 details.panel > summary::after{content:"+";font-family:"Cinzel",serif;color:var(--brass);font-size:20px;margin-left:auto}
 details.panel[open] > summary::after{content:"–"}
 details.panel[open] > summary{margin-bottom:10px}
+.calcOre{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;
+  border:1px dashed var(--border);border-radius:8px;background:var(--panel-2);font-size:14px;color:var(--dim)}
+.calcOre b{color:var(--gold);font-size:16px;min-width:70px}
 details.paste{border:1px dashed var(--border);border-radius:3px;padding:10px 14px;margin:0 0 18px}
 details.paste summary{cursor:pointer;font-family:"Cinzel",serif;font-size:13.5px;letter-spacing:.06em;color:var(--brass)}
 details.paste summary:hover{color:var(--gold)}
@@ -234,7 +237,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 
   <div class="panel">
     <h2>Reparti e celle</h2>
-    <p class="hint">Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Lascia le ore vuote per usare il valore generale.</p>
+    <p class="hint">Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. La colonna delle ore serve solo ai reparti con un orario diverso dagli altri: lasciata vuota eredita il valore dei parametri generali, che vedi in grigio nella casella.</p>
     <div class="scroller"><table id="tblReparti"></table></div>
     <div class="row-actions"><button class="act" id="addReparto">Aggiungi reparto</button></div>
   </div>
@@ -274,8 +277,18 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
   <details class="panel">
     <summary><h2>Parametri generali</h2></summary>
     <p class="hint">Valori di partenza per tutti i reparti. Sono ipotesi di lavoro: correggili con i tuoi dati reali appena li hai.</p>
+    <p class="hint">Le ore annue si intendono lorde, cioè la presenza a calendario senza aver tolto niente. L'efficienza si applica sopra: ore lorde × turni × efficienza = ore utili per cella. Se ci metti un numero da cui hai già scontato fermi e assenze, il taglio avviene due volte.</p>
+    <div class="calcOre">
+      <span>Non le sai a memoria?</span>
+      <input type="number" id="coSett" min="1" step="0.5" style="width:74px" aria-label="Ore a settimana">
+      <span>ore a settimana ×</span>
+      <input type="number" id="coSettimane" min="1" max="52" step="1" style="width:66px" aria-label="Settimane lavorate">
+      <span>settimane lavorate =</span>
+      <b id="coRis">—</b>
+      <button class="act ghost" id="coUsa">Usa questo valore</button>
+    </div>
     <div class="levers">
-      <div class="lever"><label for="pOre">Ore annue per cella, un turno</label><input type="number" id="pOre" data-param="oreAnnuePerCella" min="1" step="10"></div>
+      <div class="lever"><label for="pOre">Ore annue lorde per cella, un turno</label><input type="number" id="pOre" data-param="oreAnnuePerCella" min="1" step="10"></div>
       <div class="lever"><label for="pEff">Efficienza in percentuale</label><input type="number" id="pEff" data-param="efficienza" min="1" max="100" step="1"></div>
       <div class="lever"><label for="pTurni">Turni di riferimento</label><input type="number" id="pTurni" data-param="turni" min="1" max="3" step="1"></div>
       <div class="lever"><label for="pTarget">Saturazione obiettivo</label><input type="number" id="pTarget" data-param="targetSaturazione" min="10" max="100" step="1"></div>
@@ -478,7 +491,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v1.8";
+const VERSION = "v1.9";
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -493,7 +506,7 @@ const EN = {
   "L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.": "The order here sets the flow sequence and the order on the map. Add or remove steps when the process changes.",
   "Aggiungi fase": "Add step",
   "Reparti e celle": "Departments and cells",
-  "Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Lascia le ore vuote per usare il valore generale.": "Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. Leave hours empty to use the general value.",
+  "Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. La colonna delle ore serve solo ai reparti con un orario diverso dagli altri: lasciata vuota eredita il valore dei parametri generali, che vedi in grigio nella casella.": "Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. The hours column is only for departments on a different schedule from the rest: left blank it inherits the value from the general parameters, shown greyed out in the box.",
   "Aggiungi reparto": "Add department",
   "Famiglie di prodotto e tempi": "Product families and times",
   "Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.": "Switch on the steps a family goes through and enter the times per piece in minutes: labour, machine time and changeover. A step switched off means no load on that department.",
@@ -689,6 +702,16 @@ const EN = {
   "Nessun tempo misurato: i tempi in uso sono stime": "No measured times: the times in use are estimates",
   "Nessun problema rilevato: i dati sono completi.": "No problems found: the data is complete.",
   "da correggere": "to fix", "da verificare": "to check", "nota": "note",
+  "Ore annue lorde per cella, un turno": "Gross annual hours per cell, one shift",
+  "Le ore annue si intendono lorde, cioè la presenza a calendario senza aver tolto niente. L'efficienza si applica sopra: ore lorde × turni × efficienza = ore utili per cella. Se ci metti un numero da cui hai già scontato fermi e assenze, il taglio avviene due volte.": "Annual hours are gross, meaning calendar attendance with nothing deducted yet. Efficiency is applied on top: gross hours × shifts × efficiency = usable hours per cell. If you enter a figure that already discounts downtime and absence, the cut happens twice.",
+  "Non le sai a memoria?": "Don't know them offhand?",
+  "ore a settimana ×": "hours per week ×",
+  "settimane lavorate =": "weeks worked =",
+  "Usa questo valore": "Use this value",
+  "Ore a settimana": "Hours per week", "Settimane lavorate": "Weeks worked",
+  "ore": "hours", "generale": "general",
+  "Ore annue: vuoto = generale": "Annual hours: blank = general",
+  "Ore utili per cella": "Usable hours per cell",
   /* v1.5 */
   "Anticipo per livellare": "Build-ahead to level", "EPEI": "EPEI",
   "nessuna ora per i cambi": "no hours left for changeovers",
@@ -766,7 +789,7 @@ function blankState() {
   const celle = { Saldatura: [3, 6], Assemblaggio: [8, 12] };
   return {
     meta: { nome: "Scenario base", lang: "it", theme: "dark", version: VERSION, anno: 0, anni: ["Anno 1", "Anno 2", "Anno 3"] },
-    params: { oreAnnuePerCella: 1600, efficienza: 85, turni: 1, targetSaturazione: 85, giorniLavorativi: 220, giorniSicurezza: 1, costoOraCella: 0, costoCellaAnno: 0 },
+    params: { oreAnnuePerCella: 1833, efficienza: 85, turni: 1, targetSaturazione: 85, giorniLavorativi: 225, giorniSicurezza: 1, costoOraCella: 0, costoCellaAnno: 0 },
     fasi,
     reparti: fasi.map(f => ({
       id: uid(), nome: f.nome, faseId: f.id,
@@ -1022,7 +1045,7 @@ function renderReparti() {
   if (!S.reparti.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; return; }
   const opts = f => S.fasi.map(x => '<option value="' + x.id + '"' + (x.id === f ? " selected" : "") + ">" + esc(x.nome) + "</option>").join("");
   el.innerHTML = "<thead><tr>" + th("Reparto") + th("Fase lavorata") + th("Celle oggi", "num") + th("Celle max", "num")
-    + th("Macchine", "num") + th("Ore annue per cella", "num") + th("Ripristino (gg)", "num") + th("Lotto (pz)", "num")
+    + th("Macchine", "num") + th("Ore annue: vuoto = generale", "num") + th("Ripristino (gg)", "num") + th("Lotto (pz)", "num")
     + th("Buffer") + "<th style='width:90px'></th></tr></thead><tbody>"
     + S.reparti.map(r =>
       '<tr><td><input class="wide" value="' + esc(r.nome) + '" data-k="reparto" data-id="' + r.id + '" data-f="nome"></td>'
@@ -1030,7 +1053,7 @@ function renderReparti() {
       + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleAttuali) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleAttuali"></td>'
       + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleMax) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleMax"></td>'
       + '<td class="num"><input type="number" min="0" step="1" style="width:76px" value="' + nz(r.macchine) + '" data-k="reparto" data-id="' + r.id + '" data-f="macchine"></td>'
-      + '<td class="num"><input type="number" min="0" step="10" placeholder="' + nz(S.params.oreAnnuePerCella) + '" value="' + (r.oreOverride == null ? "" : r.oreOverride) + '" data-k="reparto" data-id="' + r.id + '" data-f="oreOverride"></td>'
+      + '<td class="num"><input type="number" min="0" step="10" style="width:106px" placeholder="' + nz(S.params.oreAnnuePerCella) + " " + t("generale") + '" value="' + (r.oreOverride == null ? "" : r.oreOverride) + '" data-k="reparto" data-id="' + r.id + '" data-f="oreOverride"></td>'
       + '<td class="num"><input type="number" min="0" step="0.5" style="width:78px" value="' + nz(r.ltGiorni) + '" data-k="reparto" data-id="' + r.id + '" data-f="ltGiorni"></td>'
       + '<td class="num"><input type="number" min="0" step="1" style="width:82px" value="' + nz(r.lotto) + '" data-k="reparto" data-id="' + r.id + '" data-f="lotto"></td>'
       + '<td><input type="checkbox" ' + (r.buffer !== false ? "checked" : "") + ' data-k="reparto" data-id="' + r.id + '" data-f="buffer" aria-label="' + t("Tieni un magazzino a valle") + '"></td>'
@@ -1172,7 +1195,7 @@ function renderRisultati() {
 
   document.getElementById("tblRisultati").innerHTML =
     "<thead><tr>" + th("Reparto") + th("Pezzi lanciati", "num") + th("Ore lavoro", "num") + th("Ore setup", "num")
-    + th("Ore per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
+    + th("Ore utili per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
     + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
     + (c.righe.length ? c.righe.map(r =>
       '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.oreUomo) + "</td>"
@@ -1643,6 +1666,22 @@ document.getElementById("addFamiglia").onclick = () => {
   S.famiglie.push({ id: uid(), nome: t("Nuova famiglia"), cluster: "", forecastAnni: [0, 0, 0], scarto: 0, valore: 0, tempi: x, mensile: uniform() });
   queueSave(); refreshAll();
 };
+function calcOre() {
+  const a = nz(document.getElementById("coSett").value), b = nz(document.getElementById("coSettimane").value);
+  const r = a > 0 && b > 0 ? Math.round(a * b) : null;
+  document.getElementById("coRis").textContent = r == null ? "—" : nf(r) + " " + t("ore");
+  return r;
+}
+document.getElementById("coSett").addEventListener("input", calcOre);
+document.getElementById("coSettimane").addEventListener("input", calcOre);
+document.getElementById("coUsa").onclick = () => {
+  const r = calcOre();
+  if (r == null) return;
+  S.params.oreAnnuePerCella = r;
+  document.getElementById("pOre").value = r;
+  queueSave(); refreshAll();
+};
+
 document.getElementById("resetMensile").onclick = () => { S.famiglie.forEach(f => f.mensile = uniform()); queueSave(); renderMensile(); refreshOutputs(); };
 
 document.getElementById("loadDemo").onclick = () => {
@@ -1996,7 +2035,7 @@ function exportCSV() {
   push([t("Scenario"), S.meta.nome, t("Anno"), S.meta.anni[S.meta.anno || 0], "Runeforge " + VERSION]);
   L.push("");
   push([t("Carico e celle per reparto")]);
-  push([t("Reparto"), t("Pezzi lanciati"), t("Ore lavoro"), t("Ore setup"), t("Ore per cella"), t("Limite"), t("Celle necessarie"), t("Celle oggi"), t("Celle suggerite"), t("Saturazione")]);
+  push([t("Reparto"), t("Pezzi lanciati"), t("Ore lavoro"), t("Ore setup"), t("Ore utili per cella"), t("Limite"), t("Celle necessarie"), t("Celle oggi"), t("Celle suggerite"), t("Saturazione")]);
   c.righe.forEach(r => push([r.nome, csvNum(r.pezzi), csvNum(r.oreUomo), csvNum(r.oreSetup), csvNum(r.capCella),
     t(r.risorsa === "macchina" ? "macchina" : "uomo"), csvNum(r.necFraz), csvNum(r.celle), csvNum(r.sugg), csvNum(r.sat != null ? r.sat * 100 : null)]));
   L.push("");
