@@ -282,7 +282,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
   <details class="panel">
     <summary><h2>Parametri generali</h2></summary>
     <p class="hint">Valori di partenza per tutti i reparti. Sono ipotesi di lavoro: correggili con i tuoi dati reali appena li hai.</p>
-    <p class="hint">Le ore annue si intendono lorde, cioè la presenza a calendario senza aver tolto niente. L'efficienza si applica sopra: ore lorde × turni × efficienza = ore utili per cella. Se ci metti un numero da cui hai già scontato fermi e assenze, il taglio avviene due volte.</p>
+    <p class="hint">Le ore annue si intendono lorde, cioè la presenza a calendario senza aver tolto niente. L'efficienza dichiarata qui le trasforma in ore standard: ore lorde × turni × efficienza. Se nelle ore metti un numero da cui hai già scontato fermi e assenze, il taglio avviene due volte.</p>
     <div class="calcOre">
       <span>Non le sai a memoria?</span>
       <input type="number" id="coSett" min="1" step="0.5" style="width:74px" aria-label="Ore a settimana">
@@ -496,7 +496,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v1.9";
+const VERSION = "v2.1";
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -708,7 +708,7 @@ const EN = {
   "Nessun problema rilevato: i dati sono completi.": "No problems found: the data is complete.",
   "da correggere": "to fix", "da verificare": "to check", "nota": "note",
   "Ore annue lorde per cella, un turno": "Gross annual hours per cell, one shift",
-  "Le ore annue si intendono lorde, cioè la presenza a calendario senza aver tolto niente. L'efficienza si applica sopra: ore lorde × turni × efficienza = ore utili per cella. Se ci metti un numero da cui hai già scontato fermi e assenze, il taglio avviene due volte.": "Annual hours are gross, meaning calendar attendance with nothing deducted yet. Efficiency is applied on top: gross hours × shifts × efficiency = usable hours per cell. If you enter a figure that already discounts downtime and absence, the cut happens twice.",
+  "Le ore annue si intendono lorde, cioè la presenza a calendario senza aver tolto niente. L'efficienza dichiarata qui le trasforma in ore standard: ore lorde × turni × efficienza. Se nelle ore metti un numero da cui hai già scontato fermi e assenze, il taglio avviene due volte.": "Annual hours are gross, meaning calendar attendance with nothing deducted yet. The efficiency declared here turns them into standard hours: gross hours × shifts × efficiency. If the hours field holds a figure that already discounts downtime and absence, the cut happens twice.",
   "Non le sai a memoria?": "Don't know them offhand?",
   "ore a settimana ×": "hours per week ×",
   "settimane lavorate =": "weeks worked =",
@@ -716,7 +716,7 @@ const EN = {
   "Ore a settimana": "Hours per week", "Settimane lavorate": "Weeks worked",
   "ore": "hours", "generale": "general",
   "Ore annue: vuoto = generale": "Annual hours: blank = general",
-  "Ore utili per cella": "Usable hours per cell",
+  "Ore standard per cella": "Standard hours per cell",
   /* v1.5 */
   "Anticipo per livellare": "Build-ahead to level", "EPEI": "EPEI",
   "nessuna ora per i cambi": "no hours left for changeovers",
@@ -1200,7 +1200,7 @@ function renderRisultati() {
 
   document.getElementById("tblRisultati").innerHTML =
     "<thead><tr>" + th("Reparto") + th("Pezzi lanciati", "num") + th("Ore lavoro", "num") + th("Ore setup", "num")
-    + th("Ore utili per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
+    + th("Ore standard per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
     + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
     + (c.righe.length ? c.righe.map(r =>
       '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.oreUomo) + "</td>"
@@ -2040,7 +2040,7 @@ function exportCSV() {
   push([t("Scenario"), S.meta.nome, t("Anno"), S.meta.anni[S.meta.anno || 0], "Runeforge " + VERSION]);
   L.push("");
   push([t("Carico e celle per reparto")]);
-  push([t("Reparto"), t("Pezzi lanciati"), t("Ore lavoro"), t("Ore setup"), t("Ore utili per cella"), t("Limite"), t("Celle necessarie"), t("Celle oggi"), t("Celle suggerite"), t("Saturazione")]);
+  push([t("Reparto"), t("Pezzi lanciati"), t("Ore lavoro"), t("Ore setup"), t("Ore standard per cella"), t("Limite"), t("Celle necessarie"), t("Celle oggi"), t("Celle suggerite"), t("Saturazione")]);
   c.righe.forEach(r => push([r.nome, csvNum(r.pezzi), csvNum(r.oreUomo), csvNum(r.oreSetup), csvNum(r.capCella),
     t(r.risorsa === "macchina" ? "macchina" : "uomo"), csvNum(r.necFraz), csvNum(r.celle), csvNum(r.sugg), csvNum(r.sat != null ? r.sat * 100 : null)]));
   L.push("");
