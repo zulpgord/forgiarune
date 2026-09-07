@@ -98,8 +98,13 @@ tfoot td{border-top:2px solid var(--border);border-bottom:none;font-weight:700}
 .matrix thead th:first-child,.matrix tbody td:first-child{position:sticky;left:0;background:var(--panel);z-index:2}
 .matrix thead th:first-child{z-index:3}
 .matrix tbody tr:nth-child(even) td:first-child{background:var(--panel-2)}
-.matrix th.phase{text-align:center;min-width:112px}
+.matrix th.phase{text-align:center;min-width:206px}
 .matrix td.cellphase{text-align:center;white-space:nowrap}
+.matrix td.cellphase input[type=number]{text-align:center;padding:6px 4px}
+.matrix input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.matrix input[type=number]::-webkit-outer-spin-button,
+.matrix input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.matrix td:first-child input{width:132px}
 .matrix input[type=checkbox]{accent-color:var(--gold);width:16px;height:16px;vertical-align:-2px;margin-right:4px}
 .off input[type=number]{opacity:.3}
 
@@ -1076,7 +1081,7 @@ function renderFamiglie() {
   const body = S.famiglie.map(fa => {
     const cells = S.fasi.map(f => {
       const x = fa.tempi[f.id] || { on: false, min: 0, minMacchina: 0, setup: 0 };
-      const inp = (field, val, tip) => '<input type="number" min="0" step="0.5" style="width:52px" title="' + t(tip) + '" value="' + nz(val) + '" data-k="tempo" data-id="' + fa.id + '" data-fase="' + f.id + '" data-f="' + field + '"' + (x.on ? "" : " disabled") + ">";
+      const inp = (field, val, tip) => '<input type="number" min="0" step="0.5" style="width:58px" title="' + t(tip) + '" value="' + nz(val) + '" data-k="tempo" data-id="' + fa.id + '" data-fase="' + f.id + '" data-f="' + field + '"' + (x.on ? "" : " disabled") + ">";
       return '<td class="cellphase' + (x.on ? "" : " off") + '">'
         + '<input type="checkbox" ' + (x.on ? "checked" : "") + ' data-k="tempo" data-id="' + fa.id + '" data-fase="' + f.id + '" data-f="on" aria-label="' + t("Fase attiva") + '">'
         + inp("min", x.min, "Minuti uomo per pezzo")
@@ -1084,10 +1089,10 @@ function renderFamiglie() {
         + inp("setup", x.setup, "Minuti di attrezzaggio per cambio") + "</td>";
     }).join("");
     return '<tr><td><input value="' + esc(fa.nome) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="nome"></td>'
-      + '<td><input style="width:120px" value="' + esc(fa.cluster) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="cluster"></td>'
-      + [0, 1, 2].map(i => '<td class="num"><input type="number" min="0" step="1" style="width:88px" value="' + nz(fa.forecastAnni[i]) + '" data-k="anno" data-id="' + fa.id + '" data-y="' + i + '"></td>').join("")
-      + '<td class="num"><input type="number" min="0" max="95" step="0.5" style="width:70px" value="' + nz(fa.scarto) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="scarto"></td>' 
-      + '<td class="num"><input type="number" min="0" step="1" style="width:82px" value="' + nz(fa.valore) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="valore"></td>' 
+      + '<td><input style="width:92px" value="' + esc(fa.cluster) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="cluster"></td>'
+      + [0, 1, 2].map(i => '<td class="num"><input type="number" min="0" step="1" style="width:74px" value="' + nz(fa.forecastAnni[i]) + '" data-k="anno" data-id="' + fa.id + '" data-y="' + i + '"></td>').join("")
+      + '<td class="num"><input type="number" min="0" max="95" step="0.5" style="width:62px" value="' + nz(fa.scarto) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="scarto"></td>' 
+      + '<td class="num"><input type="number" min="0" step="1" style="width:72px" value="' + nz(fa.valore) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="valore"></td>' 
       + cells
       + '<td><button class="danger" data-del="famiglia" data-id="' + fa.id + '">' + t("Elimina") + "</button></td></tr>";
   }).join("");
