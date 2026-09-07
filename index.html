@@ -479,7 +479,11 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 <section id="tab-vsm" hidden>
   <div class="panel">
     <h2>Mappa del flusso</h2>
-    <p class="hint">Le fasi in sequenza con celle, tempo di lavoro, carico e saturazione calcolati sui parametri di setup. Il vincolo è evidenziato: è lui a dettare il ritmo dell'intera catena.</p>
+    <p class="hint">Le fasi in sequenza con celle, tempo di lavoro, carico e saturazione calcolati sui parametri di setup. Il vincolo è evidenziato: è lui a dettare il ritmo dell'intera catena. Con «Celle reali» ogni cella diventa un riquadro: quelle tratteggiate sono le celle nuove del piano di assunzione, con il mese in cui entrano.</p>
+    <div class="seg" id="vsmMode">
+      <button data-mode="sintesi" aria-pressed="true">Riassunto</button>
+      <button data-mode="celle" aria-pressed="false">Celle reali</button>
+    </div>
     <div id="vsmWrap"></div>
     <div class="legend">
       <span><i class="swatch" style="background:#5C8C6A"></i>fino all'85%</span>
@@ -521,7 +525,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v2.6";
+const VERSION = "v2.7";
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -584,7 +588,7 @@ const EN = {
   "Dettaglio per famiglia": "Breakdown by family",
   "Il magazzino vero lo gestisci per codice, non per reparto: qui la quantità di buffer spetta a ogni famiglia in ogni reparto che attraversa.": "Real stock is managed by part number, not by department: here is the buffer quantity each family takes in every department it passes through.",
   /* vsm */
-  "Le fasi in sequenza con celle, tempo di lavoro, carico e saturazione calcolati sui parametri di setup. Il vincolo è evidenziato: è lui a dettare il ritmo dell'intera catena.": "The steps in sequence with cells, work content, load and utilisation from the setup parameters. The constraint is highlighted: it sets the pace of the whole chain.",
+  "Le fasi in sequenza con celle, tempo di lavoro, carico e saturazione calcolati sui parametri di setup. Il vincolo è evidenziato: è lui a dettare il ritmo dell'intera catena. Con «Celle reali» ogni cella diventa un riquadro: quelle tratteggiate sono le celle nuove del piano di assunzione, con il mese in cui entrano.": "The steps in sequence with cells, work content, load and utilisation from the setup parameters. The constraint is highlighted: it sets the pace of the whole chain. With “Actual cells” every cell becomes a box: dashed ones are the new cells from the hiring plan, with the month they start.",
   "fino all'85%": "up to 85%", "85-100%": "85-100%", "oltre il 100%": "over 100%", "nessuna cella impostata": "no cells set",
   "Scarica la mappa": "Download map",
   "È una mappa di flusso con i dati dell'app, non una VSM nel formalismo standard: mancano le frecce push e pull e i flussi informativi.": "This is a flow map built on the app data, not a VSM in the standard notation: push and pull arrows and information flows are missing.",
@@ -744,6 +748,7 @@ const EN = {
   "Ore standard per cella": "Standard hours per cell",
   "Apprendistato": "Ramp-up",
   "Piano di assunzione": "Hiring plan",
+  "Riassunto": "Summary", "Celle reali": "Actual cells", "Cella": "Cell", "nessuna cella": "no cell", "da": "from",
   "Ore erogate per mese": "Hours delivered per month",
   "Le ore che ogni reparto mette a disposizione mese per mese, già ridotte dal rodaggio delle celle nuove. È il piano di capacità da confrontare con il carico: l'ultima riga è il totale dello stabilimento.": "The hours each department makes available month by month, already reduced by the ramp-up of new cells. This is the capacity plan to compare against the load: the last row is the plant total.",
   "Pezzi": "Pieces", "Percentuali": "Percentages", "Somma / forecast": "Sum / forecast", "Anno": "Year",
@@ -1637,12 +1642,17 @@ function renderYamazumi() {
 /* ============================================================
    MAPPA DEL FLUSSO
    ============================================================ */
+let VSM_MODE = "sintesi";
+
 function renderVSM() {
   const C = TH();
   const c = compute();
   const R = c.righe;
   const B = computeBuffers(c, "media");
-  const W = 236, H = 150, GAP = 96, PADX = 34, TOP = 96;
+  const perCelle = VSM_MODE === "celle";
+  const CH = 32, CG = 6;
+  const maxCelle = perCelle ? Math.max(1, ...R.map(r => Math.round(nz(r.celle)) + Math.round(nz(r.rep && r.rep.nuoveCelle)))) : 0;
+  const W = 236, H = perCelle ? 74 + maxCelle * (CH + CG) + 26 : 150, GAP = 96, PADX = 34, TOP = 96;
   const width = PADX * 2 + R.length * W + Math.max(0, R.length - 1) * GAP;
   const height = TOP + H + 200;
   const FS = 'font-family="Alegreya Sans,sans-serif"';
@@ -1663,17 +1673,39 @@ function renderVSM() {
     s += '<rect x="' + x + '" y="' + TOP + '" width="' + W + '" height="' + H + '" fill="' + C.panel + '" stroke="' + col + '" stroke-width="2" rx="3"/>';
     s += '<rect x="' + x + '" y="' + TOP + '" width="' + W + '" height="30" fill="' + C.head + '"/>';
     s += '<text x="' + (x + 12) + '" y="' + (TOP + 20) + '" fill="' + C.ink + '" font-family="Cinzel,serif" font-size="14">' + esc(r.nome.slice(0, 24)) + "</text>";
-    const L = [
-      [t("Celle"), nf(r.celle) + (r.max ? " / " + nf(r.max) : "")],
-      [t("Tempo medio"), r.tcMedio != null ? nf(r.tcMedio, 1) + " " + U.min() + "/" + U.pz() : "—"],
-      [t("Carico"), nf(r.caricoH) + " " + U.h()],
-      [t("Capacità"), nf(r.celle * r.capCella) + " " + U.h()]
-    ];
-    L.forEach((p, k) => {
-      const y = TOP + 52 + k * 20;
-      s += '<text x="' + (x + 12) + '" y="' + y + '" fill="' + C.dim + '" ' + FS + ' font-size="13">' + p[0] + "</text>";
-      s += '<text x="' + (x + W - 12) + '" y="' + y + '" fill="' + C.ink + '" ' + FS + ' font-size="13" text-anchor="end">' + p[1] + "</text>";
-    });
+    if (perCelle) {
+      const nOgg = Math.max(0, Math.round(nz(r.celle)));
+      const nNuo = Math.max(0, Math.round(nz(r.rep && r.rep.nuoveCelle)));
+      const ing = r.rep ? Math.min(11, Math.max(0, Math.round(nz(r.rep.meseIngresso)) - 1)) : 0;
+      const oreCella = r.celle > 0 ? r.caricoH / r.celle : 0;
+      if (nOgg + nNuo === 0) {
+        s += '<rect x="' + (x + 12) + '" y="' + (TOP + 42) + '" width="' + (W - 24) + '" height="' + CH + '" fill="none" stroke="' + C.dim + '" stroke-width="1.4" stroke-dasharray="5 4" rx="2"/>';
+        s += '<text x="' + (x + W / 2) + '" y="' + (TOP + 62) + '" fill="' + C.dim + '" ' + FS + ' font-size="12.5" text-anchor="middle">' + t("nessuna cella") + "</text>";
+      }
+      for (let k = 0; k < nOgg + nNuo; k++) {
+        const nuova = k >= nOgg;
+        const y = TOP + 42 + k * (CH + CG);
+        s += '<rect x="' + (x + 12) + '" y="' + y + '" width="' + (W - 24) + '" height="' + CH + '" fill="' + (nuova ? "none" : C.head) + '" stroke="' + (nuova ? C.gold : col) + '" stroke-width="1.4"' + (nuova ? ' stroke-dasharray="5 4"' : "") + ' rx="2"/>';
+        s += '<text x="' + (x + 22) + '" y="' + (y + 21) + '" fill="' + (nuova ? C.gold : C.ink) + '" ' + FS + ' font-size="12.5">' + t("Cella") + " " + (k + 1) + "</text>";
+        s += '<text x="' + (x + W - 22) + '" y="' + (y + 21) + '" fill="' + C.dim + '" ' + FS + ' font-size="12" text-anchor="end">'
+           + (nuova ? t("da") + " " + mese(ing) : nf(oreCella) + " " + U.h()) + "</text>";
+      }
+      const yInfo = TOP + 42 + Math.max(1, nOgg + nNuo) * (CH + CG) + 6;
+      s += '<text x="' + (x + 12) + '" y="' + yInfo + '" fill="' + C.dim + '" ' + FS + ' font-size="12.5">' + t("Carico") + "</text>";
+      s += '<text x="' + (x + W - 12) + '" y="' + yInfo + '" fill="' + C.ink + '" ' + FS + ' font-size="12.5" text-anchor="end">' + nf(r.caricoH) + " " + U.h() + "</text>";
+    } else {
+      const L = [
+        [t("Celle"), nf(r.celle) + (r.max ? " / " + nf(r.max) : "")],
+        [t("Tempo medio"), r.tcMedio != null ? nf(r.tcMedio, 1) + " " + U.min() + "/" + U.pz() : "—"],
+        [t("Carico"), nf(r.caricoH) + " " + U.h()],
+        [t("Capacità"), nf(r.celle * r.capCella) + " " + U.h()]
+      ];
+      L.forEach((p, k) => {
+        const y = TOP + 52 + k * 20;
+        s += '<text x="' + (x + 12) + '" y="' + y + '" fill="' + C.dim + '" ' + FS + ' font-size="13">' + p[0] + "</text>";
+        s += '<text x="' + (x + W - 12) + '" y="' + y + '" fill="' + C.ink + '" ' + FS + ' font-size="13" text-anchor="end">' + p[1] + "</text>";
+      });
+    }
     const bw = W - 24, fw = r.sat == null ? 0 : Math.min(r.sat, 1.4) / 1.4 * bw;
     const by = TOP + H - 24;
     s += '<rect x="' + (x + 12) + '" y="' + by + '" width="' + bw + '" height="12" fill="' + C.bg + '" stroke="' + C.line + '"/>';
@@ -1867,6 +1899,13 @@ document.getElementById("coUsa").onclick = () => {
   document.getElementById("pOre").value = r;
   queueSave(); refreshAll();
 };
+
+document.getElementById("vsmMode").addEventListener("click", e => {
+  const b = e.target.closest("button[data-mode]"); if (!b) return;
+  VSM_MODE = b.dataset.mode;
+  [...e.currentTarget.querySelectorAll("button")].forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  renderVSM();
+});
 
 document.getElementById("mensMode").addEventListener("click", e => {
   const b = e.target.closest("button[data-mode]"); if (!b) return;
