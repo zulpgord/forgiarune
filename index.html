@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leveling — dimensionamento del flusso produttivo</title>
+<title>Solo Leveling — dimensionamento del flusso produttivo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -203,7 +203,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
       <path d="M50 20v20M42 27l8-7 8 7M46 40h8" stroke="#E2571F" stroke-width="3" fill="none" stroke-linecap="square" stroke-linejoin="round"/>
     </svg>
     <div>
-      <div class="wordmark">LEVELING</div>
+      <div class="wordmark">SOLO LEVELING</div>
       <p class="tagline">Dal forecast alle celle: carico, saturazione, vincolo e mappa del flusso.</p>
     </div>
     <div class="head-right">
@@ -530,7 +530,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 
 <footer>
   <div class="foot-inner">
-    <span class="ver">LEVELING <span id="verNum"></span></span>
+    <span class="ver">SOLO LEVELING <span id="verNum"></span></span>
     <span class="by">MADE BY LUCA CENCI</span>
   </div>
 </footer>
@@ -538,7 +538,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v3.7";
+const VERSION = "v3.8";
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -668,7 +668,7 @@ const EN = {
   "Salvato": "Saved",
   "Non salvato nel browser — usa Esporta file": "Not saved in the browser — use Export file",
   "File importato": "File imported",
-  "File non leggibile: non è un salvataggio Leveling": "Unreadable file: this is not a Leveling save",
+  "File non leggibile: non è un salvataggio Solo Leveling": "Unreadable file: this is not a Solo Leveling save",
   "Aggiungi prima una fase: ogni reparto ne lavora una.": "Add a step first: every department works one.",
   "Carico due famiglie di esempio con numeri inventati, solo per provare l'app. Continuo?": "This loads two sample families with made-up numbers, just to try the app. Continue?",
   "Cancello fasi, reparti e famiglie e riparto dalla struttura iniziale. Continuo?": "This clears steps, departments and families and restarts from the initial structure. Continue?",
@@ -2102,7 +2102,7 @@ document.getElementById("exportBtn").onclick = () => {
   S.meta.lang = LANG; S.meta.theme = THEME; S.meta.version = VERSION;
   const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = fname("leveling-", "json"); a.click(); URL.revokeObjectURL(a.href);
+  a.href = URL.createObjectURL(blob); a.download = fname("solo-leveling-", "json"); a.click(); URL.revokeObjectURL(a.href);
 };
 document.getElementById("importBtn").onclick = () => document.getElementById("importFile").click();
 document.getElementById("importFile").onchange = e => {
@@ -2110,7 +2110,7 @@ document.getElementById("importFile").onchange = e => {
   const rd = new FileReader();
   rd.onload = () => {
     try { S = migrate(JSON.parse(rd.result)); SIM = null; save(); refreshAll(); flag(t("File importato")); }
-    catch (err) { flag(t("File non leggibile: non è un salvataggio Leveling"), true); }
+    catch (err) { flag(t("File non leggibile: non è un salvataggio Solo Leveling"), true); }
   };
   rd.readAsText(f); e.target.value = "";
 };
@@ -2142,8 +2142,8 @@ function dlSvg(sel, prefix) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = fname(prefix, "svg"); a.click(); URL.revokeObjectURL(a.href);
 }
-document.getElementById("dlYama").onclick = () => dlSvg("svg.yama", "leveling-yamazumi-");
-document.getElementById("dlSvg").onclick = () => dlSvg("svg.vsm", "leveling-mappa-");
+document.getElementById("dlYama").onclick = () => dlSvg("svg.yama", "solo-leveling-yamazumi-");
+document.getElementById("dlSvg").onclick = () => dlSvg("svg.vsm", "solo-leveling-mappa-");
 
 
 /* ============================================================
@@ -2442,7 +2442,7 @@ function exportCSV() {
   const B = computeBuffers(c, "media");
   const L = [];
   const push = arr => L.push(arr.map(x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"').join(";"));
-  push([t("Scenario"), S.meta.nome, t("Anno"), S.meta.anni[S.meta.anno || 0], "Leveling " + VERSION]);
+  push([t("Scenario"), S.meta.nome, t("Anno"), S.meta.anni[S.meta.anno || 0], "Solo Leveling " + VERSION]);
   L.push("");
   push([t("Carico e celle per reparto")]);
   push([t("Reparto"), t("Pezzi lanciati"), t("Ore lavoro"), t("Ore setup"), t("Ore standard per cella"), t("Limite"), t("Celle necessarie"), t("Celle oggi"), t("Celle suggerite"), t("Saturazione")]);
@@ -2464,7 +2464,7 @@ function exportCSV() {
   S.fasi.forEach((f, i) => push([anni[0].righe[i].nome].concat(anni.map(x => csvNum(x.righe[i].sugg)))));
   const blob = new Blob(["\ufeff" + L.join("\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = fname("leveling-risultati-", "csv"); a.click(); URL.revokeObjectURL(a.href);
+  a.href = URL.createObjectURL(blob); a.download = fname("solo-leveling-risultati-", "csv"); a.click(); URL.revokeObjectURL(a.href);
 }
 document.getElementById("csvBtn").onclick = exportCSV;
 document.getElementById("printBtn").onclick = () => {
