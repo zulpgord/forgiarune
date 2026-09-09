@@ -245,9 +245,11 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 
   <div class="panel">
     <h2>Reparti e celle</h2>
-    <p class="hint">Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.</p>
+    <p class="hint">Celle, celle max, operatori e ore valgono solo per l'anno selezionato in alto: puoi progettare una configurazione diversa per ciascuno dei tre anni. Nome, fase, ripristino, lotto e macchine sono invece comuni. Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.</p>
     <div class="scroller"><table id="tblReparti"></table></div>
-    <div class="row-actions"><button class="act" id="addReparto">Aggiungi reparto</button></div>
+    <div class="row-actions"><button class="act" id="addReparto">Aggiungi reparto</button>
+      <button class="act ghost" id="copiaAnnoAvanti">Copia negli anni successivi</button>
+      <button class="act ghost" id="copiaAnnoIndietro">Ricopia dall'anno precedente</button></div>
   </div>
 
   <div class="panel">
@@ -358,6 +360,28 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <div id="controlliOut"></div>
   </div>
   <div id="constraintBox"></div>
+  <div class="panel" id="panEsterno">
+    <h2>Dentro e fuori</h2>
+    <p class="hint">Le celle esterne sono capacità che non è tua: conto e subfornitura. Il carico riempie prima le celle di casa, poi va fuori. La fabbrica si riempie fino al target di saturazione e solo il resto va fuori, perché sopra il target le code crescono più in fretta del carico. «Saturazione di casa» è quanto resta dentro dopo aver mandato fuori; «Con l'esterno» dice se il piano chiude contando anche il terzista. Le ore vendibili sono quelle che restano libere in casa e che potresti cedere ad altri.</p>
+    <div class="scroller"><table id="tblEsterno"></table></div>
+    <div class="row-actions">
+      <button class="act" id="autoEsterne">Ipotizza le celle esterne</button>
+      <button class="act ghost" id="undoEsterne" hidden>Annulla</button>
+      <button class="act ghost" id="zeroEsterne">Azzera le esterne</button>
+    </div>
+    <div id="esternoOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Quando sfori, mese per mese</h2>
+    <p class="hint">Lo sforamento non è annuale: puoi essere al 90% sull'anno e sott'acqua a settembre. Qui il conto è fatto mese per mese, in due modi. Sul picco mandi fuori tutto quello che eccede il target nel mese in cui accade. Livellando anticipi prima nei mesi scarichi e mandi fuori solo il buco che non puoi colmare, perché produrre nel passato non si può: costa meno terzista e più magazzino.</p>
+    <div class="scroller"><table id="tblMensileEst"></table></div>
+    <div class="row-actions">
+      <button class="act" id="estPicco">Dimensiona sul picco</button>
+      <button class="act" id="estLivellato">Dimensiona livellando</button>
+      <button class="act ghost" id="undoEsterne2" hidden>Annulla</button>
+    </div>
+  </div>
   <div class="kpis" id="kpis"></div>
   <div class="panel">
     <h2>Carico e celle per reparto</h2>
@@ -538,7 +562,9 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v3.8";
+const VERSION = "v4.4";
+/* campi del reparto che cambiano da un anno all'altro */
+const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "dark";
 
@@ -553,7 +579,7 @@ const EN = {
   "L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.": "The order here sets the flow sequence and the order on the map. Add or remove steps when the process changes.",
   "Aggiungi fase": "Add step",
   "Reparti e celle": "Departments and cells",
-  "Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.": "Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. The hours here are net per cell, already multiplied by shifts and efficiency: they are the real capacity of one cell. Left blank, the box shows in grey the value derived from the general parameters. Type a number only for departments on a different schedule from the rest. Gross hours live only in the general parameters.",
+  "Celle, celle max, operatori e ore valgono solo per l'anno selezionato in alto: puoi progettare una configurazione diversa per ciascuno dei tre anni. Nome, fase, ripristino, lotto e macchine sono invece comuni. Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.": "Cells, max cells, operators and hours apply only to the year selected at the top: you can plan a different configuration for each of the three years. Name, step, replenishment, batch and machines are shared. Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. The hours here are net per cell, already multiplied by shifts and efficiency: they are the real capacity of one cell. Left blank, the box shows in grey the value derived from the general parameters. Type a number only for departments on a different schedule from the rest. Gross hours live only in the general parameters.",
   "Aggiungi reparto": "Add department",
   "Famiglie di prodotto e tempi": "Product families and times",
   "Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.": "Switch on the steps a family goes through and enter the times per piece in minutes: labour, machine time and changeover. A step switched off means no load on that department.",
@@ -762,7 +788,26 @@ const EN = {
   "Ore standard per cella": "Standard hours per cell",
   "Apprendistato": "Ramp-up",
   "Piano di assunzione": "Hiring plan",
-  "Operatori per cella": "Operators per cell", "Orologio, una cella": "Clock time, one cell", "Persone necessarie": "People needed", "Persone di oggi": "People today", "op.": "op.",
+  "Operatori per cella": "Operators per cell",
+  "Celle esterne": "Outside cells", "Dentro e fuori": "In-house and outside",
+  "Le celle esterne sono capacità che non è tua: conto e subfornitura. Il carico riempie prima le celle di casa, poi va fuori. La fabbrica si riempie fino al target di saturazione e solo il resto va fuori, perché sopra il target le code crescono più in fretta del carico. «Saturazione di casa» è quanto resta dentro dopo aver mandato fuori; «Con l'esterno» dice se il piano chiude contando anche il terzista. Le ore vendibili sono quelle che restano libere in casa e che potresti cedere ad altri.": "Outside cells are capacity that is not yours: subcontracting. The load fills your own cells first, then goes outside. The plant fills up to the utilisation target and only the rest goes outside, because past the target queues grow faster than the load. \u201cIn-house utilisation\u201d is what stays inside after sending work out; \u201cWith outside\u201d says whether the plan closes counting the subcontractor too. Sellable hours are the ones left free in-house that you could sell to others.",
+  "Celle di casa": "In-house cells",
+  "Quando sfori, mese per mese": "When you overflow, month by month",
+  "Lo sforamento non è annuale: puoi essere al 90% sull'anno e sott'acqua a settembre. Qui il conto è fatto mese per mese, in due modi. Sul picco mandi fuori tutto quello che eccede il target nel mese in cui accade. Livellando anticipi prima nei mesi scarichi e mandi fuori solo il buco che non puoi colmare, perché produrre nel passato non si può: costa meno terzista e più magazzino.": "Overflow is not an annual matter: you can sit at 90% for the year and still drown in September. Here the count is monthly, in two ways. On the peak you send out everything past the target in the month it happens. Levelling, you build early in the quiet months and send out only the gap you cannot close, because you cannot produce in the past: less subcontracting, more stock.",
+  "Mesi fuori target": "Months past target", "Ore fuori sul picco": "Hours out on the peak", "Celle sul picco": "Cells on the peak",
+  "Ore fuori livellando": "Hours out when levelling", "Celle livellando": "Cells when levelling", "Risparmio": "Saving",
+  "Dimensiona sul picco": "Size on the peak", "Dimensiona livellando": "Size by levelling",
+  "Ipotizza le celle esterne": "Suggest outside cells", "Azzera le esterne": "Clear outside cells",
+  "Ore oltre il target": "Hours past the target",
+  "Nessun reparto supera il target: non serve andare fuori.": "No department is past the target: no need to go outside.", "Saturazione di casa": "In-house utilisation", "Con l'esterno": "With outside", "Capacità di casa": "In-house capacity",
+  "Ore comprate fuori": "Hours bought outside", "Ore vendibili": "Sellable hours", "Ancora scoperte": "Still uncovered",
+  "Niente da mostrare.": "Nothing to show.",
+  "Copia negli anni successivi": "Copy to later years", "Ricopia dall'anno precedente": "Copy from previous year",
+  "Sei già sull'ultimo anno.": "You are already on the last year.",
+  "Sei sul primo anno: non c'è un anno precedente.": "You are on the first year: there is no previous year.",
+  "Copio la configurazione di questo anno in tutti gli anni successivi, sovrascrivendoli?": "Copy this year's configuration into all later years, overwriting them?",
+  "Sostituisco la configurazione di questo anno con quella dell'anno precedente?": "Replace this year's configuration with the previous year's?",
+  "Configurazione copiata.": "Configuration copied.", "Orologio, una cella": "Clock time, one cell", "Persone necessarie": "People needed", "Persone di oggi": "People today", "op.": "op.",
   "Dimensiona sul forecast": "Size on the forecast", "Dimensiona ora": "Size now", "Annulla": "Undo",
   "Porta le celle di ogni reparto al numero suggerito dal forecast dell'anno attivo, cioè quello che serve per stare al target di saturazione. Sovrascrive le celle di oggi, e non supera mai il tetto di celle max che hai dichiarato: dove il tetto blocca, te lo dice.": "Sets every department's cells to the number suggested by the active year's forecast, that is what it takes to sit at the utilisation target. It overwrites today's cells and never goes past the max cells ceiling you declared: where the ceiling bites, it tells you.",
   "Dove conviene intervenire": "Where it pays to act",
@@ -872,13 +917,13 @@ function blankState() {
     meta: { nome: "Scenario base", lang: "it", theme: "dark", version: VERSION, anno: 0, anni: ["Anno 1", "Anno 2", "Anno 3"] },
     params: { oreAnnuePerCella: 1833, efficienza: 85, turni: 1, targetSaturazione: 85, giorniLavorativi: 225, giorniSicurezza: 1, costoOraCella: 0, costoCellaAnno: 0 },
     fasi,
-    reparti: fasi.map(f => ({
+    reparti: normalizzaReparti(fasi.map(f => ({
       id: uid(), nome: f.nome, faseId: f.id,
       celleAttuali: celle[f.nome] ? celle[f.nome][0] : 1,
       celleMax: celle[f.nome] ? celle[f.nome][1] : 4,
       oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true,
       nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100], operatori: 1
-    })),
+    }))),
     famiglie: [], rilievi: [], snapshots: []
   };
 }
@@ -886,16 +931,39 @@ let S = blankState();
 
 /* usata dalla migrazione e dal caricamento di uno scenario salvato:
    uno scenario creato con una versione precedente non ha i campi del rodaggio */
+/* Ogni reparto ha una configurazione diversa per ciascuno dei tre anni: celle, operatori,
+   tetto, ore e piano di assunzione. Nome, fase, lotto, lead time e macchine restano comuni. */
+function cfgRep(r, anno) {
+  const y = Math.min(2, Math.max(0, anno == null ? (S.meta.anno || 0) : anno));
+  if (!Array.isArray(r.anni)) r.anni = [];
+  if (!r.anni[y]) r.anni[y] = {};
+  const c = r.anni[y];
+  if (c.celleAttuali == null) c.celleAttuali = 1;
+  if (c.celleEsterne == null) c.celleEsterne = 0;
+  if (c.celleMax == null) c.celleMax = 0;
+  if (c.operatori == null || nz(c.operatori) <= 0) c.operatori = 1;
+  if (c.oreOverride === undefined) c.oreOverride = null;
+  if (c.nuoveCelle == null) c.nuoveCelle = 0;
+  if (c.meseIngresso == null) c.meseIngresso = 1;
+  if (!Array.isArray(c.curva) || c.curva.length !== 4) c.curva = [50, 75, 90, 100];
+  return c;
+}
+
 function normalizzaReparti(list) {
   (list || []).forEach(r => {
     if (r.ltGiorni == null) r.ltGiorni = 1;
     if (r.lotto == null) r.lotto = 0;
     if (r.macchine == null) r.macchine = 0;
     if (r.buffer == null) r.buffer = true;
-    if (r.nuoveCelle == null) r.nuoveCelle = 0;
-    if (r.meseIngresso == null) r.meseIngresso = 1;
-    if (!Array.isArray(r.curva) || r.curva.length !== 4) r.curva = [50, 75, 90, 100];
-    if (r.operatori == null || nz(r.operatori) <= 0) r.operatori = 1;
+    /* stato salvato prima della configurazione per anno: i valori piatti diventano
+       il punto di partenza di tutti e tre gli anni */
+    if (!Array.isArray(r.anni) || r.anni.length !== 3) {
+      const piatto = {};
+      CAMPI_ANNO.forEach(k => { if (r[k] !== undefined) piatto[k] = r[k]; });
+      r.anni = [0, 1, 2].map(() => JSON.parse(JSON.stringify(piatto)));
+    }
+    [0, 1, 2].forEach(y => cfgRep(r, y));
+    CAMPI_ANNO.forEach(k => delete r[k]);
   });
   return list;
 }
@@ -975,12 +1043,14 @@ function compute(ov) {
 
   const righe = S.fasi.map(fase => {
     const rep = S.reparti.find(r => r.faseId === fase.id) || null;
-    const ore = rep && rep.oreOverride != null && rep.oreOverride !== "" ? nz(rep.oreOverride) : oreBase;
-    /* una cella può contenere più operatori: la sua capacità in ore uomo si moltiplica */
-    const operatori = rep ? Math.max(1, nz(rep.operatori) || 1) : 1;
+    /* la configurazione (celle, operatori, ore, piano assunzioni) è quella dell'anno in esame */
+    const cfg = rep ? cfgRep(rep, anno) : null;
+    const ore = cfg && cfg.oreOverride != null && cfg.oreOverride !== "" ? nz(cfg.oreOverride) : oreBase;
+    const operatori = cfg ? Math.max(1, nz(cfg.operatori) || 1) : 1;
     const capCella = ore * turni * eff * operatori;
-    const celle = rep ? nz(rep.celleAttuali) : 0;
-    const max = rep ? nz(rep.celleMax) : 0;
+    const celle = cfg ? nz(cfg.celleAttuali) : 0;
+    const esterne = cfg ? Math.max(0, nz(cfg.celleEsterne)) : 0;
+    const max = cfg ? nz(cfg.celleMax) : 0;
     const macchine = rep ? nz(rep.macchine) : 0;
     const lotto = rep ? nz(rep.lotto) : 0;
 
@@ -1010,7 +1080,14 @@ function compute(ov) {
     const caricoH = caricoU;
     const necUomo = capCella > 0 ? caricoU / capCella : 0;
     const necMacc = capCella > 0 && macchine > 0 ? caricoM / capCella : 0;
+    /* La saturazione resta quella dello stabilimento: le celle esterne non alleggeriscono
+       il reparto, sono una valvola di sfogo che si vede nel pannello "Dentro e fuori". */
     const capTot = celle * capCella;
+    /* Riempio la fabbrica fino al target di saturazione, il resto va fuori entro le celle
+       esterne disponibili: sopra il target le code crescono più in fretta del carico,
+       quindi la soglia giusta è il target e non il 100% della capacità. */
+    const oreFuori = Math.min(Math.max(0, caricoH - celle * capCella * target), esterne * capCella);
+    const caricoDentro = caricoH - oreFuori;
     const satU = capTot > 0 ? caricoU / capTot : null;
     const satM = macchine > 0 && capCella > 0 ? caricoM / (macchine * capCella) : null;
     const sat = satM != null && (satU == null || satM > satU) ? satM : satU;
@@ -1067,7 +1144,15 @@ function compute(ov) {
       ore, capCella, celle, max, macchine, caricoH, pezzi, pezziNetti,
       oreUomo, oreMacc, oreSetup, cambi, lotto,
       necUomo, necMacc, risorsa, satU, satM,
-      operatori, persone: celle * operatori, personeSugg: 0,
+      cfg, operatori, persone: celle * operatori, personeSugg: 0, esterne,
+      capInterna: celle * capCella, capEsterna: esterne * capCella, soglia: celle * capCella * target,
+      oreFuori, caricoDentro,
+      /* ore libere sotto il target: quelle che potrei vendere tenendomi il margine */
+      oreVendibili: Math.max(0, celle * capCella * target - caricoDentro),
+      /* quello che resta dentro e non ci sta comunque */
+      scoperteFuori: Math.max(0, caricoDentro - celle * capCella),
+      satCasa: celle * capCella > 0 ? caricoDentro / (celle * capCella) : (caricoH > 0 ? null : 0),
+      satTotale: (celle + esterne) * capCella > 0 ? caricoH / ((celle + esterne) * capCella) : (caricoH > 0 ? null : 0),
       necFraz, necInt: Math.ceil(necFraz - 1e-9), sat,
       suggFraz, sugg, gap: sugg - celle, oltreMax: max > 0 && sugg > max,
       picH, picIdx, satPicco, taktMin, tcMedio, tcVA, maxPezzi, cv, targetCons, meseH,
@@ -1150,34 +1235,34 @@ function renderFasi() {
     + "</tbody>";
 }
 
-function curvaRep(r) {
-  const c = (Array.isArray(r.curva) && r.curva.length === 4) ? r.curva : [50, 75, 90, 100];
+function curvaRep(cfg) {
+  const c = (cfg && Array.isArray(cfg.curva) && cfg.curva.length === 4) ? cfg.curva : [50, 75, 90, 100];
   return c.map(x => Math.max(0, nz(x)) / 100);
 }
 
 /* quanto rende una cella nuova nel mese m, se entra nel mese ing (indici 0..11) */
-function fattoreRodaggio(r, m, ing) {
+function fattoreRodaggio(cfg, m, ing) {
   if (m < ing) return 0;
-  const c = curvaRep(r);
+  const c = curvaRep(cfg);
   return c[Math.min(3, Math.floor((m - ing) / 3))];
 }
 
 /* capacità mese per mese di un reparto: celle esistenti a pieno + celle nuove in rodaggio */
-function capMensile(r, capCella, celle, ingOverride) {
+function capMensile(cfg, capCella, celle, ingOverride) {
   const base = capCella / 12;
-  const nuove = nz(r.nuoveCelle);
-  const ing = ingOverride != null ? ingOverride : Math.min(11, Math.max(0, Math.round(nz(r.meseIngresso)) - 1));
-  return Array.from({ length: 12 }, (_, m) => base * celle + base * nuove * fattoreRodaggio(r, m, ing));
+  const nuove = nz(cfg.nuoveCelle);
+  const ing = ingOverride != null ? ingOverride : Math.min(11, Math.max(0, Math.round(nz(cfg.meseIngresso)) - 1));
+  return Array.from({ length: 12 }, (_, m) => base * celle + base * nuove * fattoreRodaggio(cfg, m, ing));
 }
 
 function computeRodaggio(ov) {
   const c = compute(ov);
   const righe = c.righe.filter(r => r.rep).map(r => {
-    const ing = Math.min(11, Math.max(0, Math.round(nz(r.rep.meseIngresso)) - 1));
-    const cap = capMensile(r.rep, r.capCella, r.celle);
+    const ing = Math.min(11, Math.max(0, Math.round(nz(r.cfg.meseIngresso)) - 1));
+    const cap = capMensile(r.cfg, r.capCella, r.celle);
     const sat = cap.map((x, m) => x > 0 ? r.meseH[m] / x : (r.meseH[m] > 0 ? Infinity : 0));
     const scoperti = sat.filter(s => s > 1.0001).length;
-    const nuove = nz(r.rep.nuoveCelle);
+    const nuove = nz(r.cfg.nuoveCelle);
     const capAnno = cap.reduce((a, b) => a + b, 0);
     const guadagno = nuove > 0 ? (capAnno - r.celle * r.capCella) / r.capCella : 0;
     const perse = nuove * r.capCella - guadagno * r.capCella;
@@ -1185,12 +1270,12 @@ function computeRodaggio(ov) {
     let ultimo = null;
     if (nuove > 0) {
       for (let k = 11; k >= 0; k--) {
-        const p = capMensile(r.rep, r.capCella, r.celle, k);
+        const p = capMensile(r.cfg, r.capCella, r.celle, k);
         if (p.every((x, m) => r.meseH[m] <= x + 1e-6)) { ultimo = k; break; }
       }
     }
     const bastano = nuove > 0 && ultimo === null
-      ? capMensile(r.rep, r.capCella, r.celle, 0).every((x, m) => r.meseH[m] <= x + 1e-6)
+      ? capMensile(r.cfg, r.capCella, r.celle, 0).every((x, m) => r.meseH[m] <= x + 1e-6)
       : true;
     return { r, ing, cap, sat, scoperti, nuove, guadagno, perse, ultimo, bastano };
   });
@@ -1202,29 +1287,31 @@ function oreNetteParams(operatori) {
 }
 
 function oreNetteReparto(r) {
-  const lorde = r.oreOverride != null && r.oreOverride !== "" ? nz(r.oreOverride) : nz(S.params.oreAnnuePerCella);
-  return lorde * (nz(S.params.turni) || 1) * nz(S.params.efficienza) / 100 * Math.max(1, nz(r.operatori) || 1);
+  const c = cfgRep(r);
+  const lorde = c.oreOverride != null && c.oreOverride !== "" ? nz(c.oreOverride) : nz(S.params.oreAnnuePerCella);
+  return lorde * (nz(S.params.turni) || 1) * nz(S.params.efficienza) / 100 * Math.max(1, nz(c.operatori) || 1);
 }
 
 function renderReparti() {
   const el = document.getElementById("tblReparti");
   if (!S.reparti.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessun reparto.") + "</td></tr></tbody>"; return; }
   const opts = f => S.fasi.map(x => '<option value="' + x.id + '"' + (x.id === f ? " selected" : "") + ">" + esc(x.nome) + "</option>").join("");
-  el.innerHTML = "<thead><tr>" + th("Reparto") + th("Fase lavorata") + th("Celle oggi", "num") + th("Celle max", "num")
+  el.innerHTML = "<thead><tr>" + th("Reparto") + th("Fase lavorata") + th("Celle oggi", "num") + th("Celle esterne", "num") + th("Celle max", "num")
     + th("Macchine", "num") + th("Operatori per cella", "num") + th("Ore nette per cella: vuoto = generale", "num") + th("Ripristino (gg)", "num") + th("Lotto (pz)", "num")
     + th("Buffer") + "<th style='width:90px'></th></tr></thead><tbody>"
-    + S.reparti.map(r =>
-      '<tr><td><input class="wide" value="' + esc(r.nome) + '" data-k="reparto" data-id="' + r.id + '" data-f="nome"></td>'
+    + S.reparti.map(r => { const c = cfgRep(r);
+      return '<tr><td><input class="wide" value="' + esc(r.nome) + '" data-k="reparto" data-id="' + r.id + '" data-f="nome"></td>'
       + '<td><select data-k="reparto" data-id="' + r.id + '" data-f="faseId">' + opts(r.faseId) + "</select></td>"
-      + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleAttuali) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleAttuali"></td>'
-      + '<td class="num"><input type="number" min="0" step="1" value="' + nz(r.celleMax) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleMax"></td>'
+      + '<td class="num"><input type="number" min="0" step="1" value="' + nz(c.celleAttuali) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleAttuali"></td>'
+      + '<td class="num"><input type="number" min="0" step="1" value="' + nz(c.celleEsterne) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleEsterne"></td>'
+      + '<td class="num"><input type="number" min="0" step="1" value="' + nz(c.celleMax) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleMax"></td>'
       + '<td class="num"><input type="number" min="0" step="1" style="width:76px" value="' + nz(r.macchine) + '" data-k="reparto" data-id="' + r.id + '" data-f="macchine"></td>'
-      + '<td class="num"><input type="number" min="1" step="1" style="width:76px" value="' + Math.max(1, nz(r.operatori) || 1) + '" data-k="reparto" data-id="' + r.id + '" data-f="operatori"></td>'
-      + '<td class="num"><input type="number" min="0" step="10" style="width:122px" placeholder="' + nf(oreNetteParams(r.operatori)) + " " + t("generale") + '" value="' + (r.oreOverride == null ? "" : Math.round(oreNetteReparto(r) * 10) / 10) + '" data-k="reparto" data-id="' + r.id + '" data-f="oreNette"></td>'
+      + '<td class="num"><input type="number" min="1" step="1" style="width:76px" value="' + Math.max(1, nz(c.operatori) || 1) + '" data-k="reparto" data-id="' + r.id + '" data-f="operatori"></td>'
+      + '<td class="num"><input type="number" min="0" step="10" style="width:122px" placeholder="' + nf(oreNetteParams(c.operatori)) + " " + t("generale") + '" value="' + (c.oreOverride == null ? "" : Math.round(oreNetteReparto(r) * 10) / 10) + '" data-k="reparto" data-id="' + r.id + '" data-f="oreNette"></td>'
       + '<td class="num"><input type="number" min="0" step="0.5" style="width:78px" value="' + nz(r.ltGiorni) + '" data-k="reparto" data-id="' + r.id + '" data-f="ltGiorni"></td>'
       + '<td class="num"><input type="number" min="0" step="1" style="width:82px" value="' + nz(r.lotto) + '" data-k="reparto" data-id="' + r.id + '" data-f="lotto"></td>'
       + '<td><input type="checkbox" ' + (r.buffer !== false ? "checked" : "") + ' data-k="reparto" data-id="' + r.id + '" data-f="buffer" aria-label="' + t("Tieni un magazzino a valle") + '"></td>'
-      + '<td><button class="danger" data-del="reparto" data-id="' + r.id + '">' + t("Elimina") + "</button></td></tr>").join("")
+      + '<td><button class="danger" data-del="reparto" data-id="' + r.id + '">' + t("Elimina") + "</button></td></tr>"; }).join("")
     + "</tbody>";
 }
 
@@ -1374,12 +1461,12 @@ function renderPianoAssunzioni() {
   const opts = v => MESI_IT.map((m, i) => '<option value="' + (i + 1) + '"' + (i + 1 === Math.round(nz(v)) ? " selected" : "") + ">" + t(m) + "</option>").join("");
   el.innerHTML = "<thead><tr>" + th("Reparto") + th("Celle oggi", "num") + th("Celle nuove", "num") + th("Mese di ingresso")
     + th("1º trim. %", "num") + th("2º trim. %", "num") + th("3º trim. %", "num") + th("4º trim. %", "num") + "</tr></thead><tbody>"
-    + S.reparti.map(r => '<tr><td>' + esc(r.nome) + '</td><td class="num">' + nf(nz(r.celleAttuali)) + "</td>"
-      + '<td class="num"><input type="number" min="0" step="1" style="width:74px" value="' + nz(r.nuoveCelle) + '" data-k="reparto" data-id="' + r.id + '" data-f="nuoveCelle"></td>'
-      + '<td><select data-k="reparto" data-id="' + r.id + '" data-f="meseIngresso">' + opts(r.meseIngresso) + "</select></td>"
+    + S.reparti.map(r => { const c = cfgRep(r); return '<tr><td>' + esc(r.nome) + '</td><td class="num">' + nf(nz(c.celleAttuali)) + "</td>"
+      + '<td class="num"><input type="number" min="0" step="1" style="width:74px" value="' + nz(c.nuoveCelle) + '" data-k="reparto" data-id="' + r.id + '" data-f="nuoveCelle"></td>'
+      + '<td><select data-k="reparto" data-id="' + r.id + '" data-f="meseIngresso">' + opts(c.meseIngresso) + "</select></td>"
       + [0, 1, 2, 3].map(i => '<td class="num"><input type="number" min="0" max="100" step="5" style="width:70px" value="'
-        + nz((r.curva || [])[i]) + '" data-k="reparto" data-id="' + r.id + '" data-f="curva" data-i="' + i + '"></td>').join("")
-      + "</tr>").join("") + "</tbody>";
+        + nz((c.curva || [])[i]) + '" data-k="reparto" data-id="' + r.id + '" data-f="curva" data-i="' + i + '"></td>').join("")
+      + "</tr>"; }).join("") + "</tbody>";
 }
 
 function renderRodaggio() {
@@ -1419,12 +1506,12 @@ function benefici() {
   S.reparti.forEach(r => {
     const riga = base.righe.find(x => x.rep && x.rep.id === r.id);
     if (!riga || riga.caricoH <= 0) return;
-    const max = nz(r.celleMax);
-    if (max > 0 && nz(r.celleAttuali) + 1 > max) {
+    const cfg = cfgRep(r), max = nz(cfg.celleMax);
+    if (max > 0 && nz(cfg.celleAttuali) + 1 > max) {
       out.push({ mossa: t("Una cella in più") + " · " + r.nome, delta: null, nota: t("oltre il tetto di celle max"), costo: nz(S.params.costoCellaAnno) });
       return;
     }
-    const T = prova(() => { const v = r.celleAttuali; r.celleAttuali = nz(v) + 1; return () => r.celleAttuali = v; });
+    const T = prova(() => { const v = cfg.celleAttuali; cfg.celleAttuali = nz(v) + 1; return () => cfg.celleAttuali = v; });
     out.push({ mossa: t("Una cella in più") + " · " + r.nome, delta: T - T0, costo: nz(S.params.costoCellaAnno) });
   });
 
@@ -1474,6 +1561,63 @@ function renderOreMese() {
     + "</tbody><tfoot><tr><td>" + t("Totale") + "</td>"
     + tot.map(v => '<td class="num">' + nf(v) + "</td>").join("")
     + '<td class="num">' + nf(tot.reduce((a, b) => a + b, 0)) + "</td></tr></tfoot>";
+}
+
+/* Due dimensionamenti del terzista a partire dal profilo mensile.
+   Picco: somma di quello che ogni mese eccede il target.
+   Livellato: massimo deficit del cumulato, cioè il buco che l'anticipo non può colmare
+   perché le ore dei mesi successivi non sono spendibili nel passato. */
+function esternoMensile(c) {
+  return c.righe.filter(r => r.rep && r.caricoH > 0 && r.capCella > 0).map(r => {
+    const sogliaM = r.soglia / 12, capM = r.capCella / 12;
+    const ecc = r.meseH.map(x => Math.max(0, x - sogliaM));
+    const mesiFuori = ecc.filter(x => x > 1e-6).length;
+    const orePicco = ecc.reduce((a, b) => a + b, 0);
+    const cellePicco = Math.max(...ecc) > 0 ? Math.ceil(Math.max(...ecc) / capM) : 0;
+    let dom = 0, cap = 0, deficit = 0;
+    r.meseH.forEach(x => { dom += x; cap += sogliaM; deficit = Math.max(deficit, dom - cap); });
+    const celleLiv = deficit > 0 ? Math.ceil(deficit / r.capCella) : 0;
+    return { r, mesiFuori, orePicco, cellePicco, oreLiv: deficit, celleLiv };
+  });
+}
+
+function renderMensileEst() {
+  const el = document.getElementById("tblMensileEst"), M = esternoMensile(compute());
+  if (!M.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Niente da mostrare.") + "</td></tr></tbody>"; return; }
+  const somma = k => M.reduce((a, x) => a + x[k], 0);
+  el.innerHTML = "<thead><tr>" + th("Reparto") + th("Mesi fuori target", "num")
+    + th("Ore fuori sul picco", "num") + th("Celle sul picco", "num")
+    + th("Ore fuori livellando", "num") + th("Celle livellando", "num") + th("Risparmio", "num") + "</tr></thead><tbody>"
+    + M.map(x => "<tr><td>" + esc(x.r.nome) + '</td><td class="num">' + (x.mesiFuori ? '<span class="tag t-warn">' + x.mesiFuori + "</span>" : "0") + "</td>"
+      + '<td class="num">' + nf(x.orePicco) + " " + U.h() + '</td><td class="num">' + x.cellePicco + "</td>"
+      + '<td class="num">' + nf(x.oreLiv) + " " + U.h() + '</td><td class="num">' + x.celleLiv + "</td>"
+      + '<td class="num"' + (x.orePicco - x.oreLiv > 0 ? ' style="color:var(--ok-fg)"' : "") + ">"
+      + (x.orePicco - x.oreLiv > 0 ? nf(x.orePicco - x.oreLiv) + " " + U.h() : "—") + "</td></tr>").join("")
+    + "</tbody><tfoot><tr><td>" + t("Totale") + '</td><td class="num">—</td><td class="num">' + nf(somma("orePicco")) + " " + U.h()
+    + '</td><td class="num">' + somma("cellePicco") + '</td><td class="num">' + nf(somma("oreLiv")) + " " + U.h()
+    + '</td><td class="num">' + somma("celleLiv") + '</td><td class="num">' + nf(somma("orePicco") - somma("oreLiv")) + " " + U.h() + "</td></tr></tfoot>";
+}
+
+function renderEsterno() {
+  const el = document.getElementById("tblEsterno"), pan = document.getElementById("panEsterno");
+  const c = compute();
+  const righe = c.righe.filter(r => r.rep && (r.caricoH > 0 || r.esterne > 0));
+  if (!righe.length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Niente da mostrare.") + "</td></tr></tbody>"; return; }
+  const somma = k => righe.reduce((a, r) => a + r[k], 0);
+  el.innerHTML = "<thead><tr>" + th("Reparto") + th("Celle di casa", "num") + th("Celle esterne", "num")
+    + th("Capacità di casa", "num") + th("Saturazione di casa", "num") + th("Ore comprate fuori", "num")
+    + th("Ore vendibili", "num") + th("Con l'esterno", "num") + th("Ancora scoperte", "num") + "</tr></thead><tbody>"
+    + righe.map(r => "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.celle) + '</td><td class="num">' + (r.esterne ? nf(r.esterne) : "—") + "</td>"
+      + '<td class="num">' + nf(r.capInterna) + " " + U.h() + "</td>"
+      + '<td class="num">' + (r.satCasa == null ? "—" : nf(r.satCasa * 100, 0) + "%") + "</td>"
+      + '<td class="num"' + (r.oreFuori > 0 ? ' style="color:var(--gold)"' : "") + ">" + (r.oreFuori > 0 ? nf(r.oreFuori) + " " + U.h() : "—") + "</td>"
+      + '<td class="num"' + (r.oreVendibili > 0 ? ' style="color:var(--ok-fg)"' : "") + ">" + (r.oreVendibili > 0 ? nf(r.oreVendibili) + " " + U.h() : "—") + "</td>"
+      + '<td class="num"' + (r.satTotale != null && r.satTotale > 1.0001 ? ' style="color:var(--bad-fg)"' : "") + ">"
+      + (r.satTotale == null ? "—" : nf(r.satTotale * 100, 0) + "%") + "</td>"
+      + '<td class="num">' + (r.scoperteFuori > 0 ? '<span class="tag t-bad">' + nf(r.scoperteFuori) + " " + U.h() + "</span>" : "—") + "</td></tr>").join("")
+    + "</tbody><tfoot><tr><td>" + t("Totale") + '</td><td class="num">' + nf(somma("celle")) + '</td><td class="num">' + nf(somma("esterne")) + "</td>"
+    + '<td class="num">' + nf(somma("capInterna")) + " " + U.h() + '</td><td class="num">—</td><td class="num">' + nf(somma("oreFuori")) + " " + U.h()
+    + '</td><td class="num">' + nf(somma("oreVendibili")) + " " + U.h() + '</td><td class="num">—</td><td class="num">' + nf(somma("scoperteFuori")) + " " + U.h() + "</td></tr></tfoot>";
 }
 
 function renderRisultati() {
@@ -1898,7 +2042,7 @@ let FORZA_RENDER = false;
 /* in stampa le schede nascoste tornano visibili: prima di stampare va ridisegnato tutto */
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
-function refreshOutputs() { renderControlli(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { renderControlli(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
@@ -1935,15 +2079,16 @@ document.addEventListener("input", e => {
   if (!k) return;
   if (k === "fase") { findById(S.fasi, el.dataset.id).nome = el.value; renderVSM(); renderRisultati(); renderSimulazione(); }
   else if (k === "reparto") {
-    const r = findById(S.reparti, el.dataset.id), f = el.dataset.f;
-    if (f === "operatori") { r.operatori = Math.max(1, el.value === "" ? 1 : parseFloat(el.value)); renderReparti(); }
-    else if (f === "curva") { if (!Array.isArray(r.curva)) r.curva = [50, 75, 90, 100]; r.curva[+el.dataset.i] = el.value === "" ? 0 : parseFloat(el.value); }
+    const r = findById(S.reparti, el.dataset.id), f = el.dataset.f, c = cfgRep(r);
+    if (f === "operatori") { c.operatori = Math.max(1, el.value === "" ? 1 : parseFloat(el.value)); renderReparti(); }
+    else if (f === "curva") { c.curva[+el.dataset.i] = el.value === "" ? 0 : parseFloat(el.value); }
     else if (f === "oreNette") {
-      const fattore = (nz(S.params.turni) || 1) * nz(S.params.efficienza) / 100 * Math.max(1, nz(r.operatori) || 1);
-      r.oreOverride = (el.value === "" || fattore <= 0) ? null : parseFloat(el.value) / fattore;
+      const fattore = (nz(S.params.turni) || 1) * nz(S.params.efficienza) / 100 * Math.max(1, nz(c.operatori) || 1);
+      c.oreOverride = (el.value === "" || fattore <= 0) ? null : parseFloat(el.value) / fattore;
     }
     else if (f === "buffer") r[f] = el.checked;
     else if (f === "nome" || f === "faseId") r[f] = el.value;
+    else if (CAMPI_ANNO.indexOf(f) >= 0) c[f] = el.value === "" ? 0 : parseFloat(el.value);
     else r[f] = el.value === "" ? 0 : parseFloat(el.value);
     refreshOutputs();
   }
@@ -2013,6 +2158,22 @@ document.getElementById("addFase").onclick = () => {
   S.reparti.push({ id: uid(), nome: f.nome, faseId: f.id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true, nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100], operatori: 1 });
   queueSave(); refreshAll();
 };
+document.getElementById("copiaAnnoAvanti").onclick = () => {
+  const y = S.meta.anno || 0;
+  if (y >= 2) { flag(t("Sei già sull'ultimo anno.")); return; }
+  if (!confirm(t("Copio la configurazione di questo anno in tutti gli anni successivi, sovrascrivendoli?"))) return;
+  S.reparti.forEach(r => { for (let k = y + 1; k <= 2; k++) r.anni[k] = JSON.parse(JSON.stringify(cfgRep(r, y))); });
+  queueSave(); refreshAll(); flag(t("Configurazione copiata."));
+};
+
+document.getElementById("copiaAnnoIndietro").onclick = () => {
+  const y = S.meta.anno || 0;
+  if (y === 0) { flag(t("Sei sul primo anno: non c'è un anno precedente.")); return; }
+  if (!confirm(t("Sostituisco la configurazione di questo anno con quella dell'anno precedente?"))) return;
+  S.reparti.forEach(r => { r.anni[y] = JSON.parse(JSON.stringify(cfgRep(r, y - 1))); });
+  queueSave(); refreshAll(); flag(t("Configurazione copiata."));
+};
+
 document.getElementById("addReparto").onclick = () => {
   if (!S.fasi.length) { alert(t("Aggiungi prima una fase: ogni reparto ne lavora una.")); return; }
   S.reparti.push({ id: uid(), nome: t("Nuovo reparto"), faseId: S.fasi[0].id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true, nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100], operatori: 1 });
@@ -2039,21 +2200,81 @@ document.getElementById("coUsa").onclick = () => {
   queueSave(); refreshAll();
 };
 
-let UNDO_CELLE = null;
+let UNDO_CELLE = null, UNDO_EST = null;
+
+/* Riempie le celle esterne con quel che serve per riportare ogni reparto al target di
+   saturazione. Si va fuori per quello che eccede il target, non per quello che eccede
+   la capacità: sopra l'85-90% le code crescono molto più in fretta del carico. */
+document.getElementById("autoEsterne").onclick = () => {
+  const c = compute(), y = S.meta.anno || 0;
+  const target = Math.max(1, nz(S.params.targetSaturazione)) / 100;
+  UNDO_EST = { anno: y, celle: S.reparti.map(r => nz(cfgRep(r, y).celleEsterne)) };
+  const cambi = [];
+  c.righe.forEach(r => {
+    if (!r.rep || r.caricoH <= 0 || r.capCella <= 0) return;
+    const cfg = cfgRep(r.rep, y);
+    const eccesso = r.caricoH - r.capInterna * target;
+    const serve = eccesso > 0 ? Math.ceil(eccesso / r.capCella) : 0;
+    if (serve !== nz(cfg.celleEsterne)) cambi.push({ nome: r.nome, da: nz(cfg.celleEsterne), a: serve, ore: Math.max(0, eccesso) });
+    cfg.celleEsterne = serve;
+  });
+  document.getElementById("undoEsterne").hidden = false;
+  const out = document.getElementById("esternoOut");
+  out.innerHTML = !cambi.length ? '<p class="hint" style="margin:10px 0 0">' + t("Nessun reparto supera il target: non serve andare fuori.") + "</p>"
+    : "<table><thead><tr>" + th("Reparto") + th("Da", "num") + th("A", "num") + th("Ore oltre il target", "num") + "</tr></thead><tbody>"
+      + cambi.map(x => "<tr><td>" + esc(x.nome) + '</td><td class="num">' + x.da + '</td><td class="num">' + x.a
+        + '</td><td class="num">' + nf(x.ore) + " " + U.h() + "</td></tr>").join("") + "</tbody></table>";
+  queueSave(); refreshAll();
+};
+
+function applicaEsterne(campo) {
+  const y = S.meta.anno || 0, M = esternoMensile(compute());
+  UNDO_EST = { anno: y, celle: S.reparti.map(r => nz(cfgRep(r, y).celleEsterne)) };
+  S.reparti.forEach(r => cfgRep(r, y).celleEsterne = 0);
+  M.forEach(x => cfgRep(x.r.rep, y).celleEsterne = x[campo]);
+  document.getElementById("undoEsterne").hidden = false;
+  document.getElementById("undoEsterne2").hidden = false;
+  document.getElementById("esternoOut").innerHTML = "";
+  queueSave(); refreshAll();
+}
+
+document.getElementById("estPicco").onclick = () => applicaEsterne("cellePicco");
+document.getElementById("estLivellato").onclick = () => applicaEsterne("celleLiv");
+document.getElementById("undoEsterne2").onclick = () => document.getElementById("undoEsterne").onclick();
+
+document.getElementById("undoEsterne").onclick = () => {
+  if (!UNDO_EST) return;
+  S.reparti.forEach((r, i) => cfgRep(r, UNDO_EST.anno).celleEsterne = UNDO_EST.celle[i]);
+  UNDO_EST = null;
+  document.getElementById("undoEsterne").hidden = true;
+  document.getElementById("undoEsterne2").hidden = true;
+  document.getElementById("esternoOut").innerHTML = "";
+  queueSave(); refreshAll();
+};
+
+document.getElementById("zeroEsterne").onclick = () => {
+  const y = S.meta.anno || 0;
+  UNDO_EST = { anno: y, celle: S.reparti.map(r => nz(cfgRep(r, y).celleEsterne)) };
+  S.reparti.forEach(r => cfgRep(r, y).celleEsterne = 0);
+  document.getElementById("undoEsterne").hidden = false;
+  document.getElementById("esternoOut").innerHTML = "";
+  queueSave(); refreshAll();
+};
 
 document.getElementById("autoCelle").onclick = () => {
   const c = compute();
-  const prima = S.reparti.map(r => nz(r.celleAttuali));
+  const annoTocco = S.meta.anno || 0;
+  const prima = S.reparti.map(r => nz(cfgRep(r, annoTocco).celleAttuali));
   const cambi = [];
   c.righe.forEach(r => {
     if (!r.rep || r.caricoH <= 0) return;
-    const max = nz(r.rep.celleMax);
+    const cfg = cfgRep(r.rep, annoTocco), max = nz(cfg.celleMax);
     const voluto = r.sugg, messo = max > 0 ? Math.min(voluto, max) : voluto;
     const tagliato = max > 0 && voluto > max ? voluto : null;
-    if (messo !== nz(r.rep.celleAttuali) || tagliato) cambi.push({ nome: r.nome, da: nz(r.rep.celleAttuali), a: messo, tagliato });
-    r.rep.celleAttuali = messo;
+    if (messo !== nz(cfg.celleAttuali) || tagliato) cambi.push({ nome: r.nome, da: nz(cfg.celleAttuali), a: messo, tagliato });
+    cfg.celleAttuali = messo;
   });
-  UNDO_CELLE = prima;
+  UNDO_CELLE = { anno: annoTocco, celle: prima };
   document.getElementById("undoCelle").hidden = false;
   const out = document.getElementById("autoOut");
   out.innerHTML = !cambi.length ? '<p class="hint" style="margin:10px 0 0">' + t("Nessun cambiamento: le celle erano già dimensionate.") + "</p>"
@@ -2066,7 +2287,7 @@ document.getElementById("autoCelle").onclick = () => {
 
 document.getElementById("undoCelle").onclick = () => {
   if (!UNDO_CELLE) return;
-  S.reparti.forEach((r, i) => r.celleAttuali = UNDO_CELLE[i]);
+  S.reparti.forEach((r, i) => cfgRep(r, UNDO_CELLE.anno).celleAttuali = UNDO_CELLE.celle[i]);
   UNDO_CELLE = null;
   document.getElementById("undoCelle").hidden = true;
   document.getElementById("autoOut").innerHTML = "";
@@ -2155,7 +2376,7 @@ function renderAnnoSeg() {
 }
 document.getElementById("annoSeg").addEventListener("click", e => {
   const b = e.target.closest("button[data-y]"); if (!b) return;
-  S.meta.anno = +b.dataset.y; queueSave(); renderAnnoSeg(); refreshOutputs();
+  S.meta.anno = +b.dataset.y; queueSave(); renderAnnoSeg(); renderSetup(); refreshOutputs();
 });
 
 /* ============================================================
@@ -2394,7 +2615,7 @@ function renderScenari() {
   if (!S.snapshots.length) tb.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuno scenario salvato.") + "</td></tr></tbody>";
   else tb.innerHTML = "<thead><tr>" + th("Scenario") + th("Salvato il") + th("Famiglie", "num") + th("Celle installate", "num") + "<th style='width:200px'></th></tr></thead><tbody>"
     + S.snapshots.map(sn => "<tr><td>" + esc(sn.nome) + "</td><td>" + new Date(sn.ts).toLocaleDateString(LANG === "it" ? "it-IT" : "en-GB") + "</td>"
-      + '<td class="num">' + sn.data.famiglie.length + '</td><td class="num">' + nf(sn.data.reparti.reduce((a, r) => a + nz(r.celleAttuali), 0)) + "</td>"
+      + '<td class="num">' + sn.data.famiglie.length + '</td><td class="num">' + nf(sn.data.reparti.reduce((a, r) => a + nz(((r.anni || [])[S.meta.anno || 0] || r).celleAttuali), 0)) + "</td>"
       + '<td><button class="act ghost" data-snapload="' + sn.id + '">' + t("Carica") + "</button> "
       + '<button class="danger" data-del="snap" data-id="' + sn.id + '">' + t("Elimina") + "</button></td></tr>").join("") + "</tbody>";
 
