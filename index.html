@@ -110,6 +110,8 @@ tfoot td{border-top:2px solid var(--border);border-bottom:none;font-weight:700}
 
 .satbar{position:relative;height:16px;background:var(--input);border:1px solid var(--border);border-radius:2px;min-width:110px;overflow:hidden}
 .satbar i{position:absolute;inset:0 auto 0 0;display:block}
+.satbar u{position:absolute;top:0;bottom:0;display:block;border-left:1px solid var(--panel);
+  background-image:repeating-linear-gradient(45deg,currentColor 0 3px,transparent 3px 6px);opacity:.85}
 .satbar .mark100{position:absolute;top:0;bottom:0;width:1px;background:var(--dim);opacity:.6}
 td.mese{text-align:center;font-variant-numeric:tabular-nums;font-size:12.5px;padding:6px 4px;min-width:42px}
 td.m-ok{background:rgba(90,140,90,.20)} td.m-warn{background:rgba(190,150,60,.26)}
@@ -562,7 +564,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v4.4";
+const VERSION = "v4.5";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -657,7 +659,12 @@ const EN = {
   "pezzi a forecast": "pieces forecast", "ore di lavoro all'anno": "work hours a year",
   "di cui attrezzaggio": "of which changeover", "celle installate": "cells installed",
   "celle al minimo tecnico": "cells at bare minimum", "ore di capacità non usata": "hours of unused capacity",
-  "Pezzi lanciati": "Pieces launched", "Ore lavoro": "Work hours", "Ore setup": "Changeover hours",
+  "Pezzi lanciati": "Pieces launched", "Ore lavoro": "Work hours",
+  "Ore in casa": "Hours in-house", "Ore fuori": "Hours outside", "di cui fuori": "of which outside",
+  "Esterna nel mese": "Outside in the month", "Celle esterne per coprire": "Outside cells to cover", "ne hai": "you have",
+  "in casa": "in-house", "col carico totale": "with the whole load", "fuori": "outside",
+  "Di quel carico": "Of that load", "ore vanno al terzista": "hours go to the subcontractor",
+  "quindi la percentuale qui sopra è quella che resta in casa: sul carico totale sarebbe": "so the percentage above is what stays in-house: on the whole load it would be", "Ore setup": "Changeover hours",
   "Ore per cella": "Hours per cell", "Limite": "Limit", "Celle necessarie": "Cells needed",
   "Gap": "Gap", "Saturazione": "Utilisation", "Esito": "Verdict",
   "macchina": "machine", "uomo": "labour",
@@ -1100,6 +1107,13 @@ function compute(ov) {
     const picIdx = meseH.indexOf(picH);
     const capMese = capTot / 12;
     const satPicco = capMese > 0 ? picH / capMese : null;
+    /* stesso ragionamento del conto annuo, ma sul mese peggiore */
+    const sogliaMese = celle * capCella * target / 12, capEstMese = esterne * capCella / 12;
+    const picFuori = Math.min(Math.max(0, picH - sogliaMese), capEstMese);
+    const picDentro = picH - picFuori;
+    const satPiccoCasa = capMese > 0 ? picDentro / capMese : null;
+    const satPiccoTot = (capMese + capEstMese) > 0 ? picH / (capMese + capEstMese) : null;
+    const cellePiccoServono = capCella > 0 && picH > sogliaMese ? Math.ceil((picH - sogliaMese) / (capCella / 12)) : 0;
 
     const taktMin = pezzi > 0 ? capCella * 60 / pezzi : null;
     const tcMedio = pezzi > 0 ? caricoU * 60 / pezzi : null;
@@ -1155,7 +1169,7 @@ function compute(ov) {
       satTotale: (celle + esterne) * capCella > 0 ? caricoH / ((celle + esterne) * capCella) : (caricoH > 0 ? null : 0),
       necFraz, necInt: Math.ceil(necFraz - 1e-9), sat,
       suggFraz, sugg, gap: sugg - celle, oltreMax: max > 0 && sugg > max,
-      picH, picIdx, satPicco, taktMin, tcMedio, tcVA, maxPezzi, cv, targetCons, meseH,
+      picH, picIdx, satPicco, picDentro, picFuori, satPiccoCasa, satPiccoTot, cellePiccoServono, capEstMese, taktMin, tcMedio, tcVA, maxPezzi, cv, targetCons, meseH,
       mesePz, picPz: Math.max.apply(null, mesePz), contrib,
       epei, setupGiro, anticipoOre, anticipoPz,
       ltGiorni: rep ? nz(rep.ltGiorni) : 0, buffer: rep ? rep.buffer !== false : false
@@ -1163,7 +1177,9 @@ function compute(ov) {
   });
 
   const attive = righe.filter(r => r.caricoH > 0 && r.sat != null);
-  const vincolo = attive.length ? attive.reduce((a, b) => b.sat > a.sat ? b : a) : null;
+  /* Il vincolo è il reparto più carico DOPO aver mandato fuori quello che il terzista
+     assorbe: se una fase sfora ma la subfornitura la copre, non è lei a dettare il ritmo. */
+  const vincolo = attive.length ? attive.reduce((a, b) => (b.satCasa != null ? b.satCasa : b.sat) > (a.satCasa != null ? a.satCasa : a.sat) ? b : a) : null;
   /* Pezzi del mix: ogni famiglia conta una volta sola, anche se attraversa più fasi.
      Il throughput della catena si ottiene scalando tutto il mix finché il reparto più
      carico arriva al 100%. Prendere il minimo dei "pezzi massimi" delle singole fasi
@@ -1178,7 +1194,7 @@ function compute(ov) {
   }, 0);
   const conCarico = righe.filter(r => r.caricoH > 0);
   const bloccata = conCarico.some(r => r.celle * r.capCella <= 0);
-  const satMax = attive.length ? Math.max.apply(null, attive.map(r => r.sat)) : 0;
+  const satMax = attive.length ? Math.max.apply(null, attive.map(r => r.satCasa != null ? r.satCasa : r.sat)) : 0;
   const throughput = !conCarico.length ? null : bloccata ? 0 : (satMax > 0 ? pezziMix / satMax : null);
   const domanda = pezziMix;
   const oreFerme = righe.filter(r => r.caricoH > 0).reduce((a, r) => a + Math.max(0, (r.celle - r.necFraz)) * r.capCella, 0);
@@ -1209,6 +1225,20 @@ function satCell(s) {
   return '<td><div class="satbar" title="' + pct(s) + '"><i style="width:' + w.toFixed(1) + '%;background:' + satColor(s) + '"></i>'
        + '<span class="mark100" style="left:' + (100 / 1.4).toFixed(1) + '%"></span></div></td>'
        + '<td class="num">' + pct(s) + '</td>';
+}
+
+/* Due letture nella stessa barra: pieno = quello che resta in casa sulle mie celle,
+   tratteggiato = la parte che va al terzista. Insieme fanno il carico totale. */
+function satCellDoppia(dentro, fuori) {
+  if (dentro == null) return '<td class="num">—</td><td class="num">—</td>';
+  const scala = 1.4, wD = Math.min(dentro, scala) / scala * 100;
+  const wF = Math.min(Math.max(0, fuori || 0), Math.max(0, scala - dentro)) / scala * 100;
+  const titolo = pct(dentro) + (fuori > 0 ? " " + t("in casa") + " · " + pct(dentro + fuori) + " " + t("col carico totale") : "");
+  return '<td><div class="satbar" title="' + titolo + '"><i style="width:' + wD.toFixed(1) + '%;background:' + satColor(dentro) + '"></i>'
+       + (wF > 0 ? '<u style="left:' + wD.toFixed(1) + '%;width:' + wF.toFixed(1) + '%;color:' + satColor(dentro + fuori) + '"></u>' : "")
+       + '<span class="mark100" style="left:' + (100 / scala).toFixed(1) + '%"></span></div></td>'
+       + '<td class="num">' + pct(dentro)
+       + (fuori > 0 ? ' <span style="color:var(--dim)">+' + pct(fuori) + " " + t("fuori") + "</span>" : "") + "</td>";
 }
 function verdict(r) {
   if (r.caricoH <= 0) return '<span class="tag t-idle">' + t("nessun carico") + "</span>";
@@ -1628,9 +1658,10 @@ function renderRisultati() {
     const tp = c.throughput != null ? c.throughput : 0;
     const copre = c.domanda > 0 ? tp / c.domanda : null;
     box.innerHTML = '<div class="constraint"><p class="k">' + t("Il vincolo del flusso") + "</p>"
-      + '<div class="v">' + esc(v.nome) + " — " + pct(v.sat) + ", " + t(v.risorsa === "macchina" ? "limite di macchina" : "limite di manodopera") + "</div>"
+      + '<div class="v">' + esc(v.nome) + " — " + pct(v.satCasa != null ? v.satCasa : v.sat) + ", " + t(v.risorsa === "macchina" ? "limite di macchina" : "limite di manodopera") + "</div>"
       + "<p>" + t("È il reparto più carico: detta il ritmo di tutta la catena, quindi ogni cella o ora aggiunta altrove non aumenta la produzione.") + " "
-      + nf(v.celle) + " " + t("celle coprono") + " " + nf(v.celle * v.capCella) + " " + t("ore contro un carico di") + " " + nf(v.caricoH) + ", " + t("di cui") + " " + nf(v.oreSetup) + " " + t("di attrezzaggio.") + "</p>"
+      + nf(v.celle) + " " + t("celle coprono") + " " + nf(v.celle * v.capCella) + " " + t("ore contro un carico di") + " " + nf(v.caricoH) + ", " + t("di cui") + " " + nf(v.oreSetup) + " " + t("di attrezzaggio.")
+      + (v.oreFuori > 0 ? " " + t("Di quel carico") + " <strong>" + nf(v.oreFuori) + " " + t("ore vanno al terzista") + "</strong>, " + t("quindi la percentuale qui sopra è quella che resta in casa: sul carico totale sarebbe") + " " + pct(v.sat) + "." : "") + "</p>"
       + "<p>" + t("Con la struttura di oggi la catena porta a casa circa") + " <strong>" + nf(tp) + " " + t("pezzi all'anno") + "</strong>"
       + (copre != null ? ", " + t("cioè il") + " " + pct(copre) + " " + t("di quello che il forecast chiede") : "") + ".</p></div>";
   } else {
@@ -1647,33 +1678,40 @@ function renderRisultati() {
     + kpi(nf(celleOggi), "celle installate") + kpi(nf(celleServ), "celle al minimo tecnico") + kpi(nf(c.oreFerme), "ore di capacità non usata");
 
   document.getElementById("tblRisultati").innerHTML =
-    "<thead><tr>" + th("Reparto") + th("Pezzi lanciati", "num") + th("Ore lavoro", "num") + th("Ore setup", "num")
+    "<thead><tr>" + th("Reparto") + th("Pezzi lanciati", "num") + th("Ore in casa", "num") + th("Ore fuori", "num") + th("Ore setup", "num")
     + th("Ore standard per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
     + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
     + (c.righe.length ? c.righe.map(r =>
-      '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.oreUomo) + "</td>"
+      '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.caricoDentro) + "</td>"
+      + '<td class="num"' + (r.oreFuori > 0 ? ' style="color:var(--gold)"' : ' style="color:var(--dim)"') + ">" + (r.oreFuori > 0 ? nf(r.oreFuori) : "—") + "</td>"
       + '<td class="num" style="color:' + (r.oreSetup > 0 ? "var(--warn-fg)" : "var(--dim)") + '">' + nf(r.oreSetup) + "</td>"
       + '<td class="num">' + nf(r.capCella) + "</td>"
       + "<td>" + (r.caricoH <= 0 ? "—" : r.risorsa === "macchina" ? '<span class="tag t-warn">' + t("macchina") + "</span>" : '<span class="tag t-idle">' + t("uomo") + "</span>") + "</td>"
       + '<td class="num">' + nf(r.necFraz, 2) + " <span style=\"color:var(--dim)\">→ " + nf(r.necInt) + "</span></td>"
       + '<td class="num">' + nf(r.celle) + "</td>"
       + '<td class="num" style="color:' + (r.necInt - r.celle > 0 ? "var(--bad-fg)" : "var(--dim)") + '">' + (r.necInt - r.celle > 0 ? "+" : "") + nf(r.necInt - r.celle) + "</td>"
-      + satCell(r.sat) + "<td>" + verdict(r) + "</td></tr>").join("") : '<tr><td class="empty">—</td></tr>')
+      + satCellDoppia(r.satCasa, r.satCasa != null ? r.oreFuori / (r.capInterna || 1) : 0) + "<td>" + verdict(r) + "</td></tr>").join("") : '<tr><td class="empty">—</td></tr>')
     + "</tbody>";
 
   document.getElementById("tblPicco").innerHTML =
-    "<thead><tr>" + th("Reparto") + th("Mese di picco") + th("Ore nel mese", "num") + th("Capacità del mese", "num")
-    + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Anticipo per livellare", "num") + th("Esito") + "</tr></thead><tbody>"
+    "<thead><tr>" + th("Reparto") + th("Mese di picco") + th("Ore nel mese", "num") + th("di cui fuori", "num")
+    + th("Capacità del mese", "num") + th("Esterna nel mese", "num")
+    + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Celle esterne per coprire", "num") + th("Anticipo per livellare", "num") + th("Esito") + "</tr></thead><tbody>"
     + c.righe.map(r => {
       const ok = r.caricoH > 0;
       return "<tr><td>" + esc(r.nome) + "</td><td>" + (ok ? mese(r.picIdx) : "—") + "</td>"
         + '<td class="num">' + (ok ? nf(r.picH) : "—") + "</td>"
+        + '<td class="num"' + (r.picFuori > 0 ? ' style="color:var(--gold)"' : ' style="color:var(--dim)"') + ">" + (ok && r.picFuori > 0 ? nf(r.picFuori) : "—") + "</td>"
         + '<td class="num">' + nf(r.celle * r.capCella / 12) + "</td>"
-        + satCell(ok ? r.satPicco : null)
+        + '<td class="num" style="color:var(--dim)">' + (r.capEstMese > 0 ? nf(r.capEstMese) : "—") + "</td>"
+        + (ok ? satCellDoppia(r.satPiccoCasa, r.picFuori / (r.celle * r.capCella / 12 || 1)) : satCell(null) + '<td class="num">—</td>')
+        + '<td class="num">' + (ok && r.cellePiccoServono > 0
+            ? (r.esterne >= r.cellePiccoServono ? '<span class="tag t-ok">' + r.cellePiccoServono + "</span>" : '<span class="tag t-warn">' + r.cellePiccoServono + " · " + t("ne hai") + " " + r.esterne + "</span>")
+            : "—") + "</td>"
         + '<td class="num">' + (ok && r.anticipoOre > 0 ? nf(r.anticipoPz) + " " + U.pz() + ' <span style="color:var(--dim)">(' + nf(r.anticipoOre) + " " + U.h() + ")</span>" : "—") + "</td>"
         + "<td>" + (!ok ? '<span class="tag t-idle">' + t("nessun carico") + "</span>"
-          : r.satPicco > 1 ? '<span class="tag t-bad">' + t("serve capacità extra") + "</span>"
-          : r.satPicco >= .85 ? '<span class="tag t-warn">' + t("al limite") + "</span>"
+          : r.satPiccoCasa > 1 ? '<span class="tag t-bad">' + t("serve capacità extra") + "</span>"
+          : r.satPiccoCasa >= .85 ? '<span class="tag t-warn">' + t("al limite") + "</span>"
           : '<span class="tag t-ok">' + t("regge") + "</span>") + "</td></tr>";
     }).join("") + "</tbody>";
 
@@ -1721,7 +1759,7 @@ function renderSimulazione() {
     "<thead><tr>" + th("Reparto") + th("Ore carico", "num") + th("Celle oggi", "num") + th("Ore coperte", "num")
     + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
     + c.righe.map(r => '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.caricoH) + '</td><td class="num">' + nf(r.celle) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
-      + satCell(r.sat) + "<td>" + verdict(r) + "</td></tr>").join("") + "</tbody>";
+      + satCellDoppia(r.satCasa, r.satCasa != null ? r.oreFuori / (r.capInterna || 1) : 0) + "<td>" + verdict(r) + "</td></tr>").join("") + "</tbody>";
 
   document.getElementById("tblSimSugg").innerHTML =
     "<thead><tr>" + th("Reparto") + th("Celle necessarie", "num") + th("Celle suggerite", "num") + th("Celle oggi", "num")
