@@ -137,9 +137,9 @@ td.m-bad{background:rgba(180,70,60,.34);font-weight:700} td.m-off{color:var(--di
 .lever label{display:block;font-size:14px;color:var(--dim);margin-bottom:5px}
 .lever .val{font-family:"Cinzel",serif;color:var(--gold);font-size:17px}
 
-#vsmWrap,#yamaWrap{overflow-x:auto;background:var(--input);border:1px solid var(--border);border-radius:3px;padding:10px}
+#vsmWrap,#yamaWrap,#mixWrap{overflow-x:auto;background:var(--input);border:1px solid var(--border);border-radius:3px;padding:10px}
 svg.vsm{display:block;min-width:760px}
-svg.yama{display:block;min-width:640px}
+svg.yama,svg.mix{display:block;min-width:640px}
 .seg{display:inline-flex;border:1px solid var(--border);border-radius:3px;overflow:hidden;margin-bottom:14px}
 .seg button{background:var(--panel);color:var(--dim);border:none;padding:7px 15px;font-family:inherit;font-size:14px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--gold);font-weight:700}
@@ -533,6 +533,15 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <div class="row-actions"><button class="act" id="dlSvg">Scarica la mappa</button></div>
     <p class="foot">È una mappa di flusso con i dati dell'app, non una VSM nel formalismo standard: mancano le frecce push e pull e i flussi informativi.</p>
   </div>
+
+  <div class="panel">
+    <h2>Mix produttivo</h2>
+    <p class="hint">I modelli che attraversano il flusso, con i volumi dei tre anni e la loro progressione. Stampando la mappa esce anche questo: la mappa dice come si produce, il mix dice cosa.</p>
+    <div class="scroller"><table id="tblMix"></table></div>
+    <div id="mixWrap"></div>
+    <div class="legend" id="mixLegend"></div>
+    <div class="row-actions"><button class="act ghost" id="dlMix">Scarica il grafico</button></div>
+  </div>
 </section>
 </main>
 
@@ -564,7 +573,7 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v4.5";
+const VERSION = "v4.6";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -830,6 +839,10 @@ const EN = {
   "Serve almeno un reparto con carico.": "At least one department with load is needed.",
   "Nessun cambiamento: le celle erano già dimensionate.": "No change: the cells were already sized.",
   "il forecast ne chiederebbe": "the forecast would ask for", "Da": "From", "A": "To",
+  "Mix produttivo": "Product mix",
+  "I modelli che attraversano il flusso, con i volumi dei tre anni e la loro progressione. Stampando la mappa esce anche questo: la mappa dice come si produce, il mix dice cosa.": "The models that run through the flow, with the volumes of the three years and their progression. Printing the map prints this too: the map says how you produce, the mix says what.",
+  "Modello": "Model", "Gruppo": "Group", "Quota": "Share", "Progressione": "Progression",
+  "Nessuna famiglia con forecast.": "No family with a forecast.", "Scarica il grafico": "Download the chart",
   "Riassunto": "Summary", "Celle reali": "Actual cells", "Cella": "Cell", "nessuna cella": "no cell", "da": "from",
   "Ore erogate per mese": "Hours delivered per month",
   "Le ore che ogni reparto mette a disposizione mese per mese, già ridotte dal rodaggio delle celle nuove. È il piano di capacità da confrontare con il carico: l'ultima riga è il totale dello stabilimento.": "The hours each department makes available month by month, already reduced by the ramp-up of new cells. This is the capacity plan to compare against the load: the last row is the plant total.",
@@ -1954,6 +1967,67 @@ function renderYamazumi() {
    ============================================================ */
 let VSM_MODE = "sintesi";
 
+function renderMix() {
+  const el = document.getElementById("tblMix"), wrap = document.getElementById("mixWrap"), C = TH();
+  const fam = S.famiglie.filter(f => [0, 1, 2].some(y => nz(f.forecastAnni[y]) > 0));
+  if (!fam.length) {
+    el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna famiglia con forecast.") + "</td></tr></tbody>";
+    wrap.innerHTML = ""; document.getElementById("mixLegend").innerHTML = "";
+    return;
+  }
+  const tot = [0, 1, 2].map(y => fam.reduce((a, f) => a + nz(f.forecastAnni[y]), 0));
+  const anno = S.meta.anno || 0;
+  el.innerHTML = "<thead><tr>" + th("Modello") + th("Gruppo")
+    + S.meta.anni.map(a => '<th class="num">' + esc(a) + "</th>").join("")
+    + th("Quota", "num") + th("Progressione", "num") + "</tr></thead><tbody>"
+    + fam.map(f => {
+      const v = [0, 1, 2].map(y => nz(f.forecastAnni[y]));
+      const quota = tot[anno] > 0 ? v[anno] / tot[anno] : 0;
+      const prog = v[0] > 0 ? v[2] / v[0] - 1 : null;
+      return '<tr><td><i class="swatch" style="background:' + famColor(f.id) + '"></i> ' + esc(f.nome) + "</td>"
+        + '<td style="color:var(--dim)">' + (f.cluster ? esc(f.cluster) : "—") + "</td>"
+        + v.map(x => '<td class="num">' + nf(x) + "</td>").join("")
+        + '<td class="num">' + pct(quota) + "</td>"
+        + '<td class="num" style="color:' + (prog == null ? "var(--dim)" : prog > 0 ? "var(--ok-fg)" : prog < 0 ? "var(--bad-fg)" : "var(--dim)") + '">'
+        + (prog == null ? "—" : (prog > 0 ? "+" : "") + nf(prog * 100, 0) + "%") + "</td></tr>";
+    }).join("")
+    + "</tbody><tfoot><tr><td>" + t("Totale") + "</td><td></td>"
+    + tot.map(x => '<td class="num">' + nf(x) + "</td>").join("")
+    + '<td class="num">100%</td><td class="num">' + (tot[0] > 0 ? (tot[2] / tot[0] - 1 > 0 ? "+" : "") + nf((tot[2] / tot[0] - 1) * 100, 0) + "%" : "—") + "</td></tr></tfoot>";
+
+  /* colonne impilate: una per anno, un segmento per modello */
+  const BW = 120, GAP = 76, L = 70, TOPM = 30, PLOT = 260, BOTM = 46;
+  const W = L + 3 * (BW + GAP) + 40, H = TOPM + PLOT + BOTM;
+  const maxV = Math.max.apply(null, tot) * 1.12 || 1;
+  const FS = 'font-family="Alegreya Sans,sans-serif"';
+  let s = '<svg class="mix" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
+  s += '<rect width="' + W + '" height="' + H + '" fill="' + C.bg + '"/>';
+  s += '<text x="12" y="18" fill="' + C.dim + '" ' + FS + ' font-size="13">' + t("pezzi all'anno") + "</text>";
+  [0, .25, .5, .75, 1].forEach(q => {
+    const y = TOPM + PLOT - PLOT * q;
+    s += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - 20) + '" y2="' + y + '" stroke="' + C.line + '" stroke-width="1"/>';
+    s += '<text x="' + (L - 8) + '" y="' + (y + 4) + '" fill="' + C.dim + '" ' + FS + ' font-size="11" text-anchor="end">' + nf(maxV * q) + "</text>";
+  });
+  [0, 1, 2].forEach(y => {
+    const x = L + 20 + y * (BW + GAP);
+    let base = TOPM + PLOT;
+    fam.forEach(f => {
+      const v = nz(f.forecastAnni[y]);
+      if (v <= 0) return;
+      const hh = PLOT * v / maxV;
+      base -= hh;
+      s += '<rect x="' + x + '" y="' + base.toFixed(1) + '" width="' + BW + '" height="' + hh.toFixed(1) + '" fill="' + famColor(f.id) + '" stroke="' + C.bg + '" stroke-width="1"><title>' + esc(f.nome) + ": " + nf(v) + "</title></rect>";
+      if (hh > 16) s += '<text x="' + (x + BW / 2) + '" y="' + (base + hh / 2 + 4).toFixed(1) + '" fill="' + (THEME === "dark" ? "#15110E" : "#FFFDF7") + '" ' + FS + ' font-size="11.5" text-anchor="middle">' + nf(v) + "</text>";
+    });
+    if (tot[y] > 0) s += '<text x="' + (x + BW / 2) + '" y="' + (base - 8).toFixed(1) + '" fill="' + C.ink + '" ' + FS + ' font-size="13" text-anchor="middle">' + nf(tot[y]) + "</text>";
+    s += '<text x="' + (x + BW / 2) + '" y="' + (TOPM + PLOT + 22) + '" fill="' + (y === anno ? C.gold : C.dim) + '" ' + FS + ' font-size="13" text-anchor="middle">' + esc(S.meta.anni[y]) + "</text>";
+  });
+  s += "</svg>";
+  wrap.innerHTML = s;
+  document.getElementById("mixLegend").innerHTML =
+    fam.map(f => '<span><i class="swatch" style="background:' + famColor(f.id) + '"></i>' + esc(f.nome) + "</span>").join("");
+}
+
 function renderVSM() {
   const C = TH();
   const c = compute();
@@ -2080,7 +2154,7 @@ let FORZA_RENDER = false;
 /* in stampa le schede nascoste tornano visibili: prima di stampare va ridisegnato tutto */
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
-function refreshOutputs() { renderControlli(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
@@ -2402,6 +2476,7 @@ function dlSvg(sel, prefix) {
   a.href = URL.createObjectURL(blob); a.download = fname(prefix, "svg"); a.click(); URL.revokeObjectURL(a.href);
 }
 document.getElementById("dlYama").onclick = () => dlSvg("svg.yama", "solo-leveling-yamazumi-");
+document.getElementById("dlMix").onclick = () => dlSvg("svg.mix", "solo-leveling-mix-");
 document.getElementById("dlSvg").onclick = () => dlSvg("svg.vsm", "solo-leveling-mappa-");
 
 
