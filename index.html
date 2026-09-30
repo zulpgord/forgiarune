@@ -552,6 +552,8 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <div class="row-actions">
       <input id="snapNome" class="wide" placeholder="Nome della fotografia">
       <button class="act" id="snapAdd">Salva lo stato attuale</button>
+      <button class="act ghost" id="snapImportBtn">Importa scenario</button>
+      <input type="file" id="snapImportFile" accept="application/json" hidden>
     </div>
     <div class="scroller" style="margin-top:16px"><table id="tblSnap"></table></div>
   </div>
@@ -767,7 +769,8 @@ const EN = {
   "Fotografa lo stato attuale con un nome e tienilo da parte. Serve per confrontare as-is e to-be senza esportare e reimportare file.": "Take a named snapshot of the current state and keep it aside. It lets you compare as-is and to-be without exporting and reimporting files.",
   "Nome della fotografia": "Snapshot name", "Salva lo stato attuale": "Save the current state",
   "Nessuno scenario salvato.": "No scenario saved.", "Salvato il": "Saved on", "Celle installate": "Cells installed",
-  "Carica": "Load",
+  "Carica": "Load", "Esporta": "Export",
+  "Importa scenario": "Import scenario", "Scenario importato": "Scenario imported", "File scenario non valido": "Invalid scenario file",
   "Confronto": "Comparison",
   "Scegli una fotografia e vedi il delta rispetto a come stanno le cose adesso, reparto per reparto.": "Pick a snapshot and see the delta against how things stand now, department by department.",
   "Salva uno scenario per poterlo confrontare.": "Save a scenario to be able to compare it.",
@@ -2726,10 +2729,11 @@ function computeSnap(sn, ov) {
 function renderScenari() {
   const tb = document.getElementById("tblSnap");
   if (!S.snapshots.length) tb.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuno scenario salvato.") + "</td></tr></tbody>";
-  else tb.innerHTML = "<thead><tr>" + th("Scenario") + th("Salvato il") + th("Famiglie", "num") + th("Celle installate", "num") + "<th style='width:200px'></th></tr></thead><tbody>"
+  else tb.innerHTML = "<thead><tr>" + th("Scenario") + th("Salvato il") + th("Famiglie", "num") + th("Celle installate", "num") + "<th style='width:280px'></th></tr></thead><tbody>"
     + S.snapshots.map(sn => "<tr><td>" + esc(sn.nome) + "</td><td>" + new Date(sn.ts).toLocaleDateString(LANG === "it" ? "it-IT" : "en-GB") + "</td>"
       + '<td class="num">' + sn.data.famiglie.length + '</td><td class="num">' + nf(sn.data.reparti.reduce((a, r) => a + nz(((r.anni || [])[S.meta.anno || 0] || r).celleAttuali), 0)) + "</td>"
       + '<td><button class="act ghost" data-snapload="' + sn.id + '">' + t("Carica") + "</button> "
+      + '<button class="act ghost" data-snapexport="' + sn.id + '">' + t("Esporta") + "</button> "
       + '<button class="danger" data-del="snap" data-id="' + sn.id + '">' + t("Elimina") + "</button></td></tr>").join("") + "</tbody>";
 
   const sel = document.getElementById("snapSel");
@@ -2766,6 +2770,33 @@ document.addEventListener("click", e => {
   S.fasi = d.fasi; S.reparti = normalizzaReparti(d.reparti); S.famiglie = d.famiglie;
   SIM = null; queueSave(); refreshAll();
 });
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-snapexport]"); if (!b) return;
+  const sn = S.snapshots.find(x => x.id === b.dataset.snapexport); if (!sn) return;
+  const payload = { type: "runeforge-scenario", version: VERSION, nome: sn.nome, ts: sn.ts, data: sn.data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (sn.nome || "scenario").trim().replace(/[^\w\-]+/g, "_") + "-" + VERSION + ".json";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById("snapImportBtn").onclick = () => document.getElementById("snapImportFile").click();
+document.getElementById("snapImportFile").onchange = e => {
+  const file = e.target.files[0]; if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const obj = JSON.parse(rd.result);
+      const data = obj && obj.data ? obj.data : obj;
+      if (!data || !data.params || !data.fasi || !data.reparti || !data.famiglie) throw new Error("formato non valido");
+      const nome = (obj.nome || file.name.replace(/\.json$/i, "")) || (t("Scenario") + " " + (S.snapshots.length + 1));
+      S.snapshots.push({ id: uid(), nome: nome, ts: Date.now(), data: JSON.parse(JSON.stringify(data)) });
+      queueSave(); renderScenari(); flag(t("Scenario importato"));
+    } catch (err) { flag(t("File scenario non valido"), true); }
+    e.target.value = "";
+  };
+  rd.readAsText(file);
+};
 
 /* ============================================================
    ESPORTA CSV E STAMPA
