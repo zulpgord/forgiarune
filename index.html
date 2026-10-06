@@ -352,7 +352,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
     <button data-tab="yamazumi">Yamazumi</button>
     <button data-tab="scorte">Magazzini</button>
     <button data-tab="vsm">Mappa del flusso</button>
-    <button data-tab="piano">Pianificazione</button>
+    <button data-tab="piano">EasyFabio</button>
     <button data-tab="scenari">Scenari</button>
   </nav>
 </header>
@@ -683,7 +683,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 
 <section id="tab-piano" hidden>
   <div class="panel">
-    <h2>Impostazioni del piano</h2>
+    <h2>EasyFabio · impostazioni del piano</h2>
     <p class="hint">Ogni commessa è un pezzo di una famiglia: attraversa le fasi accese per quella famiglia, con i tempi della Fucina. La capacità di ogni reparto è quella dell'anno selezionato in alto: ogni cella lavora una commessa alla volta, e la durata di una fase è minuti uomo (più attrezzaggio) ÷ operatori per cella ÷ efficienza, corretta per lo scarto. Le commesse vengono messe in fila per priorità (1 = più urgente) e poi per data di consegna; ogni fase parte quando finisce la precedente e una cella del reparto è libera. Sabato e domenica non si lavora, a meno che tu metta 6 giorni a settimana.</p>
     <div class="levers">
       <div class="lever"><label for="plInizio">Inizio del piano</label><input type="date" id="plInizio" data-pl="inizio"></div>
@@ -759,14 +759,14 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v4.10";
+const VERSION = "v4.11";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
-  "Banco di prova": "Test bench", "Pianificazione": "Scheduling", "Impostazioni del piano": "Plan settings", "Diagramma di Gantt": "Gantt chart",
+  "Banco di prova": "Test bench", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
   "Carico per periodo": "Load by period", "Commesse": "Job orders", "Ore": "Hours", "Giorni": "Days", "Settimane": "Weeks", "Mesi": "Months",
   "Per reparto": "By department", "Per commessa": "By job", "Vai a oggi": "Go to today", "Aggiungi commessa": "Add job", "Crea dal forecast": "Create from forecast",
   "Elimina tutte": "Delete all", "Incolla da Excel": "Paste from Excel", "Aggiungi le righe": "Add rows", "commesse aperte": "open jobs", "in tempo": "on time",
