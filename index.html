@@ -6,7 +6,7 @@
 <title>Solo Leveling — dimensionamento del flusso produttivo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#15110E; --bg-glow:#2A211A;
@@ -39,10 +39,10 @@ html,body{margin:0;padding:0}
 body{
   background:radial-gradient(900px 500px at 50% -10%, var(--bg-glow) 0%, rgba(0,0,0,0) 70%), var(--bg);
   color:var(--ink);
-  font-family:"Alegreya Sans","Segoe UI",system-ui,sans-serif;
+  font-family:"Inter","Segoe UI",system-ui,sans-serif;
   font-size:16px;line-height:1.5;min-height:100vh;
 }
-h1,h2,h3,.display{font-family:"Cinzel",Georgia,serif;font-weight:700;letter-spacing:.06em;margin:0}
+h1,h2,h3,.display{font-family:"Poppins",Georgia,serif;font-weight:700;letter-spacing:.06em;margin:0}
 
 header{border-bottom:2px solid var(--border);background:var(--panel-2);box-shadow:0 6px 24px var(--shadow);position:sticky;top:0;z-index:50}
 /* intestazione compatta quando si scorre: resta visibile con schede, anno e scenario */
@@ -63,7 +63,7 @@ header.compact nav button{font-size:12px;padding:5px 12px}
 .chrome{display:flex;gap:8px;align-items:center}
 
 nav{max-width:min(2100px, 96vw);margin:16px auto 0;padding:0 22px;display:flex;gap:2px;flex-wrap:wrap;overflow-x:auto}
-nav button{font-family:"Cinzel",serif;font-size:14px;letter-spacing:.1em;background:var(--panel);color:var(--dim);
+nav button{font-family:"Poppins",serif;font-size:14px;letter-spacing:.1em;background:var(--panel);color:var(--dim);
   border:2px solid var(--border);border-bottom:none;padding:10px 18px;cursor:pointer;border-radius:3px 3px 0 0}
 nav button:hover{color:var(--ink)}
 nav button[aria-current="true"]{background:var(--panel-2);color:var(--gold);border-color:var(--brass);position:relative;top:2px}
@@ -77,7 +77,7 @@ section[hidden]{display:none}
 .panel > h2{font-size:19px;color:var(--gold);margin-bottom:4px}
 .panel > .hint{color:var(--dim);font-size:14px;margin:0 0 16px;max-width:86ch}
 
-button.act{font-family:"Alegreya Sans",sans-serif;font-size:14px;font-weight:700;background:var(--panel-2);color:var(--ink);
+button.act{font-family:"Inter",sans-serif;font-size:14px;font-weight:700;background:var(--panel-2);color:var(--ink);
   border:1px solid var(--brass);border-radius:3px;padding:7px 14px;cursor:pointer}
 button.act:hover{color:var(--gold)}
 button.ghost{border-color:var(--border);color:var(--dim)}
@@ -94,7 +94,7 @@ input:disabled{opacity:.35}
 .scroller{overflow-x:auto;margin:0 -4px;padding:0 4px}
 table{border-collapse:collapse;width:100%;font-size:15px}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border-2)}
-thead th{font-family:"Alegreya Sans",sans-serif;font-size:13px;font-weight:700;color:var(--brass);
+thead th{font-family:"Inter",sans-serif;font-size:13px;font-weight:700;color:var(--brass);
   letter-spacing:.02em;border-bottom:2px solid var(--border);white-space:nowrap;text-transform:none}
 tbody tr:nth-child(even){background:rgba(155,123,54,.045)}
 tbody tr:hover{background:rgba(155,123,54,.11)}
@@ -133,18 +133,18 @@ td.m-bad{background:rgba(180,70,60,.34);font-weight:700} td.m-off{color:var(--di
 
 .constraint{border:2px solid var(--cons-br);background:linear-gradient(180deg,var(--cons-bg1),var(--cons-bg2));
   border-radius:3px;padding:16px 20px;margin-bottom:22px}
-.constraint .k{font-family:"Cinzel",serif;color:var(--cons-k);font-size:13px;letter-spacing:.12em;margin:0 0 6px}
-.constraint .v{font-family:"Cinzel",serif;font-size:27px;color:var(--cons-v);line-height:1.15}
+.constraint .k{font-family:"Poppins",serif;color:var(--cons-k);font-size:13px;letter-spacing:.12em;margin:0 0 6px}
+.constraint .v{font-family:"Poppins",serif;font-size:27px;color:var(--cons-v);line-height:1.15}
 .constraint p{margin:8px 0 0;color:var(--cons-p);font-size:15px;max-width:75ch}
 
 .kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px}
 .kpi{flex:1 1 165px;background:var(--panel-2);border:1px solid var(--border);border-radius:3px;padding:12px 14px}
-.kpi .n{font-family:"Cinzel",serif;font-size:25px;color:var(--gold);line-height:1.15}
+.kpi .n{font-family:"Poppins",serif;font-size:25px;color:var(--gold);line-height:1.15}
 .kpi .l{font-size:13.5px;color:var(--dim);margin-top:3px}
 
 .levers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px 26px}
 .lever label{display:block;font-size:14px;color:var(--dim);margin-bottom:5px}
-.lever .val{font-family:"Cinzel",serif;color:var(--gold);font-size:17px}
+.lever .val{font-family:"Poppins",serif;color:var(--gold);font-size:17px}
 
 #vsmWrap,#yamaWrap,#mixWrap{overflow-x:auto;background:var(--input);border:1px solid var(--border);border-radius:3px;padding:10px}
 svg.vsm{display:block;min-width:760px}
@@ -165,22 +165,123 @@ svg.yama,svg.mix{display:block;min-width:640px}
 
 footer{border-top:2px solid var(--border);background:var(--panel-2);margin-top:20px}
 .foot-inner{max-width:min(2100px, 96vw);margin:0 auto;padding:18px 22px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap;align-items:center}
-.ver{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.14em;color:var(--brass)}
-.by{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.28em;color:var(--gold)}
+.ver{font-family:"Poppins",serif;font-size:13px;letter-spacing:.14em;color:var(--brass)}
+.by{font-family:"Poppins",serif;font-size:13px;letter-spacing:.28em;color:var(--gold)}
 details.panel > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
 details.panel > summary::-webkit-details-marker{display:none}
 details.panel > summary h2{font-size:19px;color:var(--gold)}
-details.panel > summary::after{content:"+";font-family:"Cinzel",serif;color:var(--brass);font-size:20px;margin-left:auto}
+details.panel > summary::after{content:"+";font-family:"Poppins",serif;color:var(--brass);font-size:20px;margin-left:auto}
 details.panel[open] > summary::after{content:"–"}
 details.panel[open] > summary{margin-bottom:10px}
 .calcOre{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;
   border:1px dashed var(--border);border-radius:8px;background:var(--panel-2);font-size:14px;color:var(--dim)}
 .calcOre b{color:var(--gold);font-size:16px;min-width:70px}
 details.paste{border:1px dashed var(--border);border-radius:3px;padding:10px 14px;margin:0 0 18px}
-details.paste summary{cursor:pointer;font-family:"Cinzel",serif;font-size:13.5px;letter-spacing:.06em;color:var(--brass)}
+details.paste summary{cursor:pointer;font-family:"Poppins",serif;font-size:13.5px;letter-spacing:.06em;color:var(--brass)}
 details.paste summary:hover{color:var(--gold)}
 details.paste[open] summary{margin-bottom:10px}
 textarea{background:var(--input);color:var(--ink);border:1px solid var(--border);border-radius:2px;padding:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+
+/* ============ TEMA MODERNO (v4.8): soft UI, card arrotondate, ombre morbide ============ */
+:root{
+  --bg:#16142A; --bg-glow:#2A2150;
+  --panel:#201D38; --panel-2:#2A2648; --input:#191732;
+  --border:#36315A; --border-2:#2C2849;
+  --ink:#ECEAF7; --dim:#A39FC0; --faint:#77729A;
+  --gold:#C4A5FF; --brass:#9C86D6; --ember:#FF7AB0; --moss:#34C38F;
+  --ok-bg:rgba(52,195,143,.14); --ok-fg:#7BE0B5; --ok-br:rgba(52,195,143,.35);
+  --warn-bg:rgba(245,185,74,.14); --warn-fg:#F5C76A; --warn-br:rgba(245,185,74,.35);
+  --bad-bg:rgba(242,85,122,.15); --bad-fg:#FF8FAA; --bad-br:rgba(242,85,122,.4);
+  --cons-bg1:#3A2350; --cons-bg2:#2A1F45; --cons-br:#FF7AB0;
+  --cons-k:#FFB3D0; --cons-v:#FF9CC4; --cons-p:#DCCFEA;
+  --shadow:rgba(0,0,0,.35);
+  --grad:linear-gradient(120deg,#F38BA8 0%,#C38CF0 52%,#8E8CF5 100%);
+  --radius:18px;
+}
+body.light{
+  --bg:#F3F0FA; --bg-glow:#FBE9F3;
+  --panel:#FFFFFF; --panel-2:#F7F3FE; --input:#FBFAFF;
+  --border:#E4DDF3; --border-2:#EFEAF8;
+  --ink:#2E2A45; --dim:#7B7596; --faint:#A7A2BF;
+  --gold:#7C4DEB; --brass:#9A70E0; --ember:#EC5C97; --moss:#22A06B;
+  --ok-bg:#E3F6EE; --ok-fg:#16794F; --ok-br:#B6E5CF;
+  --warn-bg:#FDF3DF; --warn-fg:#946A0E; --warn-br:#F1D9A3;
+  --bad-bg:#FDE6EC; --bad-fg:#B42A55; --bad-br:#F4B9CA;
+  --cons-bg1:#FFF0F6; --cons-bg2:#F5EEFF; --cons-br:#EC5C97;
+  --cons-k:#B42A55; --cons-v:#D23F7D; --cons-p:#5E5677;
+  --shadow:rgba(108,78,180,.13);
+}
+body{background:radial-gradient(1100px 600px at 85% -10%, var(--bg-glow) 0%, transparent 65%), var(--bg);font-family:"Inter",system-ui,sans-serif;font-size:15px}
+h1,h2,h3,.display{font-family:"Poppins",sans-serif;font-weight:600;letter-spacing:0}
+
+header{background:var(--grad);border:none;box-shadow:0 10px 30px rgba(140,90,200,.28);color:#fff}
+.wordmark{color:#fff;font-size:28px;letter-spacing:.12em;font-weight:700}
+.tagline,.head-right,.head-right label{color:rgba(255,255,255,.85)}
+.mark{filter:drop-shadow(0 4px 10px rgba(0,0,0,.18))}
+header .seg{background:rgba(255,255,255,.2);border:none;border-radius:999px}
+header .seg button{background:transparent;color:#fff}
+header .seg button[aria-pressed="true"]{background:#fff;color:#7C4DEB;border-radius:999px}
+header .seg button + button{border-left:none}
+header button.act.ghost{background:rgba(255,255,255,.2);border:none;color:#fff}
+header input{background:rgba(255,255,255,.95);border:none;color:#2E2A45;border-radius:999px;padding:6px 14px}
+.saved{color:#fff}
+nav{gap:6px;padding-bottom:12px}
+nav button{font-family:"Poppins",sans-serif;font-weight:500;letter-spacing:.01em;background:rgba(255,255,255,.18);color:#fff;
+  border:none;border-radius:999px;padding:8px 18px;transition:background .15s, transform .15s}
+nav button:hover{background:rgba(255,255,255,.32);color:#fff}
+nav button[aria-current="true"]{background:#fff;color:#7C4DEB;top:0;box-shadow:0 6px 16px rgba(80,40,140,.25)}
+header.compact nav{padding-bottom:8px}
+
+.panel{background:var(--panel);border:1px solid var(--border-2);border-radius:var(--radius);padding:20px 24px 24px;
+  box-shadow:0 1px 2px var(--shadow), 0 12px 32px var(--shadow)}
+.panel > h2, details.panel > summary h2{font-size:18px;color:var(--ink)}
+.panel > h2::before, details.panel > summary h2::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--grad);margin-right:10px;vertical-align:3px}
+
+button.act{font-family:"Inter",sans-serif;font-weight:600;background:var(--grad);color:#fff;border:none;border-radius:999px;padding:8px 18px;
+  box-shadow:0 6px 16px rgba(170,100,220,.3);transition:transform .15s, box-shadow .15s}
+button.act:hover{color:#fff;transform:translateY(-1px);box-shadow:0 10px 22px rgba(170,100,220,.38)}
+button.act.ghost{background:var(--panel);color:var(--gold);border:1px solid var(--border);box-shadow:0 2px 8px var(--shadow)}
+button.act.ghost:hover{color:var(--gold)}
+button.danger{border-radius:999px;padding:4px 12px}
+
+input,select,textarea{border-radius:10px;border:1px solid var(--border);padding:7px 10px}
+input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(124,77,235,.15);outline:none}
+nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold)}
+
+thead th{color:var(--dim);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)}
+th,td{border-bottom:1px solid var(--border-2)}
+tbody tr:nth-child(even){background:transparent}
+tbody tr:hover{background:var(--panel-2)}
+tfoot td{border-top:1px solid var(--border)}
+.satbar{border:none;border-radius:999px;height:10px;background:var(--border-2)}
+.satbar i{border-radius:999px}
+.tag{border-radius:999px;padding:2px 10px;font-weight:600}
+
+.constraint{border:none;border-radius:var(--radius);box-shadow:0 12px 32px var(--shadow);border-left:6px solid var(--cons-br)}
+.constraint .v{font-weight:600}
+.kpi{background:var(--panel);border:1px solid var(--border-2);border-radius:var(--radius);padding:16px 18px;box-shadow:0 8px 24px var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--grad)}
+.kpi .n{font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.seg{border-radius:999px;border:1px solid var(--border);background:var(--panel)}
+.seg button{background:transparent}
+.seg button[aria-pressed="true"]{background:var(--grad);color:#fff}
+.seg button + button{border-left:none}
+#vsmWrap,#yamaWrap,#mixWrap{border-radius:14px;border:1px solid var(--border-2)}
+footer{background:var(--panel);border-top:1px solid var(--border-2)}
+.calcOre,details.paste{border-radius:14px}
+
+/* pannelli collassabili: clic sul titolo */
+.panel.fold > h2{cursor:pointer;display:flex;align-items:center;user-select:none}
+.panel.fold > h2::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg);transition:transform .2s}
+.panel.fold.chiuso > h2::after{transform:rotate(-45deg)}
+.panel.fold.chiuso{padding-bottom:20px}
+.panel.fold.chiuso > :not(h2){display:none!important}
+details.panel > summary::after{content:"";font-size:0;width:9px;height:9px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(-45deg);transition:transform .2s}
+details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
+.foldall{display:flex;justify-content:flex-end;gap:8px;margin:-8px 0 12px}
+.foldall button{background:none;border:none;color:var(--dim);font:inherit;font-size:13px;cursor:pointer}
+.foldall button:hover{color:var(--gold)}
 @media print{
   header{position:static!important}
   body{background:#fff;color:#000}
@@ -369,6 +470,16 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
     <div id="controlliOut"></div>
   </div>
   <div id="constraintBox"></div>
+  <div class="panel" id="panBanco">
+    <h2>Banco di prova</h2>
+    <p class="hint">Cambia celle e operatori per cella e guarda subito la saturazione. Puoi usare anche mezzi operatori (0,5 = un operatore a metà tempo sulla cella). Finché non premi «Salva nella Fucina» non cambia niente: con il tasto la configurazione viene scritta nella Fucina per l'anno selezionato in alto.</p>
+    <div class="scroller"><table id="tblBanco"></table></div>
+    <div class="row-actions">
+      <button class="act" id="bancoSalva">Salva nella Fucina</button>
+      <button class="act ghost" id="bancoReset">Riparti dalla Fucina</button>
+      <span id="bancoStato" class="hint" style="margin:0"></span>
+    </div>
+  </div>
   <div class="panel" id="panEsterno">
     <h2>Dentro e fuori</h2>
     <p class="hint">Le celle esterne sono capacità che non è tua: conto e subfornitura. Il carico riempie prima le celle di casa, poi va fuori. La fabbrica si riempie fino al target di saturazione e solo il resto va fuori, perché sopra il target le code crescono più in fretta del carico. «Saturazione di casa» è quanto resta dentro dopo aver mandato fuori; «Con l'esterno» dice se il piano chiude contando anche il terzista. Le ore vendibili sono quelle che restano libere in casa e che potresti cedere ad altri.</p>
@@ -389,16 +500,6 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
       <button class="act" id="estPicco">Dimensiona sul picco</button>
       <button class="act" id="estLivellato">Dimensiona livellando</button>
       <button class="act ghost" id="undoEsterne2" hidden>Annulla</button>
-    </div>
-  </div>
-  <div class="panel" id="panBanco">
-    <h2>Banco di prova</h2>
-    <p class="hint">Cambia celle e operatori per cella e guarda subito la saturazione. Puoi usare anche mezzi operatori (0,5 = un operatore a metà tempo sulla cella). Finché non premi «Salva nella Fucina» non cambia niente: con il tasto la configurazione viene scritta nella Fucina per l'anno selezionato in alto.</p>
-    <div class="scroller"><table id="tblBanco"></table></div>
-    <div class="row-actions">
-      <button class="act" id="bancoSalva">Salva nella Fucina</button>
-      <button class="act ghost" id="bancoReset">Riparti dalla Fucina</button>
-      <span id="bancoStato" class="hint" style="margin:0"></span>
     </div>
   </div>
   <div class="kpis" id="kpis"></div>
@@ -602,14 +703,14 @@ textarea{background:var(--input);color:var(--ink);border:1px solid var(--border)
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v4.7";
+const VERSION = "v4.8";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
-let LANG = "it", THEME = "dark";
+let LANG = "it", THEME = "light";
 
 const EN = {
-  "Banco di prova": "Test bench", "Persone per cella": "People per cell", "Persone nel reparto": "People in department", "Salva nella Fucina": "Save to the Forge", "Riparti dalla Fucina": "Reset from the Forge",
+  "Banco di prova": "Test bench", "Apri tutto": "Expand all", "Chiudi tutto": "Collapse all", "Persone per cella": "People per cell", "Persone nel reparto": "People in department", "Salva nella Fucina": "Save to the Forge", "Riparti dalla Fucina": "Reset from the Forge",
   "Cambia celle e operatori per cella e guarda subito la saturazione. Puoi usare anche mezzi operatori (0,5 = un operatore a metà tempo sulla cella). Finché non premi «Salva nella Fucina» non cambia niente: con il tasto la configurazione viene scritta nella Fucina per l'anno selezionato in alto.": "Change cells and operators per cell and see utilisation at once. Half operators work too (0.5 = one operator half-time on the cell). Nothing changes until you press \u201cSave to the Forge\u201d, which writes the configuration into the Forge for the year selected at the top.",
   "Carico (h)": "Load (h)", "Persone": "People", "Capacità (h)": "Capacity (h)", "Celle al target": "Cells at target",
   "Modifiche non salvate": "Unsaved changes", "Salvato nella Fucina": "Saved to the Forge", "Come leggere le ore": "How to read the hours",
@@ -914,12 +1015,12 @@ const MESI_IT = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","No
 const mese = i => t(MESI_IT[i]);
 
 const THEMES = {
-  dark:  { bg:"#15110E", panel:"#1D1814", head:"#28211B", ink:"#DED6C6", dim:"#9C9282", faint:"#6E665C",
-           line:"#3A302E", grid:"#28211B", gold:"#C9A227", brass:"#9C7B36", ember:"#E2571F",
-           setup:"#6E5A3A", vinc:"#FF8A5B", ok:"#5C8C6A", okTxt:"#8FC49F", warn:"#C9A227", bad:"#A63A2E", tri:"#2A211A" },
-  light: { bg:"#FFFDF7", panel:"#F3ECDC", head:"#E7DCC2", ink:"#2B2318", dim:"#6B6151", faint:"#8A806E",
-           line:"#C9BDA3", grid:"#E4DAC4", gold:"#8A6B1F", brass:"#A98B45", ember:"#C2481A",
-           setup:"#B29A6A", vinc:"#B3421A", ok:"#3F7A54", okTxt:"#2E5B3A", warn:"#A5851C", bad:"#A63A2E", tri:"#EFE6D0" }
+  dark:  { bg:"#191732", panel:"#221F3D", head:"#2D2950", ink:"#ECEAF7", dim:"#A39FC0", faint:"#77729A",
+           line:"#3B3663", grid:"#2D2950", gold:"#C4A5FF", brass:"#9C86D6", ember:"#FF7AB0",
+           setup:"#6B5F9E", vinc:"#FF7AB0", ok:"#34C38F", okTxt:"#7BE0B5", warn:"#F5B94A", bad:"#F2557A", tri:"#2A2648" },
+  light: { bg:"#FBFAFF", panel:"#F6F2FD", head:"#EDE6FB", ink:"#2E2A45", dim:"#7B7596", faint:"#A7A2BF",
+           line:"#DCD4EE", grid:"#ECE7F7", gold:"#7C4DEB", brass:"#A77BE8", ember:"#EC5C97",
+           setup:"#C7B6EC", vinc:"#E0457F", ok:"#22A06B", okTxt:"#16794F", warn:"#E2A325", bad:"#E04870", tri:"#F1ECFC" }
 };
 const TH = () => THEMES[THEME];
 
@@ -974,7 +1075,7 @@ function blankState() {
   const fasi = ["Saldatura","Pressatura","Assemblaggio","Cablaggio","Test","Finitura"].map(n => ({ id: uid(), nome: n }));
   const celle = { Saldatura: [3, 6], Assemblaggio: [8, 12] };
   return {
-    meta: { nome: "Scenario base", lang: "it", theme: "dark", version: VERSION, anno: 0, anni: ["Anno 1", "Anno 2", "Anno 3"] },
+    meta: { nome: "Scenario base", lang: "it", theme: "light", version: VERSION, anno: 0, anni: ["Anno 1", "Anno 2", "Anno 3"] },
     params: { oreAnnuePerCella: 1833, efficienza: 85, turni: 1, targetSaturazione: 85, giorniLavorativi: 225, giorniSicurezza: 1, costoOraCella: 0, costoCellaAnno: 0 },
     fasi,
     reparti: normalizzaReparti(fasi.map(f => ({
@@ -2061,7 +2162,7 @@ function renderYamazumi() {
       s += '<text x="' + (x + BW + 14) + '" y="' + (yl + 4).toFixed(1) + '" fill="' + C.ember + '" ' + FS + ' font-size="11">' + nf(b.limite, dec) + "</text>";
     }
     const lab = b.r.nome.length > 13 ? b.r.nome.slice(0, 12) + "…" : b.r.nome;
-    s += '<text x="' + (x + BW / 2) + '" y="' + (TOPM + PLOT + 20) + '" fill="' + C.ink + '" font-family="Cinzel,serif" font-size="12.5" text-anchor="middle">' + esc(lab) + "</text>";
+    s += '<text x="' + (x + BW / 2) + '" y="' + (TOPM + PLOT + 20) + '" fill="' + C.ink + '" font-family="Poppins,sans-serif" font-size="12.5" text-anchor="middle">' + esc(lab) + "</text>";
     const sub = b.r.sat != null ? pct(b.r.sat) + " " + t("di saturazione") : (b.noCelle ? t("nessuna cella") : "—");
     s += '<text x="' + (x + BW / 2) + '" y="' + (TOPM + PLOT + 38) + '" fill="' + satColor(b.r.sat) + '" ' + FS + ' font-size="11.5" text-anchor="middle">' + sub + "</text>";
   });
@@ -2160,7 +2261,7 @@ function renderVSM() {
   let s = '<svg class="vsm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + width + " " + height + '" width="' + width + '" height="' + height + '">';
   s += '<defs><marker id="arw" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0l10 4L0 8z" fill="' + C.brass + '"/></marker></defs>';
   s += '<rect width="' + width + '" height="' + height + '" fill="' + C.bg + '"/>';
-  s += '<text x="' + PADX + '" y="36" fill="' + C.gold + '" font-family="Cinzel,serif" font-size="19" letter-spacing="2">' + esc(S.meta.nome || "Scenario") + "</text>";
+  s += '<text x="' + PADX + '" y="36" fill="' + C.gold + '" font-family="Poppins,sans-serif" font-size="19" letter-spacing="2">' + esc(S.meta.nome || "Scenario") + "</text>";
   const pezzi = S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[S.meta.anno || 0]), 0);
   s += '<text x="' + PADX + '" y="60" fill="' + C.dim + '" ' + FS + ' font-size="14">'
      + nf(pezzi) + " " + t("pezzi/anno") + " · " + nf(S.famiglie.length) + " " + t("famiglie") + " · " + nz(S.params.turni) + " " + t("turno/i") + " · " + nz(S.params.efficienza) + "% " + t("efficienza") + "</text>";
@@ -2170,7 +2271,7 @@ function renderVSM() {
     const col = satColor(r.sat);
     s += '<rect x="' + x + '" y="' + TOP + '" width="' + W + '" height="' + H + '" fill="' + C.panel + '" stroke="' + col + '" stroke-width="2" rx="3"/>';
     s += '<rect x="' + x + '" y="' + TOP + '" width="' + W + '" height="30" fill="' + C.head + '"/>';
-    s += '<text x="' + (x + 12) + '" y="' + (TOP + 20) + '" fill="' + C.ink + '" font-family="Cinzel,serif" font-size="14">' + esc(r.nome.slice(0, 24)) + "</text>";
+    s += '<text x="' + (x + 12) + '" y="' + (TOP + 20) + '" fill="' + C.ink + '" font-family="Poppins,sans-serif" font-size="14">' + esc(r.nome.slice(0, 24)) + "</text>";
     if (perCelle) {
       const nOgg = Math.max(0, Math.round(nz(r.celle)));
       const nNuo = Math.max(0, Math.round(nz(r.cfg && r.cfg.nuoveCelle)));
@@ -2217,7 +2318,7 @@ function renderVSM() {
     s += '<line x1="' + (x + 12 + bw / 1.4).toFixed(1) + '" y1="' + by + '" x2="' + (x + 12 + bw / 1.4).toFixed(1) + '" y2="' + (by + 12) + '" stroke="' + C.dim + '"/>';
     s += '<text x="' + (x + W - 12) + '" y="' + (by - 4) + '" fill="' + col + '" ' + FS + ' font-size="12.5" text-anchor="end">' + pct(r.sat) + "</text>";
     if (c.vincolo && r.fase.id === c.vincolo.fase.id) {
-      s += '<text x="' + (x + W / 2) + '" y="' + (TOP - 12) + '" fill="' + C.vinc + '" font-family="Cinzel,serif" font-size="13" text-anchor="middle" letter-spacing="1.5">' + t("VINCOLO") + "</text>";
+      s += '<text x="' + (x + W / 2) + '" y="' + (TOP - 12) + '" fill="' + C.vinc + '" font-family="Poppins,sans-serif" font-size="13" text-anchor="middle" letter-spacing="1.5">' + t("VINCOLO") + "</text>";
     }
     if (i < R.length - 1) {
       const y = TOP + H / 2, mid = x + W + GAP / 2, b = B[i];
@@ -2374,6 +2475,34 @@ document.addEventListener("input", e => {
     if (y > 140 && !h.classList.contains("compact")) h.classList.add("compact");
     else if (y < 30 && h.classList.contains("compact")) h.classList.remove("compact");
   }, { passive: true });
+})();
+/* ogni pannello si apre e si chiude cliccando il titolo; lo stato resta nel browser */
+(function () {
+  const KEYF = "sl-pannelli-chiusi";
+  let chiusi = {};
+  try { chiusi = JSON.parse(localStorage.getItem(KEYF) || "{}"); } catch (e) {}
+  const salva = () => { try { localStorage.setItem(KEYF, JSON.stringify(chiusi)); } catch (e) {} };
+  const chiave = p => p.closest("section").id + "|" + p.dataset.fold;
+  document.querySelectorAll("section > .panel:not(details)").forEach((p, i) => {
+    const h = p.querySelector(":scope > h2"); if (!h) return;
+    p.classList.add("fold"); p.dataset.fold = i;
+    if (chiusi[chiave(p)]) p.classList.add("chiuso");
+    h.tabIndex = 0;
+    const tog = () => { p.classList.toggle("chiuso"); chiusi[chiave(p)] = p.classList.contains("chiuso"); salva(); };
+    h.addEventListener("click", tog);
+    h.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tog(); } });
+  });
+  document.querySelectorAll("main > section").forEach(sec => {
+    const bar = document.createElement("div"); bar.className = "foldall";
+    bar.innerHTML = '<button data-fa="1">' + t("Apri tutto") + '</button><button data-fa="0">' + t("Chiudi tutto") + "</button>";
+    sec.prepend(bar);
+    bar.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return; const apri = b.dataset.fa === "1";
+      sec.querySelectorAll(".panel.fold").forEach(p => { p.classList.toggle("chiuso", !apri); chiusi[chiave(p)] = !apri; });
+      sec.querySelectorAll("details.panel").forEach(d => d.open = apri);
+      salva();
+    });
+  });
 })();
 document.getElementById("bancoSalva").addEventListener("click", () => {
   S.reparti.forEach(r => { const b = BANCO && BANCO[r.id]; if (!b) return; const c = cfgRep(r); c.celleAttuali = b.celle; c.operatori = b.op; });
