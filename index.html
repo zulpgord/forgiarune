@@ -759,7 +759,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v4.9";
+const VERSION = "v4.10";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -2104,7 +2104,7 @@ function periodi(K, fineWH, unita) {
   return out;
 }
 
-let PL = null;
+let PL = null, PL_VAI = null;
 function renderPiano2() {
   const P = S.piano;
   [["plInizio", "inizio"], ["plOre", "oreGiorno"], ["plOra", "oraInizio"], ["plGg", "giorniSett"]].forEach(([id, k]) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = P[k]; });
@@ -2123,7 +2123,10 @@ function renderPiano2() {
   /* ---------- Gantt ---------- */
   const px = PL_PX[P.scala] || 7;
   const oggi = K.idx(Math.floor(Date.now() / 864e5)) * H;
-  const fineAsse = Math.max(PL.fine, oggi, 20 * H) + 5 * H;
+  /* l'asse copre almeno un anno, tutte le consegne e la data scelta in «Vai al» */
+  const anno1 = K.idx(dnDa(P.inizio) + 365) * H;
+  const ultCons = PL.aperte.reduce((a, c) => { const d = dnDa(c.consegna); return d != null ? Math.max(a, K.idx(d + 1) * H) : a; }, 0);
+  const fineAsse = Math.max(PL.fine, oggi, anno1, ultCons, PL_VAI != null ? K.idx(PL_VAI) * H + 20 * H : 0) + 5 * H;
   const W = Math.ceil(fineAsse * px), HEAD = 46, RH = 22;
   const righe = [];
   if (P.vista === "commesse") {
@@ -2262,7 +2265,7 @@ function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + Stri
   });
   document.getElementById("plScala").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.scala = b.dataset.v; ri(); } });
   document.getElementById("plVista").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.vista = b.dataset.v; ri(); } });
-  const vai = dn => { const K = calendario(), px = PL_PX[S.piano.scala] || 7; document.getElementById("plScroll").scrollLeft = Math.max(0, K.idx(dn) * K.H * px - 120); };
+  const vai = dn => { PL_VAI = dn; renderPiano2(); const K = calendario(), px = PL_PX[S.piano.scala] || 7; document.getElementById("plScroll").scrollLeft = Math.max(0, K.idx(dn) * K.H * px - 120); };
   document.getElementById("plOggi").addEventListener("click", () => vai(Math.floor(Date.now() / 864e5)));
   document.getElementById("plVai").addEventListener("change", e => { const dn = dnDa(e.target.value); if (dn != null) vai(dn); });
   document.getElementById("plAdd").addEventListener("click", () => { S.commesse.push(nuovaCommessa({})); ri(); });
