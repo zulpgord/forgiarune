@@ -288,6 +288,15 @@ td.pl-tag{white-space:nowrap}
 #plGanttPan.full #plScroll{overflow-x:auto}
 #plGanttPan:fullscreen{background:var(--panel)}
 body.gantt-full{overflow:hidden}
+/* guida */
+.guida{max-width:90ch}
+.guida h3{font-size:16px;margin:22px 0 8px;color:var(--gold)}
+.guida ul,.guida ol{margin:0 0 8px;padding-left:22px}
+.guida li{margin:4px 0}
+.guida .nota{background:var(--panel-2);border-left:4px solid var(--brass);border-radius:10px;padding:10px 14px;font-size:14px}
+.guida code{background:var(--panel-2);border-radius:6px;padding:1px 6px;font-size:13px}
+.guida dt{font-weight:600;margin-top:10px}
+.guida dd{margin:2px 0 0 0;color:var(--dim)}
 /* pannelli collassabili: clic sul titolo */
 .panel.fold > h2{cursor:pointer;display:flex;align-items:center;user-select:none}
 .panel.fold > h2::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg);transition:transform .2s}
@@ -362,6 +371,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
     <button data-tab="vsm">Mappa del flusso</button>
     <button data-tab="piano">EasyFabio</button>
     <button data-tab="scenari">Scenari</button>
+    <button data-tab="guida">Guida</button>
   </nav>
 </header>
 
@@ -842,6 +852,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
     <div class="scroller" style="margin-top:16px"><table id="tblConfronto"></table></div>
   </div>
 </section>
+<section id="tab-guida" hidden><div id="guidaBody"></div></section>
 </main>
 
 <footer>
@@ -854,14 +865,14 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.2";
+const VERSION = "v5.3";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
-  "Banco di prova": "Test bench", "Schermo intero": "Full screen", "Esci da schermo intero": "Exit full screen", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
+  "Banco di prova": "Test bench", "Guida": "Guide", "Schermo intero": "Full screen", "Esci da schermo intero": "Exit full screen", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
   "Carico per periodo": "Load by period", "Commesse": "Job orders", "Ore": "Hours", "Giorni": "Days", "Settimane": "Weeks", "Mesi": "Months",
   "Per reparto": "By department", "Per commessa": "By job", "Vai a oggi": "Go to today", "Aggiungi commessa": "Add job", "Crea dal forecast": "Create from forecast",
   "Elimina tutte": "Delete all", "Incolla da Excel": "Paste from Excel", "Aggiungi le righe": "Add rows", "commesse aperte": "open jobs", "in tempo": "on time",
@@ -2811,6 +2822,179 @@ function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + Stri
 })();
 
 /* ============================================================
+   GUIDA (IT / EN): segue la lingua scelta in alto
+   ============================================================ */
+const GUIDA = {
+  it: `
+<div class="panel">
+  <h2>Guida · EasyFabio</h2>
+  <p class="hint">EasyFabio mette in fila le commesse sui reparti e dice quando esce ciascuna, con la capacità che hai davvero. Usa i dati che hai già inserito nella Fucina: fasi, reparti, celle, operatori, famiglie e tempi. Questa procedura ti porta dal primo avvio al piano di tutti i giorni.</p>
+  <div class="guida">
+    <h3>Prima di iniziare: cosa deve esserci nella Fucina</h3>
+    <ul>
+      <li><b>Fasi</b> nell'ordine in cui il pezzo le attraversa (Parametri generali e fasi).</li>
+      <li><b>Reparti</b> con celle e operatori per cella per l'anno selezionato in alto. EasyFabio usa la configurazione di quell'anno.</li>
+      <li><b>Famiglie</b> con le fasi accese e i tempi in minuti: lavoro uomo, macchina, attrezzaggio. Una famiglia senza tempi non può essere pianificata.</li>
+      <li><b>Efficienza</b> nei Parametri generali: allunga tutte le durate (al 85% un'ora di lavoro dura circa 1 h 10 min).</li>
+    </ul>
+    <p class="nota">Una commessa = <b>1 pezzo</b> di una famiglia. La durata di una fase è (minuti uomo + attrezzaggio) ÷ operatori per cella ÷ efficienza, corretta per lo scarto. Ogni cella lavora una commessa alla volta.</p>
+
+    <h3>1 · Imposta il calendario</h3>
+    <ol>
+      <li>Apri il pannello <b>EasyFabio · impostazioni del piano</b>.</li>
+      <li>Scegli <b>Inizio del piano</b>, <b>ore lavorate al giorno</b>, <b>ora di inizio giornata</b> e <b>giorni a settimana</b> (5 o 6).</li>
+      <li>Se un reparto lavora su più turni, scrivi le sue ore in <b>Ore al giorno per reparto</b> (per esempio 16). Vuoto = valore generale.</li>
+      <li>In <b>Chiusure</b> lascia accese le festività italiane e aggiungi ferie e ponti, una riga per volta: <code>10/08/2027 - 21/08/2027</code> o <code>07/12/2026</code>.</li>
+      <li>Lascia acceso <b>Non pianificare prima di oggi</b>: il piano non mette lavoro nel passato.</li>
+    </ol>
+
+    <h3>2 · Inserisci le commesse</h3>
+    <p>Nel pannello <b>Commesse</b> hai tre modi:</p>
+    <ul>
+      <li><b>Aggiungi commessa</b>: una riga alla volta, da compilare.</li>
+      <li><b>Incolla da Excel</b>: una riga per commessa con <code>codice; famiglia; rilascio; consegna; priorità</code>. Il nome della famiglia deve essere identico a quello della Fucina; le righe con famiglie sconosciute vengono segnalate.</li>
+      <li><b>Crea dal forecast</b>: genera una commessa per ogni pezzo previsto nell'anno selezionato, distribuita sui mesi secondo il profilo di consegna. Serve per provare, non per il piano reale.</li>
+    </ul>
+    <p>Per ogni commessa: <b>Rilascio</b> = da quando si può iniziare; <b>Consegna</b> = entro quando deve uscire; <b>Priorità</b> da 1 (più urgente) a 9.</p>
+
+    <h3>3 · Scegli come mettere in fila il lavoro</h3>
+    <ul>
+      <li><b>Regola di priorità</b>: «Priorità, poi consegna» (consigliata all'inizio), «Consegna più vicina», «Margine minimo», «Prima le più corte».</li>
+      <li><b>Quando far partire una commessa</b>: «Appena rilasciata» riempie subito le celle; «Il più tardi possibile» (just in time) parte in tempo per la consegna con i giorni di margine per fase che indichi. Il just in time riduce il magazzino ma, se i reparti sono saturi, aumenta i ritardi.</li>
+      <li>Il pannello <b>Confronta le regole</b> calcola lo stesso piano con tutte e quattro: scegli quella con meno ritardi con <b>Usa questa</b>.</li>
+    </ul>
+
+    <h3>4 · Leggi il piano</h3>
+    <ul>
+      <li><b>Indicatori in alto</b>: commesse aperte, in tempo, in ritardo, ritardo medio, attraversamento medio, fine del piano.</li>
+      <li><b>Gantt</b>: scala Ore, Giorni, Settimane o Mesi; vista <b>Per reparto</b> (una riga per cella, colori per famiglia) o <b>Per commessa</b> (una riga per commessa, colori per fase, triangolo sulla consegna). Bordo rosso = in ritardo; linea tratteggiata = oggi; zona grigia = cella ferma. Passa il mouse su una barra per date, ore e coda.</li>
+      <li><b>⛶ Schermo intero</b> ingrandisce il Gantt; esci con Esc.</li>
+      <li><b>Filtri</b> (codice, famiglia, reparto, solo in ritardo): valgono per il Gantt e per la tabella.</li>
+      <li><b>Carico per periodo</b>: saturazione di ogni reparto per giorno, settimana o mese. Rosso sopra il 95%.</li>
+      <li><b>Dove si aspetta</b>: ore di lavoro e di coda per reparto. Una coda lunga davanti a un reparto poco saturo indica un problema di sequenza, non di capacità.</li>
+      <li><b>Piano contro forecast</b>: ore pianificate contro ore previste dal Responso, mese per mese.</li>
+    </ul>
+
+    <h3>5 · Intervieni</h3>
+    <ul>
+      <li><b>Spostare una commessa</b>: trascina una sua barra nel Gantt. L'inizio viene fissato (🔒) e la commessa passa davanti alle altre. Per togliere il blocco cancella la data in «Non prima di».</li>
+      <li><b>Cambiare l'urgenza</b>: modifica la priorità o la consegna nella tabella; il piano si ricalcola subito.</li>
+      <li><b>E se…?</b>: aggiungi celle in più, celle in meno o un reparto fermo dal giorno X al giorno Y. Non tocca la Fucina; spegni la spunta per tornare al piano normale.</li>
+      <li><b>Data promessa</b>: scegli famiglia, rilascio e priorità, premi <b>Calcola</b>. Ottieni la data di uscita e l'elenco delle commesse che andrebbero in ritardo per farle posto. <b>Aggiungi come commessa</b> la inserisce con quella consegna.</li>
+    </ul>
+
+    <h3>6 · Aggiorna ogni giorno o settimana</h3>
+    <ol>
+      <li>Per ogni commessa in lavorazione scegli in <b>Avanzamento</b> l'ultima fase fatta: il piano riparte dalla successiva.</li>
+      <li>Spunta <b>Chiusa</b> sulle commesse consegnate: escono dal piano.</li>
+      <li>Aggiungi le commesse nuove e aggiorna gli eventi «E se…?» (assenze, guasti).</li>
+      <li>Controlla indicatori e commesse in rosso, poi scarica la <b>Lista lavori (CSV)</b> per i reparti o il Gantt come immagine.</li>
+    </ol>
+
+    <h3>7 · Salva copie del piano</h3>
+    <ul>
+      <li><b>Copie del piano</b> (in cima a EasyFabio): <b>Salva come nuova</b> fotografa commesse, avanzamento, blocchi, eventi e impostazioni.</li>
+      <li><b>Salva su «nome»</b> aggiorna la copia in uso senza crearne un'altra; <b>Carica</b> la ripristina; <b>Esporta</b> e <b>Importa da file</b> la passano a un collega.</li>
+      <li>Le copie del piano sono separate dagli <b>Scenari</b>: gli scenari fotografano la Fucina, le copie solo il piano. Caricare una copia sostituisce il piano attuale: salva prima.</li>
+    </ul>
+
+    <h3>Domande frequenti</h3>
+    <dl>
+      <dt>Una commessa dice «nessuna cella in…».</dt><dd>Quel reparto ha 0 celle nell'anno selezionato o è fermo per sempre: aggiungi celle nella Fucina o correggi l'evento.</dd>
+      <dt>Una commessa dice «nessun tempo».</dt><dd>La sua famiglia non ha fasi accese con tempi: completala nella Fucina.</dd>
+      <dt>Ho cambiato celle nel Responso e il piano è cambiato.</dt><dd>È voluto: EasyFabio usa la capacità salvata nella Fucina per l'anno selezionato.</dd>
+      <dt>Le ore «in coda» sembrano tante.</dt><dd>Comprendono le ore notturne quando un reparto lavora meno ore di quello con il turno più lungo. Usale per confrontare i reparti, non come tempo esatto.</dd>
+      <dt>Dove finiscono i dati?</dt><dd>Nel browser di questo computer. Per sicurezza esporta regolarmente le copie del piano e il file dello scenario.</dd>
+    </dl>
+  </div>
+</div>`,
+  en: `
+<div class="panel">
+  <h2>Guide · EasyFabio</h2>
+  <p class="hint">EasyFabio queues job orders on the departments and tells you when each one will be finished, with the capacity you really have. It uses the data already in the Forge: steps, departments, cells, operators, families and times. This procedure takes you from the first start to the everyday plan.</p>
+  <div class="guida">
+    <h3>Before you start: what the Forge must contain</h3>
+    <ul>
+      <li><b>Steps</b> in the order the piece goes through them (General parameters and steps).</li>
+      <li><b>Departments</b> with cells and operators per cell for the year selected at the top. EasyFabio uses that year's configuration.</li>
+      <li><b>Families</b> with their steps switched on and times in minutes: labour, machine, changeover. A family without times cannot be scheduled.</li>
+      <li><b>Efficiency</b> in the general parameters: it stretches every duration (at 85% one hour of work takes about 1 h 10 min).</li>
+    </ul>
+    <p class="nota">One job = <b>1 piece</b> of a family. A step lasts (labour minutes + changeover) ÷ operators per cell ÷ efficiency, corrected for scrap. Each cell works one job at a time.</p>
+
+    <h3>1 · Set the calendar</h3>
+    <ol>
+      <li>Open the <b>EasyFabio · plan settings</b> panel.</li>
+      <li>Choose <b>Plan start</b>, <b>hours worked per day</b>, <b>start of the working day</b> and <b>days per week</b> (5 or 6).</li>
+      <li>If a department runs more shifts, enter its hours in <b>Hours per day by department</b> (for example 16). Blank = general value.</li>
+      <li>Under <b>Closures</b> keep Italian public holidays on and add company holidays, one per line: <code>10/08/2027 - 21/08/2027</code> or <code>07/12/2026</code>.</li>
+      <li>Keep <b>Do not schedule before today</b> on, so no work is placed in the past.</li>
+    </ol>
+
+    <h3>2 · Enter the jobs</h3>
+    <p>The <b>Jobs</b> panel offers three ways:</p>
+    <ul>
+      <li><b>Add job</b>: one row at a time.</li>
+      <li><b>Paste from Excel</b>: one row per job with <code>code; family; release; due; priority</code>. The family name must match the Forge exactly; rows with unknown families are reported.</li>
+      <li><b>Create from forecast</b>: one job per forecast piece in the selected year, spread over the months by the delivery profile. Use it to try things out, not for the real plan.</li>
+    </ul>
+    <p>For each job: <b>Release</b> = earliest start; <b>Due</b> = when it must be finished; <b>Priority</b> from 1 (most urgent) to 9.</p>
+
+    <h3>3 · Choose how work is queued</h3>
+    <ul>
+      <li><b>Priority rule</b>: “Priority, then due date” (recommended to start), “Earliest due date”, “Least slack”, “Shortest first”.</li>
+      <li><b>When a job starts</b>: “As soon as released” fills the cells at once; “As late as possible” (just in time) starts in time for the due date with the slack days per step you set. Just in time cuts stock but raises delays when departments are saturated.</li>
+      <li>The <b>Compare the rules</b> panel runs the same plan with all four rules: pick the one with fewer delays using <b>Use this</b>.</li>
+    </ul>
+
+    <h3>4 · Read the plan</h3>
+    <ul>
+      <li><b>Indicators at the top</b>: open jobs, on time, late, average delay, average lead time, plan end.</li>
+      <li><b>Gantt</b>: Hours, Days, Weeks or Months scale; <b>By department</b> view (one row per cell, colours by family) or <b>By job</b> (one row per job, colours by step, triangle on the due date). Red border = late; dashed line = today; grey area = cell stopped. Hover a bar for dates, hours and queue.</li>
+      <li><b>⛶ Full screen</b> enlarges the Gantt; press Esc to leave.</li>
+      <li><b>Filters</b> (code, family, department, late only) apply to both the Gantt and the table.</li>
+      <li><b>Load by period</b>: utilisation of each department per day, week or month. Red above 95%.</li>
+      <li><b>Where jobs wait</b>: work and queue hours per department. A long queue in front of a lightly loaded department points to a sequencing problem, not a capacity problem.</li>
+      <li><b>Plan versus forecast</b>: planned hours against the hours the Verdict expects, month by month.</li>
+    </ul>
+
+    <h3>5 · Take action</h3>
+    <ul>
+      <li><b>Move a job</b>: drag one of its bars in the Gantt. Its start gets locked (🔒) and it goes ahead of the others. Clear the “Not before” date to unlock it.</li>
+      <li><b>Change urgency</b>: edit priority or due date in the table; the plan recalculates at once.</li>
+      <li><b>What if…?</b>: add extra cells, fewer cells or a stopped department from day X to day Y. The Forge is untouched; untick to go back to the normal plan.</li>
+      <li><b>Promise date</b>: choose family, release and priority, press <b>Calculate</b>. You get the finish date and the jobs that would become late to make room. <b>Add as job</b> inserts it with that due date.</li>
+    </ul>
+
+    <h3>6 · Update every day or week</h3>
+    <ol>
+      <li>For each job in progress pick the last step done in <b>Progress</b>: the plan restarts from the next one.</li>
+      <li>Tick <b>Closed</b> on delivered jobs: they leave the plan.</li>
+      <li>Add new jobs and update the “What if…?” events (absences, breakdowns).</li>
+      <li>Check the indicators and the red jobs, then download the <b>Work list (CSV)</b> for the departments or the Gantt as an image.</li>
+    </ol>
+
+    <h3>7 · Save plan copies</h3>
+    <ul>
+      <li><b>Plan copies</b> (top of EasyFabio): <b>Save as new</b> captures jobs, progress, locks, events and settings.</li>
+      <li><b>Save to “name”</b> updates the copy in use without creating another; <b>Load</b> restores it; <b>Export</b> and <b>Import from file</b> pass it to a colleague.</li>
+      <li>Plan copies are separate from <b>Scenarios</b>: scenarios capture the Forge, copies only the plan. Loading a copy replaces the current plan: save first.</li>
+    </ul>
+
+    <h3>Frequently asked questions</h3>
+    <dl>
+      <dt>A job says “no cell in…”.</dt><dd>That department has 0 cells in the selected year or is stopped for good: add cells in the Forge or fix the event.</dd>
+      <dt>A job says “no time”.</dt><dd>Its family has no steps switched on with times: complete it in the Forge.</dd>
+      <dt>I changed cells in the Verdict and the plan changed.</dt><dd>That is intended: EasyFabio uses the capacity saved in the Forge for the selected year.</dd>
+      <dt>Queue hours look high.</dt><dd>They include night hours when a department works fewer hours than the longest-shift one. Use them to compare departments, not as an exact time.</dd>
+      <dt>Where is the data kept?</dt><dd>In this computer's browser. Export plan copies and the scenario file regularly to be safe.</dd>
+    </dl>
+  </div>
+</div>`
+};
+function renderGuida() { document.getElementById("guidaBody").innerHTML = GUIDA[LANG === "en" ? "en" : "it"]; }
+
+/* ============================================================
    SIMULAZIONE
    ============================================================ */
 let SIM = null;
@@ -3222,7 +3406,7 @@ let FORZA_RENDER = false;
 /* in stampa le schede nascoste tornano visibili: prima di stampare va ridisegnato tutto */
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
-function refreshOutputs() { if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { if (visibile("guida")) renderGuida(); if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
@@ -3231,7 +3415,7 @@ function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup
 document.getElementById("nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
   document.querySelectorAll("#nav button").forEach(x => x.setAttribute("aria-current", x === b ? "true" : "false"));
-  ["setup", "rilievi", "risultati", "simulazione", "yamazumi", "scorte", "vsm", "piano", "scenari"].forEach(k => document.getElementById("tab-" + k).hidden = (k !== b.dataset.tab));
+  ["setup", "rilievi", "risultati", "simulazione", "yamazumi", "scorte", "vsm", "piano", "scenari", "guida"].forEach(k => document.getElementById("tab-" + k).hidden = (k !== b.dataset.tab));
   refreshOutputs();
   window.scrollTo({ top: 0 });
 });
