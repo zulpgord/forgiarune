@@ -281,6 +281,13 @@ footer{background:var(--panel);border-top:1px solid var(--border-2)}
 td.pl-tag{white-space:nowrap}
 #plTab input[type=date]{width:140px}
 #plTab input.cod{width:110px}
+/* Gantt a schermo intero: il pannello occupa tutto e il diagramma scorre anche in verticale */
+#plGanttPan.full{position:fixed;inset:0;z-index:1000;margin:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden;padding:16px 20px}
+#plGanttPan.full > h2::after{display:none}
+#plGanttPan.full .gantt{flex:1;min-height:0;overflow-y:auto;align-items:flex-start}
+#plGanttPan.full #plScroll{overflow-x:auto}
+#plGanttPan:fullscreen{background:var(--panel)}
+body.gantt-full{overflow:hidden}
 /* pannelli collassabili: clic sul titolo */
 .panel.fold > h2{cursor:pointer;display:flex;align-items:center;user-select:none}
 .panel.fold > h2::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg);transition:transform .2s}
@@ -749,12 +756,13 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 
   <div class="kpis" id="plKpi"></div>
 
-  <div class="panel">
+  <div class="panel" id="plGanttPan">
     <h2>Diagramma di Gantt</h2>
     <div class="row-actions" style="margin:0 0 10px;align-items:center">
       <div class="seg mini" id="plScala"><button data-v="ore">Ore</button><button data-v="giorni" aria-pressed="true">Giorni</button><button data-v="settimane">Settimane</button><button data-v="mesi">Mesi</button></div>
       <div class="seg mini" id="plVista"><button data-v="reparti" aria-pressed="true">Per reparto</button><button data-v="commesse">Per commessa</button></div>
       <button class="act ghost" id="plOggi">Vai a oggi</button>
+      <button class="act" id="plFull">⛶ Schermo intero</button>
       <label style="font-size:13px;color:var(--dim)">Vai al <input type="date" id="plVai"></label>
     </div>
     <div class="row-actions plfiltri" style="margin:0 0 12px;align-items:center">
@@ -846,14 +854,14 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.1";
+const VERSION = "v5.2";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
-  "Banco di prova": "Test bench", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
+  "Banco di prova": "Test bench", "Schermo intero": "Full screen", "Esci da schermo intero": "Exit full screen", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
   "Carico per periodo": "Load by period", "Commesse": "Job orders", "Ore": "Hours", "Giorni": "Days", "Settimane": "Weeks", "Mesi": "Months",
   "Per reparto": "By department", "Per commessa": "By job", "Vai a oggi": "Go to today", "Aggiungi commessa": "Add job", "Crea dal forecast": "Create from forecast",
   "Elimina tutte": "Delete all", "Incolla da Excel": "Paste from Excel", "Aggiungi le righe": "Add rows", "commesse aperte": "open jobs", "in tempo": "on time",
@@ -2681,6 +2689,20 @@ function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + Stri
   document.getElementById("plScala").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.scala = b.dataset.v; ri(); } });
   document.getElementById("plVista").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.vista = b.dataset.v; ri(); } });
   const vai = dn => { PL_VAI = dn; renderPiano2(); const K = calendario(), px = PL_PX[S.piano.scala] || 7; document.getElementById("plScroll").scrollLeft = Math.max(0, K.idx(dn) * K.H * px - 120); };
+  /* schermo intero: Fullscreen API se c'è, altrimenti il pannello copre la finestra */
+  const pan = document.getElementById("plGanttPan"), bFull = document.getElementById("plFull");
+  const setFull = on => {
+    pan.classList.toggle("full", on); document.body.classList.toggle("gantt-full", on);
+    bFull.textContent = on ? "✕ " + t("Esci da schermo intero") : "⛶ " + t("Schermo intero");
+    if (on) pan.classList.remove("chiuso");
+  };
+  bFull.addEventListener("click", () => {
+    const on = !pan.classList.contains("full");
+    if (on) { setFull(true); if (pan.requestFullscreen) pan.requestFullscreen().catch(() => {}); }
+    else { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setFull(false); }
+  });
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && pan.classList.contains("full")) setFull(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && pan.classList.contains("full") && !document.fullscreenElement) setFull(false); });
   document.getElementById("plOggi").addEventListener("click", () => vai(Math.floor(Date.now() / 864e5)));
   document.getElementById("plVai").addEventListener("change", e => { const dn = dnDa(e.target.value); if (dn != null) vai(dn); });
   document.getElementById("plfQ").addEventListener("input", e => { PLF.q = e.target.value; renderPiano2(); document.getElementById("plfQ").focus(); });
