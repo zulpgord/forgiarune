@@ -271,6 +271,15 @@ tfoot td{border-top:1px solid var(--border)}
 footer{background:var(--panel);border-top:1px solid var(--border-2)}
 .calcOre,details.paste{border-radius:14px}
 
+/* Gantt: etichette fisse a sinistra, linea del tempo che scorre */
+.gantt{display:flex;border:1px solid var(--border-2);border-radius:14px;overflow:hidden;background:var(--input)}
+#plLab{flex:none;width:170px;border-right:1px solid var(--border-2);background:var(--panel)}
+#plScroll{flex:1;overflow-x:auto;overflow-y:hidden}
+.gantt svg{display:block}
+.gantt .bar{cursor:default}
+td.pl-tag{white-space:nowrap}
+#plTab input[type=date]{width:140px}
+#plTab input.cod{width:110px}
 /* pannelli collassabili: clic sul titolo */
 .panel.fold > h2{cursor:pointer;display:flex;align-items:center;user-select:none}
 .panel.fold > h2::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg);transition:transform .2s}
@@ -343,6 +352,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
     <button data-tab="yamazumi">Yamazumi</button>
     <button data-tab="scorte">Magazzini</button>
     <button data-tab="vsm">Mappa del flusso</button>
+    <button data-tab="piano">Pianificazione</button>
     <button data-tab="scenari">Scenari</button>
   </nav>
 </header>
@@ -670,7 +680,52 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
     <div class="row-actions"><button class="act ghost" id="dlMix">Scarica il grafico</button></div>
   </div>
 </section>
-</main>
+
+<section id="tab-piano" hidden>
+  <div class="panel">
+    <h2>Impostazioni del piano</h2>
+    <p class="hint">Ogni commessa è un pezzo di una famiglia: attraversa le fasi accese per quella famiglia, con i tempi della Fucina. La capacità di ogni reparto è quella dell'anno selezionato in alto: ogni cella lavora una commessa alla volta, e la durata di una fase è minuti uomo (più attrezzaggio) ÷ operatori per cella ÷ efficienza, corretta per lo scarto. Le commesse vengono messe in fila per priorità (1 = più urgente) e poi per data di consegna; ogni fase parte quando finisce la precedente e una cella del reparto è libera. Sabato e domenica non si lavora, a meno che tu metta 6 giorni a settimana.</p>
+    <div class="levers">
+      <div class="lever"><label for="plInizio">Inizio del piano</label><input type="date" id="plInizio" data-pl="inizio"></div>
+      <div class="lever"><label for="plOre">Ore lavorate al giorno per cella</label><input type="number" id="plOre" data-pl="oreGiorno" min="1" max="24" step="0.5"></div>
+      <div class="lever"><label for="plOra">Ora di inizio giornata</label><input type="number" id="plOra" data-pl="oraInizio" min="0" max="23" step="1"></div>
+      <div class="lever"><label for="plGg">Giorni lavorativi a settimana</label><input type="number" id="plGg" data-pl="giorniSett" min="5" max="6" step="1"></div>
+    </div>
+  </div>
+  <div class="kpis" id="plKpi"></div>
+  <div class="panel">
+    <h2>Diagramma di Gantt</h2>
+    <div class="row-actions" style="margin:0 0 12px;align-items:center">
+      <div class="seg mini" id="plScala"><button data-v="ore">Ore</button><button data-v="giorni" aria-pressed="true">Giorni</button><button data-v="settimane">Settimane</button><button data-v="mesi">Mesi</button></div>
+      <div class="seg mini" id="plVista"><button data-v="reparti" aria-pressed="true">Per reparto</button><button data-v="commesse">Per commessa</button></div>
+      <button class="act ghost" id="plOggi">Vai a oggi</button>
+      <label style="font-size:13px;color:var(--dim)">Vai al <input type="date" id="plVai"></label>
+    </div>
+    <div class="gantt"><div id="plLab"></div><div id="plScroll"></div></div>
+    <div class="legend" id="plLegend"></div>
+  </div>
+  <div class="panel">
+    <h2>Carico per periodo</h2>
+    <p class="hint">Ore pianificate in ogni reparto diviso le ore disponibili nel periodo (celle × ore al giorno × giorni lavorativi). Il periodo segue la scala del Gantt; in vista oraria si ragiona per giorno.</p>
+    <div class="scroller"><table id="plCarico"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Commesse</h2>
+    <p class="hint">Scrivi o incolla le commesse. «Crea dal forecast» genera una commessa per ogni pezzo previsto nell'anno selezionato, distribuite sui mesi con il profilo di consegna della famiglia: utile per provare. Le commesse chiuse escono dal piano.</p>
+    <div class="row-actions" style="margin:0 0 12px">
+      <button class="act" id="plAdd">Aggiungi commessa</button>
+      <button class="act ghost" id="plForecast">Crea dal forecast</button>
+      <button class="act ghost" id="plSvuota">Elimina tutte</button>
+    </div>
+    <details class="paste">
+      <summary>Incolla da Excel</summary>
+      <p class="hint" style="margin:0 0 8px">Una riga per commessa, colonne separate da tab o punto e virgola: codice; famiglia; rilascio; consegna; priorità. Date come 15/03/2027 o 2027-03-15. La famiglia deve avere lo stesso nome che ha nella Fucina.</p>
+      <textarea id="plPaste" rows="5" style="width:100%"></textarea>
+      <div class="row-actions"><button class="act" id="plPasteGo">Aggiungi le righe</button><span id="plPasteEsito" class="hint" style="margin:0"></span></div>
+    </details>
+    <div class="scroller" style="max-height:620px;overflow-y:auto"><table id="plTab"></table></div>
+  </div>
+</section>
 
 <section id="tab-scenari" hidden>
   <div class="panel">
@@ -692,6 +747,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
     <div class="scroller" style="margin-top:16px"><table id="tblConfronto"></table></div>
   </div>
 </section>
+</main>
 
 <footer>
   <div class="foot-inner">
@@ -703,14 +759,19 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v4.8";
+const VERSION = "v4.9";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
-  "Banco di prova": "Test bench", "Apri tutto": "Expand all", "Chiudi tutto": "Collapse all", "Persone per cella": "People per cell", "Persone nel reparto": "People in department", "Salva nella Fucina": "Save to the Forge", "Riparti dalla Fucina": "Reset from the Forge",
+  "Banco di prova": "Test bench", "Pianificazione": "Scheduling", "Impostazioni del piano": "Plan settings", "Diagramma di Gantt": "Gantt chart",
+  "Carico per periodo": "Load by period", "Commesse": "Job orders", "Ore": "Hours", "Giorni": "Days", "Settimane": "Weeks", "Mesi": "Months",
+  "Per reparto": "By department", "Per commessa": "By job", "Vai a oggi": "Go to today", "Aggiungi commessa": "Add job", "Crea dal forecast": "Create from forecast",
+  "Elimina tutte": "Delete all", "Incolla da Excel": "Paste from Excel", "Aggiungi le righe": "Add rows", "commesse aperte": "open jobs", "in tempo": "on time",
+  "in ritardo": "late", "ritardo medio": "average delay", "fine del piano": "plan end", "non pianificabili": "not schedulable", "Commessa": "Job", "Rilascio": "Release",
+  "Consegna": "Due", "Priorità": "Priority", "Inizio": "Start", "Fine prevista": "Expected end", "Chiusa": "Closed", "oggi": "today", "Apri tutto": "Expand all", "Chiudi tutto": "Collapse all", "Persone per cella": "People per cell", "Persone nel reparto": "People in department", "Salva nella Fucina": "Save to the Forge", "Riparti dalla Fucina": "Reset from the Forge",
   "Cambia celle e operatori per cella e guarda subito la saturazione. Puoi usare anche mezzi operatori (0,5 = un operatore a metà tempo sulla cella). Finché non premi «Salva nella Fucina» non cambia niente: con il tasto la configurazione viene scritta nella Fucina per l'anno selezionato in alto.": "Change cells and operators per cell and see utilisation at once. Half operators work too (0.5 = one operator half-time on the cell). Nothing changes until you press \u201cSave to the Forge\u201d, which writes the configuration into the Forge for the year selected at the top.",
   "Carico (h)": "Load (h)", "Persone": "People", "Capacità (h)": "Capacity (h)", "Celle al target": "Cells at target",
   "Modifiche non salvate": "Unsaved changes", "Salvato nella Fucina": "Saved to the Forge", "Come leggere le ore": "How to read the hours",
@@ -1071,6 +1132,10 @@ const store = {
 const uid = () => Math.random().toString(36).slice(2, 9);
 const uniform = () => Array(12).fill(100 / 12);
 
+function pianoDefault() {
+  const d = new Date(), lun = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)));
+  return { inizio: lun.toISOString().slice(0, 10), oreGiorno: 8, oraInizio: 8, giorniSett: 5, scala: "giorni", vista: "reparti" };
+}
 function blankState() {
   const fasi = ["Saldatura","Pressatura","Assemblaggio","Cablaggio","Test","Finitura"].map(n => ({ id: uid(), nome: n }));
   const celle = { Saldatura: [3, 6], Assemblaggio: [8, 12] };
@@ -1085,7 +1150,7 @@ function blankState() {
       oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true,
       nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100], operatori: 1
     }))),
-    famiglie: [], rilievi: [], snapshots: []
+    famiglie: [], rilievi: [], snapshots: [], commesse: [], piano: pianoDefault()
   };
 }
 let S = blankState();
@@ -1137,6 +1202,8 @@ function migrate(o) {
   if (!(o.meta.anno >= 0 && o.meta.anno <= 2)) o.meta.anno = 0;
   o.rilievi = Array.isArray(o.rilievi) ? o.rilievi : [];
   o.snapshots = Array.isArray(o.snapshots) ? o.snapshots : [];
+  o.commesse = Array.isArray(o.commesse) ? o.commesse : [];
+  o.piano = Object.assign(pianoDefault(), o.piano);
   o.meta.version = VERSION;
   o.params = Object.assign({}, b.params, o.params);
   o.fasi = Array.isArray(o.fasi) ? o.fasi : b.fasi;
@@ -1962,6 +2029,284 @@ function renderOrganico() {
 }
 
 /* ============================================================
+   PIANIFICAZIONE: commesse da un pezzo, capacità finita, Gantt
+   ============================================================ */
+/* Il tempo del piano è in "ore lavorative" dall'inizio: i giorni non lavorativi
+   non esistono sull'asse. Le date si convertono con l'elenco dei giorni lavorativi. */
+const dnDa = str => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str || ""); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / 864e5 : null; };
+const dnStr = dn => new Date(dn * 864e5).toISOString().slice(0, 10);
+const dnFmt = (dn, anno) => { const d = new Date(dn * 864e5); return String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + (anno ? "/" + String(d.getUTCFullYear()).slice(2) : ""); };
+function calendario() {
+  const P = S.piano, gs = nz(P.giorniSett) === 6 ? 6 : 5;
+  const H = Math.max(1, nz(P.oreGiorno) || 8);
+  let d = dnDa(P.inizio); if (d == null) d = dnDa(pianoDefault().inizio);
+  const WD = [];
+  while (WD.length < 2600) { const w = (d + 4) % 7; if (w >= 1 && w <= gs) WD.push(d); d++; }
+  /* primo giorno lavorativo >= dn */
+  const idx = dn => { if (dn == null) return 0; let lo = 0, hi = WD.length; while (lo < hi) { const m = (lo + hi) >> 1; if (WD[m] < dn) lo = m + 1; else hi = m; } return lo; };
+  return { H, WD, idx, giorno: wh => WD[Math.min(WD.length - 1, Math.max(0, Math.floor(wh / H - 1e-9)))] };
+}
+
+function pianifica() {
+  const K = calendario(), H = K.H, anno = S.meta.anno || 0, eff = (nz(S.params.efficienza) || 100) / 100;
+  /* corsie: una per cella, per ogni reparto */
+  const reps = S.fasi.map(fa => {
+    const r = S.reparti.find(x => x.faseId === fa.id); if (!r) return { fase: fa, rep: null, corsie: [] };
+    const c = cfgRep(r, anno), n = Math.max(0, Math.round(nz(c.celleAttuali)));
+    return { fase: fa, rep: r, op: opCella(c.operatori), macchine: nz(r.macchine), corsie: Array(n).fill(0) };
+  });
+  const aperte = S.commesse.filter(c => !c.chiusa);
+  const ord = aperte.slice().sort((a, b) => (nz(a.priorita) || 9) - (nz(b.priorita) || 9) || (dnDa(a.consegna) || 1e9) - (dnDa(b.consegna) || 1e9) || (dnDa(a.rilascio) || 0) - (dnDa(b.rilascio) || 0));
+  const ops = [], esito = {};
+  ord.forEach(cm => {
+    const fam = S.famiglie.find(f => f.id === cm.famId);
+    let tt = K.idx(dnDa(cm.rilascio) != null ? dnDa(cm.rilascio) : K.WD[0]) * H;
+    const inizio = tt; let primo = null, bloccata = null, nFasi = 0;
+    if (fam) {
+      const k = 1 / (1 - Math.min(nz(fam.scarto), 95) / 100);
+      reps.forEach((R, ri) => {
+        const x = fam.tempi[R.fase.id]; if (!x || !x.on || bloccata) return;
+        const uomo = (nz(x.min) + nz(x.setup)) / 60 / (R.op || 1) / eff * k;
+        const macc = R.macchine > 0 ? (nz(x.minMacchina) + nz(x.setup)) / 60 / eff * k : 0;
+        const dur = Math.max(uomo, macc); if (dur <= 0) return;
+        if (!R.corsie.length) { bloccata = R.fase.nome; return; }
+        let li = 0; R.corsie.forEach((v, i) => { if (v < R.corsie[li]) li = i; });
+        const st = Math.max(tt, R.corsie[li]), en = st + dur;
+        R.corsie[li] = en; tt = en; nFasi++;
+        if (primo == null) primo = st;
+        ops.push({ cm, fam, ri, li, st, en, attesa: st - (ops.length && ops[ops.length - 1].cm === cm ? ops[ops.length - 1].en : inizio) });
+      });
+    }
+    const due = dnDa(cm.consegna) != null ? (K.idx(dnDa(cm.consegna) + 1)) * H : null;
+    esito[cm.id] = { inizio: primo, fine: nFasi ? tt : null, ritardoH: due != null && nFasi ? tt - due : null, bloccata, senzaFam: !fam, vuota: fam && !nFasi && !bloccata };
+  });
+  ops.forEach(o => { o.tardi = esito[o.cm.id].ritardoH > 0; });
+  const fine = ops.reduce((a, o) => Math.max(a, o.en), 0);
+  return { K, H, reps, ops, esito, fine, aperte };
+}
+
+const PL_PX = { ore: 26, giorni: 7, settimane: 1.7, mesi: 0.42 };
+const MESI_BREVI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+/* confini dei periodi lungo l'asse delle ore lavorative */
+function periodi(K, fineWH, unita) {
+  const out = [], nG = Math.ceil(fineWH / K.H) + 1;
+  let cur = null;
+  for (let g = 0; g < Math.min(nG, K.WD.length); g++) {
+    const dn = K.WD[g], d = new Date(dn * 864e5);
+    let key, lab;
+    if (unita === "giorni") { key = dn; lab = dnFmt(dn); }
+    else if (unita === "settimane") { const lun = dn - ((d.getUTCDay() + 6) % 7); key = lun; lab = t("Sett.") + " " + dnFmt(lun); }
+    else if (unita === "mesi") { key = d.getUTCFullYear() * 12 + d.getUTCMonth(); lab = t(MESI_BREVI[d.getUTCMonth()]) + " " + String(d.getUTCFullYear()).slice(2); }
+    else { key = d.getUTCFullYear(); lab = String(key); }
+    if (!cur || cur.key !== key) { cur = { key, lab, a: g * K.H, b: (g + 1) * K.H, giorni: 1 }; out.push(cur); }
+    else { cur.b = (g + 1) * K.H; cur.giorni++; }
+  }
+  return out;
+}
+
+let PL = null;
+function renderPiano2() {
+  const P = S.piano;
+  [["plInizio", "inizio"], ["plOre", "oreGiorno"], ["plOra", "oraInizio"], ["plGg", "giorniSett"]].forEach(([id, k]) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = P[k]; });
+  document.querySelectorAll("#plScala button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === P.scala ? "true" : "false"));
+  document.querySelectorAll("#plVista button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === P.vista ? "true" : "false"));
+  PL = pianifica();
+  const { K, H, reps, ops, esito } = PL;
+  const C = TH();
+  const ap = PL.aperte, tardi = ap.filter(c => esito[c.id] && esito[c.id].ritardoH > 0);
+  const ritMed = tardi.length ? tardi.reduce((a, c) => a + esito[c.id].ritardoH, 0) / tardi.length / H : 0;
+  const bloc = ap.filter(c => esito[c.id] && (esito[c.id].bloccata || esito[c.id].senzaFam));
+  document.getElementById("plKpi").innerHTML = kpi(nf(ap.length), "commesse aperte") + kpi(nf(ap.length - tardi.length - bloc.length), "in tempo")
+    + kpi(nf(tardi.length), "in ritardo") + kpi(nf(ritMed, 1) + " " + t("gg"), "ritardo medio") + kpi(PL.fine ? dnFmt(K.giorno(PL.fine), true) : "—", "fine del piano")
+    + (bloc.length ? kpi(nf(bloc.length), "non pianificabili") : "");
+
+  /* ---------- Gantt ---------- */
+  const px = PL_PX[P.scala] || 7;
+  const oggi = K.idx(Math.floor(Date.now() / 864e5)) * H;
+  const fineAsse = Math.max(PL.fine, oggi, 20 * H) + 5 * H;
+  const W = Math.ceil(fineAsse * px), HEAD = 46, RH = 22;
+  const righe = [];
+  if (P.vista === "commesse") {
+    const visti = []; ops.forEach(o => { if (visti.indexOf(o.cm) < 0) visti.push(o.cm); });
+    visti.forEach(cm => righe.push({ lab: (cm.codice || "—") + " · " + ((S.famiglie.find(f => f.id === cm.famId) || {}).nome || ""), cm, tardi: esito[cm.id].ritardoH > 0 }));
+  } else {
+    reps.forEach((R, ri) => {
+      if (!R.rep) return;
+      const usato = ops.some(o => o.ri === ri);
+      if (!R.corsie.length && !usato) return;
+      righe.push({ lab: R.rep.nome, head: true });
+      R.corsie.forEach((_, li) => righe.push({ lab: t("Cella") + " " + (li + 1), ri, li }));
+    });
+  }
+  const altezza = HEAD + righe.reduce((a, r) => a + (r.head ? 20 : RH), 0) + 6;
+  let ys = [], y = HEAD; righe.forEach(r => { ys.push(y); y += r.head ? 20 : RH; });
+  /* intestazione: periodo superiore e inferiore */
+  const sup = { ore: "giorni", giorni: "mesi", settimane: "mesi", mesi: "anni" }[P.scala];
+  const inf = { ore: null, giorni: "giorni", settimane: "settimane", mesi: "mesi" }[P.scala];
+  let g = '<svg width="' + W + '" height="' + altezza + '" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">';
+  righe.forEach((r, i) => { if (r.head) g += '<rect x="0" y="' + ys[i] + '" width="' + W + '" height="20" fill="' + C.head + '"/>'; else if (i % 2) g += '<rect x="0" y="' + ys[i] + '" width="' + W + '" height="' + RH + '" fill="' + C.tri + '" opacity=".5"/>'; });
+  periodi(K, fineAsse, sup).forEach(pr => {
+    const x = pr.a * px;
+    g += '<line x1="' + x + '" y1="0" x2="' + x + '" y2="' + altezza + '" stroke="' + C.line + '"/>';
+    g += '<text x="' + (x + 6) + '" y="17" fill="' + C.ink + '" font-size="12" font-weight="600">' + (sup === "giorni" ? dnFmt(pr.key, true) : esc(pr.lab)) + "</text>";
+  });
+  if (inf) periodi(K, fineAsse, inf).forEach(pr => {
+    const x = pr.a * px, w = (pr.b - pr.a) * px;
+    g += '<line x1="' + x + '" y1="24" x2="' + x + '" y2="' + altezza + '" stroke="' + C.grid + '"/>';
+    const lab = inf === "giorni" ? String(new Date(pr.key * 864e5).getUTCDate()) : inf === "settimane" ? dnFmt(pr.key) : esc(pr.lab).split(" ")[0];
+    if (w > 16) g += '<text x="' + (x + w / 2) + '" y="39" fill="' + C.dim + '" font-size="10.5" text-anchor="middle">' + lab + "</text>";
+  });
+  else for (let h = 0; h < fineAsse; h++) {
+    const x = h * px;
+    g += '<line x1="' + x + '" y1="24" x2="' + x + '" y2="' + altezza + '" stroke="' + C.grid + '"/>';
+    g += '<text x="' + (x + px / 2) + '" y="39" fill="' + C.dim + '" font-size="10" text-anchor="middle">' + ((nz(P.oraInizio) + h % H) % 24) + "</text>";
+  }
+  g += '<line x1="0" y1="' + HEAD + '" x2="' + W + '" y2="' + HEAD + '" stroke="' + C.line + '"/>';
+  ops.forEach(o => {
+    let i;
+    if (P.vista === "commesse") i = righe.findIndex(r => r.cm === o.cm);
+    else i = righe.findIndex(r => r.ri === o.ri && r.li === o.li);
+    if (i < 0) return;
+    const x = o.st * px, w = Math.max(1.5, (o.en - o.st) * px), yy = ys[i] + 3, hh = RH - 6;
+    const col = P.vista === "commesse" ? PAL[o.ri % PAL.length] : famColor(o.fam.id);
+    const tit = (o.cm.codice || "") + " · " + o.fam.nome + " · " + S.fasi[o.ri].nome + "\n" + dnFmt(K.giorno(o.st + 1e-6), true) + " → " + dnFmt(K.giorno(o.en), true) + " · " + nf(o.en - o.st, 1) + " h"
+      + (o.tardi ? "\n" + t("in ritardo di") + " " + nf(esito[o.cm.id].ritardoH / H, 1) + " " + t("gg") : "");
+    g += '<g class="bar"><title>' + esc(tit) + '</title><rect x="' + x.toFixed(1) + '" y="' + yy + '" width="' + w.toFixed(1) + '" height="' + hh + '" rx="' + Math.min(5, w / 2) + '" fill="' + col + '"' + (o.tardi ? ' stroke="' + C.bad + '" stroke-width="2"' : "") + "/>";
+    if (w > 46) g += '<text x="' + (x + 5).toFixed(1) + '" y="' + (yy + hh - 4.5) + '" fill="#fff" font-size="10.5" font-weight="600">' + esc(String(P.vista === "commesse" ? S.fasi[o.ri].nome : o.cm.codice || "").slice(0, Math.floor(w / 7))) + "</text>";
+    g += "</g>";
+  });
+  /* consegne in vista per commessa */
+  if (P.vista === "commesse") righe.forEach((r, i) => {
+    const dn = dnDa(r.cm.consegna); if (dn == null) return;
+    const x = K.idx(dn + 1) * H * px;
+    g += '<path d="M' + x + " " + (ys[i] + 2) + "l5 0l-5 9l-5 -9z" + '" fill="' + (r.tardi ? C.bad : C.ok) + '"><title>' + t("Consegna") + " " + dnFmt(dn, true) + "</title></path>";
+  });
+  g += '<line x1="' + oggi * px + '" y1="0" x2="' + oggi * px + '" y2="' + altezza + '" stroke="' + C.ember + '" stroke-width="2" stroke-dasharray="4 3"/>';
+  g += "</svg>";
+  let lab = '<svg width="170" height="' + altezza + '" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">';
+  lab += '<text x="12" y="30" fill="' + C.dim + '" font-size="11" font-weight="600">' + t(P.vista === "commesse" ? "COMMESSA" : "REPARTO / CELLA") + "</text>";
+  righe.forEach((r, i) => {
+    if (r.head) lab += '<rect x="0" y="' + ys[i] + '" width="170" height="20" fill="' + C.head + '"/><text x="12" y="' + (ys[i] + 14) + '" fill="' + C.ink + '" font-size="12" font-weight="700">' + esc(r.lab.slice(0, 22)) + "</text>";
+    else lab += '<text x="' + (P.vista === "commesse" ? 12 : 22) + '" y="' + (ys[i] + 15) + '" fill="' + (r.tardi ? C.bad : C.dim) + '" font-size="11.5">' + esc(r.lab.slice(0, 24)) + "</text>";
+  });
+  lab += "</svg>";
+  const sc = document.getElementById("plScroll"), keep = sc.scrollLeft, keepPx = sc.dataset.px;
+  document.getElementById("plLab").innerHTML = lab;
+  sc.innerHTML = righe.length ? g : '<p class="empty" style="padding:18px">' + t("Nessuna commessa da pianificare. Aggiungile qui sotto o creale dal forecast.") + "</p>";
+  /* cambiando scala resta centrato sullo stesso momento */
+  if (keepPx && +keepPx !== px) sc.scrollLeft = keep / +keepPx * px; else sc.scrollLeft = keep;
+  sc.dataset.px = px;
+  document.getElementById("plLegend").innerHTML = P.vista === "commesse"
+    ? S.fasi.map((f, i) => '<span><i class="swatch" style="background:' + PAL[i % PAL.length] + '"></i>' + esc(f.nome) + "</span>").join("") + '<span><i class="swatch" style="background:none;border:2px solid ' + C.bad + '"></i>' + t("in ritardo") + "</span>"
+    : S.famiglie.map(f => '<span><i class="swatch" style="background:' + famColor(f.id) + '"></i>' + esc(f.nome) + "</span>").join("") + '<span><i class="swatch" style="background:none;border:2px solid ' + C.bad + '"></i>' + t("in ritardo") + '</span><span><i class="swatch" style="background:' + C.ember + '"></i>' + t("oggi") + "</span>";
+
+  /* ---------- carico per periodo ---------- */
+  const unita = P.scala === "ore" ? "giorni" : P.scala;
+  const per = periodi(K, Math.max(PL.fine, H), unita).slice(0, 400);
+  const lav = reps.map(() => per.map(() => 0));
+  ops.forEach(o => per.forEach((pr, pi) => { const a = Math.max(o.st, pr.a), b = Math.min(o.en, pr.b); if (b > a) lav[o.ri][pi] += b - a; }));
+  document.getElementById("plCarico").innerHTML = "<thead><tr>" + th("Reparto") + per.map(pr => '<th class="num">' + esc(unita === "giorni" ? dnFmt(pr.key) : unita === "settimane" ? dnFmt(pr.key) : pr.lab) + "</th>").join("") + "</tr></thead><tbody>"
+    + reps.map((R, ri) => {
+      if (!R.rep || !R.corsie.length) return "";
+      return "<tr><td>" + esc(R.rep.nome) + "</td>" + per.map((pr, pi) => {
+        const cap = R.corsie.length * (pr.b - pr.a), v = cap > 0 ? lav[ri][pi] / cap : 0;
+        return '<td class="mese ' + (v <= 0 ? "m-off" : v > .95 ? "m-bad" : v >= .8 ? "m-warn" : "m-ok") + '" title="' + nf(lav[ri][pi], 1) + " / " + nf(cap) + ' h">' + (v > 0 ? nf(v * 100) + "%" : "·") + "</td>";
+      }).join("") + "</tr>";
+    }).join("") + "</tbody>";
+
+  /* ---------- tabella commesse ---------- */
+  const famOpt = id => '<option value="">—</option>' + S.famiglie.map(f => '<option value="' + f.id + '"' + (f.id === id ? " selected" : "") + ">" + esc(f.nome) + "</option>").join("");
+  const elenco = S.commesse.slice().sort((a, b) => (a.chiusa ? 1 : 0) - (b.chiusa ? 1 : 0) || (dnDa(a.consegna) || 1e9) - (dnDa(b.consegna) || 1e9));
+  document.getElementById("plTab").innerHTML = "<thead><tr>" + th("Commessa") + th("Famiglia") + th("Rilascio") + th("Consegna") + th("Priorità", "num") + th("Inizio") + th("Fine prevista") + th("Esito") + th("Chiusa") + "<th></th></tr></thead><tbody>"
+    + (elenco.length ? elenco.map(cm => {
+      const e = esito[cm.id] || {};
+      const tag = cm.chiusa ? '<span class="tag t-idle">' + t("chiusa") + "</span>"
+        : e.senzaFam ? '<span class="tag t-bad">' + t("manca la famiglia") + "</span>"
+        : e.bloccata ? '<span class="tag t-bad">' + t("nessuna cella in") + " " + esc(e.bloccata) + "</span>"
+        : e.vuota ? '<span class="tag t-idle">' + t("nessun tempo") + "</span>"
+        : e.ritardoH > 0 ? '<span class="tag t-bad">+' + nf(e.ritardoH / H, 1) + " " + t("gg") + "</span>"
+        : e.ritardoH != null ? '<span class="tag t-ok">' + t("in tempo") + " · " + nf(-e.ritardoH / H, 1) + " " + t("gg di margine") + "</span>" : '<span class="tag t-idle">' + t("senza consegna") + "</span>";
+      return '<tr><td><input class="cod" value="' + esc(cm.codice) + '" data-cm="codice" data-id="' + cm.id + '"></td>'
+        + '<td><select data-cm="famId" data-id="' + cm.id + '">' + famOpt(cm.famId) + "</select></td>"
+        + '<td><input type="date" value="' + esc(cm.rilascio || "") + '" data-cm="rilascio" data-id="' + cm.id + '"></td>'
+        + '<td><input type="date" value="' + esc(cm.consegna || "") + '" data-cm="consegna" data-id="' + cm.id + '"></td>'
+        + '<td class="num"><input type="number" min="1" max="9" step="1" style="width:60px" value="' + (nz(cm.priorita) || 5) + '" data-cm="priorita" data-id="' + cm.id + '"></td>'
+        + "<td>" + (e.inizio != null && !cm.chiusa ? dnFmt(K.giorno(e.inizio + 1e-6), true) : "—") + "</td>"
+        + "<td>" + (e.fine != null && !cm.chiusa ? dnFmt(K.giorno(e.fine), true) : "—") + "</td>"
+        + '<td class="pl-tag">' + tag + "</td>"
+        + '<td><input type="checkbox"' + (cm.chiusa ? " checked" : "") + ' data-cm="chiusa" data-id="' + cm.id + '"></td>'
+        + '<td><button class="danger" data-cmdel="' + cm.id + '">' + t("Elimina") + "</button></td></tr>";
+    }).join("") : '<tr><td class="empty" colspan="10">' + t("Nessuna commessa.") + "</td></tr>")
+    + "</tbody>";
+}
+
+function dataDa(s) {
+  s = String(s || "").trim(); let m;
+  if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s))) return m[1] + "-" + m[2].padStart(2, "0") + "-" + m[3].padStart(2, "0");
+  if ((m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/.exec(s))) return (m[3].length === 2 ? "20" + m[3] : m[3]) + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+  return "";
+}
+function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + String(S.commesse.length + 1).padStart(4, "0"), famId: S.famiglie[0] ? S.famiglie[0].id : "", rilascio: S.piano.inizio, consegna: "", priorita: 5, chiusa: false }, o); }
+
+(function () {
+  const ri = () => { queueSave(); renderPiano2(); };
+  document.getElementById("tab-piano").addEventListener("change", e => {
+    const el = e.target;
+    if (el.dataset.pl) { S.piano[el.dataset.pl] = el.type === "date" ? el.value : nz(el.value); return ri(); }
+    if (el.dataset.cm) {
+      const cm = S.commesse.find(x => x.id === el.dataset.id); if (!cm) return;
+      const f = el.dataset.cm;
+      cm[f] = f === "chiusa" ? el.checked : f === "priorita" ? nz(el.value) : el.value;
+      return ri();
+    }
+  });
+  document.getElementById("plScala").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.scala = b.dataset.v; ri(); } });
+  document.getElementById("plVista").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.vista = b.dataset.v; ri(); } });
+  const vai = dn => { const K = calendario(), px = PL_PX[S.piano.scala] || 7; document.getElementById("plScroll").scrollLeft = Math.max(0, K.idx(dn) * K.H * px - 120); };
+  document.getElementById("plOggi").addEventListener("click", () => vai(Math.floor(Date.now() / 864e5)));
+  document.getElementById("plVai").addEventListener("change", e => { const dn = dnDa(e.target.value); if (dn != null) vai(dn); });
+  document.getElementById("plAdd").addEventListener("click", () => { S.commesse.push(nuovaCommessa({})); ri(); });
+  document.getElementById("plSvuota").addEventListener("click", () => { if (S.commesse.length && confirm(t("Elimino tutte le commesse?"))) { S.commesse = []; ri(); } });
+  document.getElementById("tab-piano").addEventListener("click", e => {
+    const b = e.target.closest("[data-cmdel]"); if (!b) return;
+    S.commesse = S.commesse.filter(x => x.id !== b.dataset.cmdel); ri();
+  });
+  document.getElementById("plForecast").addEventListener("click", () => {
+    const anno = S.meta.anno || 0, base = dnDa(S.piano.inizio), y0 = new Date(base * 864e5).getUTCFullYear(), m0 = new Date(base * 864e5).getUTCMonth();
+    const nuove = [];
+    S.famiglie.forEach(f => {
+      const n = Math.round(nz(f.forecastAnni[anno])); if (n <= 0) return;
+      const tot = f.mensile.reduce((a, b) => a + nz(b), 0) || 1;
+      const quote = ripartisci(f.mensile.map(v => nz(v) / tot * n), n);
+      quote.forEach((q, m) => {
+        for (let k = 0; k < q; k++) {
+          /* consegna sparsa nel mese, rilascio quattro settimane prima */
+          const cons = Date.UTC(y0, m0 + m, 1 + Math.floor((k + .5) / q * 27)) / 864e5;
+          nuove.push({ famId: f.id, consegna: dnStr(cons), rilascio: dnStr(Math.max(base, cons - 28)) });
+        }
+      });
+    });
+    if (!nuove.length) { alert(t("Nessun forecast nell'anno selezionato.")); return; }
+    if (S.commesse.length && !confirm(t("Aggiungo") + " " + nuove.length + " " + t("commesse a quelle esistenti?"))) return;
+    nuove.sort((a, b) => a.consegna < b.consegna ? -1 : 1).forEach(o => S.commesse.push(nuovaCommessa(o)));
+    ri();
+  });
+  document.getElementById("plPasteGo").addEventListener("click", () => {
+    const righe = document.getElementById("plPaste").value.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+    let ok = 0; const scarti = [];
+    righe.forEach(r => {
+      const c = r.split(/\t|;/).map(x => x.trim());
+      const fam = findFam(c[1] || "");
+      if (!fam) { scarti.push(c[1] || r); return; }
+      S.commesse.push(nuovaCommessa({ codice: c[0] || undefined, famId: fam.id, rilascio: dataDa(c[2]) || S.piano.inizio, consegna: dataDa(c[3]), priorita: nz(c[4]) || 5 }));
+      ok++;
+    });
+    document.getElementById("plPasteEsito").textContent = ok + " " + t("commesse aggiunte") + (scarti.length ? " · " + t("famiglie non trovate") + ": " + scarti.slice(0, 5).join(", ") : "");
+    if (ok) { document.getElementById("plPaste").value = ""; ri(); }
+  });
+})();
+
+/* ============================================================
    SIMULAZIONE
    ============================================================ */
 let SIM = null;
@@ -2104,7 +2449,7 @@ function classeTag(c) {
 /* ============================================================
    YAMAZUMI
    ============================================================ */
-const PAL = ["#C9A227","#E2571F","#5C8C6A","#8C6FA6","#3F7C94","#B8863B","#A63A2E","#7E9C4A","#C77F5B","#5E6EA8","#6FA69B","#B5695E"];
+const PAL = ["#8B5CF6","#EC5C97","#22A06B","#3B82F6","#F59E0B","#14B8A6","#E0457F","#6366F1","#F97316","#0EA5E9","#A855F7","#84CC16"];
 let YAMA_MODE = "pz";
 const famColor = id => PAL[Math.max(0, S.famiglie.findIndex(f => f.id === id)) % PAL.length];
 
@@ -2373,7 +2718,7 @@ let FORZA_RENDER = false;
 /* in stampa le schede nascoste tornano visibili: prima di stampare va ridisegnato tutto */
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
-function refreshOutputs() { renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
@@ -2382,7 +2727,7 @@ function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup
 document.getElementById("nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
   document.querySelectorAll("#nav button").forEach(x => x.setAttribute("aria-current", x === b ? "true" : "false"));
-  ["setup", "rilievi", "risultati", "simulazione", "yamazumi", "scorte", "vsm", "scenari"].forEach(k => document.getElementById("tab-" + k).hidden = (k !== b.dataset.tab));
+  ["setup", "rilievi", "risultati", "simulazione", "yamazumi", "scorte", "vsm", "piano", "scenari"].forEach(k => document.getElementById("tab-" + k).hidden = (k !== b.dataset.tab));
   refreshOutputs();
   window.scrollTo({ top: 0 });
 });
