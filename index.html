@@ -684,6 +684,18 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 
 <section id="tab-piano" hidden>
   <div class="panel">
+    <h2>Copie del piano</h2>
+    <p class="hint">Fotografie del piano: commesse, avanzamento, date fissate, eventi «E se…?», chiusure e impostazioni. Sono separate dagli Scenari, che fotografano invece la Fucina (fasi, reparti, famiglie). Caricare una copia sostituisce il piano attuale e lascia la Fucina com'è.</p>
+    <div class="row-actions" style="margin:0 0 12px">
+      <input id="pcNome" class="wide" placeholder="Nome della copia">
+      <button class="act" id="pcAdd">Salva come nuova</button>
+      <button class="act" id="pcUpdate" hidden></button>
+      <button class="act ghost" id="pcImportBtn">Importa da file</button>
+      <input type="file" id="pcImportFile" accept="application/json" hidden>
+    </div>
+    <div class="scroller"><table id="pcTab"></table></div>
+  </div>
+  <div class="panel">
     <h2>EasyFabio · impostazioni del piano</h2>
     <p class="hint">Ogni commessa è un pezzo di una famiglia: attraversa le fasi accese per quella famiglia, con i tempi della Fucina. La capacità di ogni reparto è quella dell'anno selezionato in alto: ogni cella lavora una commessa alla volta, e la durata di una fase è minuti uomo (più attrezzaggio) ÷ operatori per cella ÷ efficienza, corretta per lo scarto. Le commesse con una data «non prima di» passano per prime, le altre seguono la regola scelta. Ogni fase parte quando finisce la precedente e una cella del reparto è libera.</p>
     <div class="levers">
@@ -834,14 +846,14 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.0";
+const VERSION = "v5.1";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
-  "Banco di prova": "Test bench", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
+  "Banco di prova": "Test bench", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
   "Carico per periodo": "Load by period", "Commesse": "Job orders", "Ore": "Hours", "Giorni": "Days", "Settimane": "Weeks", "Mesi": "Months",
   "Per reparto": "By department", "Per commessa": "By job", "Vai a oggi": "Go to today", "Aggiungi commessa": "Add job", "Crea dal forecast": "Create from forecast",
   "Elimina tutte": "Delete all", "Incolla da Excel": "Paste from Excel", "Aggiungi le righe": "Add rows", "commesse aperte": "open jobs", "in tempo": "on time",
@@ -1226,7 +1238,7 @@ function blankState() {
       oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true,
       nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100], operatori: 1
     }))),
-    famiglie: [], rilievi: [], snapshots: [], commesse: [], piano: pianoDefault()
+    famiglie: [], rilievi: [], snapshots: [], commesse: [], piano: pianoDefault(), pianiSalvati: []
   };
 }
 let S = blankState();
@@ -1279,6 +1291,7 @@ function migrate(o) {
   o.rilievi = Array.isArray(o.rilievi) ? o.rilievi : [];
   o.snapshots = Array.isArray(o.snapshots) ? o.snapshots : [];
   o.commesse = Array.isArray(o.commesse) ? o.commesse : [];
+  o.pianiSalvati = Array.isArray(o.pianiSalvati) ? o.pianiSalvati : [];
   o.piano = Object.assign(pianoDefault(), o.piano);
   o.meta.version = VERSION;
   o.params = Object.assign({}, b.params, o.params);
@@ -2325,7 +2338,24 @@ function passaFiltro(cm) {
   return true;
 }
 
+/* copie del piano: commesse + impostazioni, indipendenti dagli scenari della Fucina */
+function pianoDati() { return JSON.parse(JSON.stringify({ commesse: S.commesse, piano: S.piano })); }
+function renderCopiePiano() {
+  const corr = S.pianiSalvati.find(x => x.id === S.meta.pianoCorrente), up = document.getElementById("pcUpdate");
+  up.hidden = !corr; if (corr) up.textContent = t("Salva su") + " «" + corr.nome + "»";
+  document.getElementById("pcTab").innerHTML = !S.pianiSalvati.length
+    ? '<tbody><tr><td class="empty">' + t("Nessuna copia salvata.") + "</td></tr></tbody>"
+    : "<thead><tr>" + th("Copia") + th("Salvata il") + th("Commesse", "num") + th("Aperte", "num") + "<th></th></tr></thead><tbody>"
+      + S.pianiSalvati.map(c => "<tr" + (c.id === S.meta.pianoCorrente ? ' class="vincolo"' : "") + "><td>" + esc(c.nome) + (c.id === S.meta.pianoCorrente ? ' <span class="tag t-ok">' + t("in uso") + "</span>" : "") + "</td>"
+        + "<td>" + new Date(c.ts).toLocaleString(LANG === "it" ? "it-IT" : "en-GB", { dateStyle: "short", timeStyle: "short" }) + "</td>"
+        + '<td class="num">' + nf(c.data.commesse.length) + '</td><td class="num">' + nf(c.data.commesse.filter(x => !x.chiusa).length) + "</td>"
+        + '<td style="white-space:nowrap"><button class="act ghost" data-pcload="' + c.id + '">' + t("Carica") + "</button> "
+        + '<button class="act ghost" data-pcsave="' + c.id + '">' + t("Sovrascrivi") + "</button> "
+        + '<button class="act ghost" data-pcexp="' + c.id + '">' + t("Esporta") + "</button> "
+        + '<button class="danger" data-pcdel="' + c.id + '">' + t("Elimina") + "</button></td></tr>").join("") + "</tbody>";
+}
 function renderPiano2() {
+  renderCopiePiano();
   const P = S.piano;
   document.querySelectorAll("#tab-piano [data-pl]").forEach(el => {
     if (document.activeElement === el) return;
@@ -2590,6 +2620,57 @@ function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + Stri
     const d = e.target.closest("[data-cmdel]"); if (d) { S.commesse = S.commesse.filter(x => x.id !== d.dataset.cmdel); return ri(); }
     const ev = e.target.closest("[data-evdel]"); if (ev) { S.piano.eventi = S.piano.eventi.filter(x => x.id !== ev.dataset.evdel); return ri(); }
     const rg = e.target.closest("[data-regola]"); if (rg) { S.piano.regola = rg.dataset.regola; return ri(); }
+  });
+  tab.addEventListener("click", e => {
+    const b = e.target.closest("[data-pcload],[data-pcsave],[data-pcexp],[data-pcdel]"); if (!b) return;
+    const id = b.dataset.pcload || b.dataset.pcsave || b.dataset.pcexp || b.dataset.pcdel;
+    const c = S.pianiSalvati.find(x => x.id === id); if (!c) return;
+    if (b.dataset.pcload) {
+      if (!confirm(t("Sostituisco il piano attuale con la copia") + " «" + c.nome + "»? " + t("Se non l'hai salvato, il piano attuale va perso."))) return;
+      const d = JSON.parse(JSON.stringify(c.data));
+      S.commesse = Array.isArray(d.commesse) ? d.commesse : []; S.piano = Object.assign(pianoDefault(), d.piano);
+      S.meta.pianoCorrente = c.id; PL_VAI = null; flag(t("Piano caricato") + ": " + c.nome); return ri();
+    }
+    if (b.dataset.pcsave) return salvaSuCopia(c.id);
+    if (b.dataset.pcexp) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify({ tipo: "easyfabio-piano", versione: VERSION, nome: c.nome, ts: c.ts, data: c.data }, null, 2)], { type: "application/json" }));
+      a.download = "easyfabio-" + c.nome.replace(/[^\w\-]+/g, "_") + ".json"; a.click(); URL.revokeObjectURL(a.href); return;
+    }
+    if (b.dataset.pcdel && confirm(t("Elimino la copia") + " «" + c.nome + "»?")) {
+      S.pianiSalvati = S.pianiSalvati.filter(x => x.id !== id);
+      if (S.meta.pianoCorrente === id) S.meta.pianoCorrente = null;
+      ri();
+    }
+  });
+  const salvaSuCopia = id => {
+    const c = S.pianiSalvati.find(x => x.id === id); if (!c) return;
+    if (id !== S.meta.pianoCorrente && !confirm(t("Sovrascrivo la copia") + " «" + c.nome + "» " + t("con il piano attuale?"))) return;
+    c.data = pianoDati(); c.ts = Date.now(); S.meta.pianoCorrente = c.id;
+    flag(t("Copia aggiornata") + ": " + c.nome); ri();
+  };
+  document.getElementById("pcAdd").addEventListener("click", () => {
+    const inp = document.getElementById("pcNome");
+    const nome = (inp.value || "").trim() || t("Piano") + " " + new Date().toLocaleDateString("it-IT") + " (" + (S.pianiSalvati.length + 1) + ")";
+    const c = { id: uid(), nome, ts: Date.now(), data: pianoDati() };
+    S.pianiSalvati.push(c); S.meta.pianoCorrente = c.id; inp.value = "";
+    flag(t("Copia salvata") + ": " + nome); ri();
+  });
+  document.getElementById("pcUpdate").addEventListener("click", () => salvaSuCopia(S.meta.pianoCorrente));
+  document.getElementById("pcImportBtn").addEventListener("click", () => document.getElementById("pcImportFile").click());
+  document.getElementById("pcImportFile").addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const o = JSON.parse(rd.result), d = o.data || o;
+        if (!Array.isArray(d.commesse)) throw new Error("formato");
+        S.pianiSalvati.push({ id: uid(), nome: o.nome || f.name.replace(/\.json$/i, ""), ts: Date.now(), data: { commesse: d.commesse, piano: d.piano || {} } });
+        flag(t("Copia importata")); ri();
+      } catch (err) { flag(t("File non valido: non è una copia del piano"), true); }
+      e.target.value = "";
+    };
+    rd.readAsText(f);
   });
   document.getElementById("plEvAdd").addEventListener("click", () => {
     const oggi = dnStr(Math.floor(Date.now() / 864e5));
