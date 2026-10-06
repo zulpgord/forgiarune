@@ -865,7 +865,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.3";
+const VERSION = "v5.4";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -2609,7 +2609,12 @@ function dataDa(s) {
   if ((m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/.exec(s))) return (m[3].length === 2 ? "20" + m[3] : m[3]) + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
   return "";
 }
-function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + String(S.commesse.length + 1).padStart(4, "0"), famId: S.famiglie[0] ? S.famiglie[0].id : "", rilascio: S.piano.inizio, consegna: "", priorita: 5, chiusa: false, fisso: "", fatto: "" }, o); }
+/* prossimo codice libero: dopo aver eliminato commesse, la lunghezza dell'elenco ripeteva codici già usati */
+function prossimoCodice() {
+  const n = S.commesse.reduce((a, c) => { const m = /^C(\d+)$/.exec(c.codice || ""); return m ? Math.max(a, +m[1]) : a; }, 0);
+  return "C" + String(n + 1).padStart(4, "0");
+}
+function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: prossimoCodice(), famId: S.famiglie[0] ? S.famiglie[0].id : "", rilascio: S.piano.inizio, consegna: "", priorita: 5, chiusa: false, fisso: "", fatto: "" }, o); }
 
 (function () {
   const ri = () => { queueSave(); renderPiano2(); };
@@ -2813,7 +2818,7 @@ function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + Stri
       const c = r.split(/\t|;/).map(x => x.trim());
       const fam = findFam(c[1] || "");
       if (!fam) { scarti.push(c[1] || r); return; }
-      S.commesse.push(nuovaCommessa({ codice: c[0] || undefined, famId: fam.id, rilascio: dataDa(c[2]) || S.piano.inizio, consegna: dataDa(c[3]), priorita: nz(c[4]) || 5 }));
+      S.commesse.push(nuovaCommessa({ ...(c[0] ? { codice: c[0] } : {}), famId: fam.id, rilascio: dataDa(c[2]) || S.piano.inizio, consegna: dataDa(c[3]), priorita: nz(c[4]) || 5 }));
       ok++;
     });
     document.getElementById("plPasteEsito").textContent = ok + " " + t("commesse aggiunte") + (scarti.length ? " · " + t("famiglie non trovate") + ": " + scarti.slice(0, 5).join(", ") : "");
@@ -3449,6 +3454,8 @@ document.addEventListener("input", e => {
   if (k === "fase") { findById(S.fasi, el.dataset.id).nome = el.value; renderVSM(); renderRisultati(); renderSimulazione(); }
   else if (k === "reparto") {
     const r = findById(S.reparti, el.dataset.id), f = el.dataset.f, c = cfgRep(r);
+    /* la Fucina è cambiata: il banco di prova riparte dai valori nuovi */
+    if (f === "celleAttuali" || f === "operatori") BANCO = null;
     if (f === "operatori") { c.operatori = opCella(el.value); renderReparti(); }
     else if (f === "curva") { c.curva[+el.dataset.i] = el.value === "" ? 0 : parseFloat(el.value); }
     else if (f === "oreNette") {
@@ -3511,14 +3518,16 @@ document.addEventListener("input", e => {
 })();
 /* ogni pannello si apre e si chiude cliccando il titolo; lo stato resta nel browser */
 (function () {
-  const KEYF = "sl-pannelli-chiusi";
+  /* la chiave è il titolo del pannello (in italiano, letto prima della traduzione):
+     con la posizione, aggiungere o spostare un pannello chiudeva quello sbagliato */
+  const KEYF = "sl-pannelli-chiusi-v2";
   let chiusi = {};
   try { chiusi = JSON.parse(localStorage.getItem(KEYF) || "{}"); } catch (e) {}
   const salva = () => { try { localStorage.setItem(KEYF, JSON.stringify(chiusi)); } catch (e) {} };
   const chiave = p => p.closest("section").id + "|" + p.dataset.fold;
   document.querySelectorAll("section > .panel:not(details)").forEach((p, i) => {
     const h = p.querySelector(":scope > h2"); if (!h) return;
-    p.classList.add("fold"); p.dataset.fold = i;
+    p.classList.add("fold"); p.dataset.fold = h.textContent.trim();
     if (chiusi[chiave(p)]) p.classList.add("chiuso");
     h.tabIndex = 0;
     const tog = () => { p.classList.toggle("chiuso"); chiusi[chiave(p)] = p.classList.contains("chiuso"); salva(); };
