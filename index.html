@@ -276,7 +276,8 @@ footer{background:var(--panel);border-top:1px solid var(--border-2)}
 #plLab{flex:none;width:170px;border-right:1px solid var(--border-2);background:var(--panel)}
 #plScroll{flex:1;overflow-x:auto;overflow-y:hidden}
 .gantt svg{display:block}
-.gantt .bar{cursor:default}
+.gantt .bar{cursor:grab;touch-action:none}
+.gantt .bar:active{cursor:grabbing}
 td.pl-tag{white-space:nowrap}
 #plTab input[type=date]{width:140px}
 #plTab input.cod{width:110px}
@@ -684,34 +685,108 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 <section id="tab-piano" hidden>
   <div class="panel">
     <h2>EasyFabio · impostazioni del piano</h2>
-    <p class="hint">Ogni commessa è un pezzo di una famiglia: attraversa le fasi accese per quella famiglia, con i tempi della Fucina. La capacità di ogni reparto è quella dell'anno selezionato in alto: ogni cella lavora una commessa alla volta, e la durata di una fase è minuti uomo (più attrezzaggio) ÷ operatori per cella ÷ efficienza, corretta per lo scarto. Le commesse vengono messe in fila per priorità (1 = più urgente) e poi per data di consegna; ogni fase parte quando finisce la precedente e una cella del reparto è libera. Sabato e domenica non si lavora, a meno che tu metta 6 giorni a settimana.</p>
+    <p class="hint">Ogni commessa è un pezzo di una famiglia: attraversa le fasi accese per quella famiglia, con i tempi della Fucina. La capacità di ogni reparto è quella dell'anno selezionato in alto: ogni cella lavora una commessa alla volta, e la durata di una fase è minuti uomo (più attrezzaggio) ÷ operatori per cella ÷ efficienza, corretta per lo scarto. Le commesse con una data «non prima di» passano per prime, le altre seguono la regola scelta. Ogni fase parte quando finisce la precedente e una cella del reparto è libera.</p>
     <div class="levers">
       <div class="lever"><label for="plInizio">Inizio del piano</label><input type="date" id="plInizio" data-pl="inizio"></div>
       <div class="lever"><label for="plOre">Ore lavorate al giorno per cella</label><input type="number" id="plOre" data-pl="oreGiorno" min="1" max="24" step="0.5"></div>
       <div class="lever"><label for="plOra">Ora di inizio giornata</label><input type="number" id="plOra" data-pl="oraInizio" min="0" max="23" step="1"></div>
       <div class="lever"><label for="plGg">Giorni lavorativi a settimana</label><input type="number" id="plGg" data-pl="giorniSett" min="5" max="6" step="1"></div>
+      <div class="lever"><label for="plRegola">Regola di priorità</label>
+        <select id="plRegola" data-pl="regola">
+          <option value="priorita">Priorità, poi consegna</option>
+          <option value="consegna">Consegna più vicina</option>
+          <option value="margine">Margine minimo</option>
+          <option value="corte">Prima le più corte</option>
+        </select></div>
+      <div class="lever"><label for="plModo">Quando far partire una commessa</label>
+        <select id="plModo" data-pl="modo">
+          <option value="avanti">Appena rilasciata (in avanti)</option>
+          <option value="jit">Il più tardi possibile (just in time)</option>
+        </select></div>
+      <div class="lever"><label for="plMarg">Giorni di margine per fase (just in time)</label><input type="number" id="plMarg" data-pl="margineGG" min="0" step="0.5"></div>
+      <div class="lever"><label><input type="checkbox" data-pl="noPassato"> Non pianificare prima di oggi</label></div>
     </div>
+    <h3 style="margin-top:22px;font-size:15px">Ore al giorno per reparto</h3>
+    <p class="hint">Vuoto = il valore generale. Un reparto su due turni, per esempio, lavora 16 ore al giorno.</p>
+    <div class="scroller"><table id="plOreRep"></table></div>
+    <h3 style="margin-top:22px;font-size:15px">Chiusure</h3>
+    <label style="font-size:14px"><input type="checkbox" data-pl="festivita"> Festività nazionali italiane (Pasquetta compresa)</label>
+    <p class="hint" style="margin:8px 0">Ferie e ponti aziendali: un giorno o un intervallo per riga, per esempio <code>10/08/2027 - 21/08/2027</code> oppure <code>07/12/2026</code>.</p>
+    <textarea data-pl="chiusure" rows="3" style="width:100%;max-width:520px"></textarea>
   </div>
+
+  <div class="panel">
+    <h2>E se…?</h2>
+    <p class="hint">Cambi temporanei di capacità che valgono solo qui, senza toccare la Fucina: celle in più (un turno extra, un prestito da un altro reparto), celle in meno (assenze), un reparto fermo (guasto, manutenzione). Spegni la spunta per vedere il piano senza quell'evento.</p>
+    <div class="scroller"><table id="plEventi"></table></div>
+    <div class="row-actions"><button class="act ghost" id="plEvAdd">Aggiungi evento</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Data promessa</h2>
+    <p class="hint">Quando potrebbe uscire una commessa nuova se la lanci adesso, tenendo conto di tutte quelle già in piano. Vedi anche se la sua priorità farebbe slittare altre commesse.</p>
+    <div class="row-actions" style="align-items:flex-end;margin:0">
+      <div class="lever"><label for="atpFam">Famiglia</label><select id="atpFam"></select></div>
+      <div class="lever"><label for="atpRil">Rilascio</label><input type="date" id="atpRil"></div>
+      <div class="lever"><label for="atpPri">Priorità</label><input type="number" id="atpPri" min="1" max="9" step="1" value="5" style="width:70px"></div>
+      <button class="act" id="atpGo">Calcola</button>
+      <button class="act ghost" id="atpAdd" hidden>Aggiungi come commessa</button>
+    </div>
+    <div id="atpOut" style="margin-top:14px"></div>
+  </div>
+
   <div class="kpis" id="plKpi"></div>
+
   <div class="panel">
     <h2>Diagramma di Gantt</h2>
-    <div class="row-actions" style="margin:0 0 12px;align-items:center">
+    <div class="row-actions" style="margin:0 0 10px;align-items:center">
       <div class="seg mini" id="plScala"><button data-v="ore">Ore</button><button data-v="giorni" aria-pressed="true">Giorni</button><button data-v="settimane">Settimane</button><button data-v="mesi">Mesi</button></div>
       <div class="seg mini" id="plVista"><button data-v="reparti" aria-pressed="true">Per reparto</button><button data-v="commesse">Per commessa</button></div>
       <button class="act ghost" id="plOggi">Vai a oggi</button>
       <label style="font-size:13px;color:var(--dim)">Vai al <input type="date" id="plVai"></label>
     </div>
+    <div class="row-actions plfiltri" style="margin:0 0 12px;align-items:center">
+      <input id="plfQ" placeholder="Cerca commessa" style="width:150px">
+      <select id="plfFam"></select>
+      <select id="plfRep"></select>
+      <label style="font-size:13px"><input type="checkbox" id="plfTardi"> Solo in ritardo</label>
+      <span class="hint" style="margin:0">Trascina una barra per fissare l'inizio della commessa (🔒).</span>
+    </div>
     <div class="gantt"><div id="plLab"></div><div id="plScroll"></div></div>
     <div class="legend" id="plLegend"></div>
+    <div class="row-actions">
+      <button class="act ghost" id="plDlSvg">Scarica il Gantt</button>
+      <button class="act ghost" id="plDlCsv">Lista lavori (CSV)</button>
+    </div>
   </div>
+
   <div class="panel">
     <h2>Carico per periodo</h2>
-    <p class="hint">Ore pianificate in ogni reparto diviso le ore disponibili nel periodo (celle × ore al giorno × giorni lavorativi). Il periodo segue la scala del Gantt; in vista oraria si ragiona per giorno.</p>
+    <p class="hint">Ore pianificate in ogni reparto diviso le ore disponibili nel periodo, contando ore per reparto, chiusure ed eventi «E se…?». Il periodo segue la scala del Gantt; in vista oraria si ragiona per giorno.</p>
     <div class="scroller"><table id="plCarico"></table></div>
   </div>
+
+  <div class="panel">
+    <h2>Dove si aspetta</h2>
+    <p class="hint">Per ogni reparto, quanto lavorano le commesse e quanto restano in coda prima di entrarci. Una coda lunga davanti a un reparto che non è il più saturo dice che il problema è la sequenza, non la capacità.</p>
+    <div class="scroller"><table id="plAttese"></table></div>
+  </div>
+
+  <div class="panel">
+    <h2>Confronta le regole</h2>
+    <p class="hint">Lo stesso piano con le quattro regole di priorità: scegli quella che ti dà meno ritardi o meno attraversamento.</p>
+    <div class="scroller"><table id="plRegole"></table></div>
+  </div>
+
+  <div class="panel">
+    <h2>Piano contro forecast</h2>
+    <p class="hint">Ore pianificate mese per mese contro le ore che il Responso calcola dal forecast (profilo di consegna della famiglia). Se il piano sta molto sotto il forecast mancano commesse; se sta sopra la sequenza reale carica il reparto più di quanto il dimensionamento prevedeva.</p>
+    <div class="scroller"><table id="plVsFc"></table></div>
+  </div>
+
   <div class="panel">
     <h2>Commesse</h2>
-    <p class="hint">Scrivi o incolla le commesse. «Crea dal forecast» genera una commessa per ogni pezzo previsto nell'anno selezionato, distribuite sui mesi con il profilo di consegna della famiglia: utile per provare. Le commesse chiuse escono dal piano.</p>
+    <p class="hint">Scrivi o incolla le commesse. «Crea dal forecast» genera una commessa per ogni pezzo previsto nell'anno selezionato, distribuite sui mesi con il profilo di consegna della famiglia. «Avanzamento» è l'ultima fase già fatta: il piano riparte dalla successiva. «Non prima di» fissa l'inizio (lo stesso che ottieni trascinando la barra). I filtri del Gantt valgono anche qui.</p>
     <div class="row-actions" style="margin:0 0 12px">
       <button class="act" id="plAdd">Aggiungi commessa</button>
       <button class="act ghost" id="plForecast">Crea dal forecast</button>
@@ -759,7 +834,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v4.11";
+const VERSION = "v5.0";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -1134,7 +1209,8 @@ const uniform = () => Array(12).fill(100 / 12);
 
 function pianoDefault() {
   const d = new Date(), lun = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)));
-  return { inizio: lun.toISOString().slice(0, 10), oreGiorno: 8, oraInizio: 8, giorniSett: 5, scala: "giorni", vista: "reparti" };
+  return { inizio: lun.toISOString().slice(0, 10), oreGiorno: 8, oraInizio: 8, giorniSett: 5, scala: "giorni", vista: "reparti",
+    regola: "priorita", modo: "avanti", margineGG: 1, noPassato: true, festivita: true, chiusure: "", oreRep: {}, eventi: [] };
 }
 function blankState() {
   const fasi = ["Saldatura","Pressatura","Assemblaggio","Cablaggio","Test","Finitura"].map(n => ({ id: uid(), nome: n }));
@@ -2029,60 +2105,190 @@ function renderOrganico() {
 }
 
 /* ============================================================
-   PIANIFICAZIONE: commesse da un pezzo, capacità finita, Gantt
+   EASYFABIO: pianificazione delle commesse a capacità finita
    ============================================================ */
-/* Il tempo del piano è in "ore lavorative" dall'inizio: i giorni non lavorativi
-   non esistono sull'asse. Le date si convertono con l'elenco dei giorni lavorativi. */
+/* Il tempo del piano è in ore lavorative dall'inizio: ogni giorno lavorativo è lungo H
+   (le ore del reparto che lavora di più); i giorni non lavorativi non esistono sull'asse.
+   Un reparto con meno ore lavora solo la prima parte di ogni giorno. */
 const dnDa = str => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str || ""); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / 864e5 : null; };
 const dnStr = dn => new Date(dn * 864e5).toISOString().slice(0, 10);
 const dnFmt = (dn, anno) => { const d = new Date(dn * 864e5); return String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + (anno ? "/" + String(d.getUTCFullYear()).slice(2) : ""); };
+
+function pasqua(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const n = h + l - 7 * m + 114;
+  return Date.UTC(y, Math.floor(n / 31) - 1, (n % 31) + 1) / 864e5;
+}
+function giorniChiusi(P, y0) {
+  const set = new Set();
+  if (P.festivita !== false) for (let y = y0 - 1; y <= y0 + 10; y++) {
+    [[0, 1], [0, 6], [3, 25], [4, 1], [5, 2], [7, 15], [10, 1], [11, 8], [11, 25], [11, 26]].forEach(([m, d]) => set.add(Date.UTC(y, m, d) / 864e5));
+    set.add(pasqua(y) + 1);
+  }
+  String(P.chiusure || "").split(/\r?\n/).forEach(riga => {
+    const dd = (riga.match(/\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4}/g) || []).map(x => dnDa(dataDa(x))).filter(x => x != null);
+    if (dd.length === 1) set.add(dd[0]);
+    else if (dd.length >= 2) for (let x = Math.min(dd[0], dd[1]); x <= Math.max(dd[0], dd[1]); x++) set.add(x);
+  });
+  return set;
+}
 function calendario() {
   const P = S.piano, gs = nz(P.giorniSett) === 6 ? 6 : 5;
-  const H = Math.max(1, nz(P.oreGiorno) || 8);
+  const Hg = Math.min(24, Math.max(1, nz(P.oreGiorno) || 8));
+  const oreR = id => { const v = nz((P.oreRep || {})[id]); return v > 0 ? Math.min(24, v) : Hg; };
+  const H = Math.max(Hg, ...S.reparti.map(r => oreR(r.id)));
   let d = dnDa(P.inizio); if (d == null) d = dnDa(pianoDefault().inizio);
+  const chiusi = giorniChiusi(P, new Date(d * 864e5).getUTCFullYear());
   const WD = [];
-  while (WD.length < 2600) { const w = (d + 4) % 7; if (w >= 1 && w <= gs) WD.push(d); d++; }
+  while (WD.length < 2600) { const w = (d + 4) % 7; if (w >= 1 && w <= gs && !chiusi.has(d)) WD.push(d); d++; }
   /* primo giorno lavorativo >= dn */
   const idx = dn => { if (dn == null) return 0; let lo = 0, hi = WD.length; while (lo < hi) { const m = (lo + hi) >> 1; if (WD[m] < dn) lo = m + 1; else hi = m; } return lo; };
-  return { H, WD, idx, giorno: wh => WD[Math.min(WD.length - 1, Math.max(0, Math.floor(wh / H - 1e-9)))] };
+  const giorno = wh => WD[Math.min(WD.length - 1, Math.max(0, Math.floor(wh / H - 1e-9)))];
+  return { H, Hg, oreR, WD, idx, giorno, chiusi };
 }
 
-function pianifica() {
-  const K = calendario(), H = K.H, anno = S.meta.anno || 0, eff = (nz(S.params.efficienza) || 100) / 100;
-  /* corsie: una per cella, per ogni reparto */
+/* Una corsia è una cella: lavora hr ore al giorno ed è ferma negli intervalli bl. */
+const corsia = (hr, bl) => ({ hr, bl: bl || [], occ: [] });
+function prossimo(L, t, H) {
+  for (let g = 0; g < 20000; g++) {
+    const d = Math.floor(t / H + 1e-9), o = t - d * H;
+    if (o >= L.hr - 1e-9) { t = (d + 1) * H; continue; }
+    const b = L.bl.find(x => t >= x[0] - 1e-9 && t < x[1] - 1e-9);
+    if (b) { t = b[1]; continue; }
+    return t;
+  }
+  return 1e12;
+}
+function lavora(L, t, dur, H) {
+  t = prossimo(L, t, H);
+  for (let g = 0; g < 20000 && t < 1e11; g++) {
+    const d = Math.floor(t / H + 1e-9);
+    let lim = d * H + L.hr;
+    L.bl.forEach(x => { if (x[0] > t + 1e-9 && x[0] < lim) lim = x[0]; });
+    if (dur <= lim - t + 1e-9) return t + dur;
+    dur -= lim - t; t = prossimo(L, lim, H);
+  }
+  return 1e12;
+}
+/* primo spazio libero della cella da t in poi in cui la fase ci sta tutta:
+   le commesse fissate prima non bloccano i buchi che lasciano davanti */
+function spazio(L, t, dur, H) {
+  let s = prossimo(L, t, H);
+  for (let g = 0; g < 5000 && s < 1e11; g++) {
+    const en = lavora(L, s, dur, H);
+    const b = L.occ.find(x => x[0] < en - 1e-9 && x[1] > s + 1e-9);
+    if (!b) return [s, en];
+    s = prossimo(L, b[1], H);
+  }
+  return [1e12, 1e12];
+}
+/* ore di lavoro di una fase che cadono fra a e b: si contano solo le ore in cui la cella lavora */
+function quota(L, o, a, b, H) {
+  const x0 = Math.max(o.st, a), x1 = Math.min(o.en, b); if (x1 <= x0) return 0;
+  const tot = disponibili(L, o.st, o.en, H);
+  return tot > 0 ? o.dur * disponibili(L, x0, x1, H) / tot : 0;
+}
+function disponibili(L, a, b, H) {
+  let s = 0;
+  for (let d = Math.floor(a / H); d * H < b; d++) {
+    const x0 = Math.max(a, d * H), x1 = Math.min(b, d * H + L.hr); if (x1 <= x0) continue;
+    let v = x1 - x0;
+    L.bl.forEach(q => { const o = Math.min(x1, q[1]) - Math.max(x0, q[0]); if (o > 0) v -= o; });
+    s += Math.max(0, v);
+  }
+  return s;
+}
+
+const REGOLE = { priorita: "Priorità, poi consegna", consegna: "Consegna più vicina", margine: "Margine minimo", corte: "Prima le più corte" };
+
+function pianifica(opz) {
+  opz = opz || {};
+  const P = S.piano, K = calendario(), H = K.H, anno = S.meta.anno || 0, eff = (nz(S.params.efficienza) || 100) / 100;
+  const wh = dn => K.idx(dn) * H;
+  const oggi = wh(Math.floor(Date.now() / 864e5));
   const reps = S.fasi.map(fa => {
-    const r = S.reparti.find(x => x.faseId === fa.id); if (!r) return { fase: fa, rep: null, corsie: [] };
-    const c = cfgRep(r, anno), n = Math.max(0, Math.round(nz(c.celleAttuali)));
-    return { fase: fa, rep: r, op: opCella(c.operatori), macchine: nz(r.macchine), corsie: Array(n).fill(0) };
+    const r = S.reparti.find(x => x.faseId === fa.id); if (!r) return { fase: fa, rep: null, corsie: [], hr: K.Hg };
+    const c = cfgRep(r, anno), n = Math.max(0, Math.round(nz(c.celleAttuali))), hr = K.oreR(r.id);
+    const corsie = Array.from({ length: n }, () => corsia(hr));
+    (P.eventi || []).filter(e => e.attivo !== false && e.repId === r.id).forEach(e => {
+      const da = dnDa(e.da); if (da == null) return;
+      const a = dnDa(e.a) != null ? Math.max(da, dnDa(e.a)) : da;
+      const A = wh(da), B = K.idx(a + 1) * H, q = Math.max(0, Math.round(nz(e.n)));
+      if (e.tipo === "fermo") corsie.forEach(L => L.bl.push([A, B]));
+      else if (e.tipo === "meno") { if (q > 0) corsie.slice(-q).forEach(L => L.bl.push([A, B])); }
+      else for (let i = 0; i < q; i++) corsie.push(corsia(hr, [[0, A], [B, 1e12]]));
+    });
+    corsie.forEach(L => L.bl.sort((x, y) => x[0] - y[0]));
+    return { fase: fa, rep: r, op: opCella(c.operatori), macchine: nz(r.macchine), hr, corsie };
   });
-  const aperte = S.commesse.filter(c => !c.chiusa);
-  const ord = aperte.slice().sort((a, b) => (nz(a.priorita) || 9) - (nz(b.priorita) || 9) || (dnDa(a.consegna) || 1e9) - (dnDa(b.consegna) || 1e9) || (dnDa(a.rilascio) || 0) - (dnDa(b.rilascio) || 0));
+  /* fasi ancora da fare: dopo quella indicata come avanzamento */
+  const percorso = cm => {
+    const fam = S.famiglie.find(f => f.id === cm.famId); if (!fam) return null;
+    const k = 1 / (1 - Math.min(nz(fam.scarto), 95) / 100);
+    const fatto = cm.fatto ? S.fasi.findIndex(f => f.id === cm.fatto) : -1;
+    const fasi = [];
+    reps.forEach((R, ri) => {
+      if (ri <= fatto) return;
+      const x = fam.tempi[R.fase.id]; if (!x || !x.on) return;
+      const uomo = (nz(x.min) + nz(x.setup)) / 60 / (R.op || 1) / eff * k;
+      const macc = R.macchine > 0 ? (nz(x.minMacchina) + nz(x.setup)) / 60 / eff * k : 0;
+      const dur = Math.max(uomo, macc); if (dur > 0) fasi.push({ ri, dur });
+    });
+    return { fam, fasi };
+  };
+  const aperte = S.commesse.filter(c => !c.chiusa).concat(opz.extra || []);
+  const info = new Map();
+  aperte.forEach(cm => { const pc = percorso(cm); info.set(cm, { pc, lavoro: pc ? pc.fasi.reduce((a, f) => a + f.dur, 0) : 0 }); });
+  const due = cm => { const d = dnDa(cm.consegna); return d == null ? 1e9 : d; }, ril = cm => dnDa(cm.rilascio) || 0;
+  const regola = opz.regola || P.regola || "priorita";
+  const cmp = {
+    priorita: (a, b) => (nz(a.priorita) || 5) - (nz(b.priorita) || 5) || due(a) - due(b) || ril(a) - ril(b),
+    consegna: (a, b) => due(a) - due(b) || ril(a) - ril(b),
+    margine: (a, b) => (due(a) - info.get(a).lavoro / H) - (due(b) - info.get(b).lavoro / H) || ril(a) - ril(b),
+    corte: (a, b) => info.get(a).lavoro - info.get(b).lavoro || due(a) - due(b)
+  }[regola] || ((a, b) => due(a) - due(b));
+  const ord = aperte.slice().sort((a, b) => (b.fisso ? 1 : 0) - (a.fisso ? 1 : 0) || cmp(a, b));
   const ops = [], esito = {};
   ord.forEach(cm => {
-    const fam = S.famiglie.find(f => f.id === cm.famId);
-    let tt = K.idx(dnDa(cm.rilascio) != null ? dnDa(cm.rilascio) : K.WD[0]) * H;
-    const inizio = tt; let primo = null, bloccata = null, nFasi = 0;
-    if (fam) {
-      const k = 1 / (1 - Math.min(nz(fam.scarto), 95) / 100);
-      reps.forEach((R, ri) => {
-        const x = fam.tempi[R.fase.id]; if (!x || !x.on || bloccata) return;
-        const uomo = (nz(x.min) + nz(x.setup)) / 60 / (R.op || 1) / eff * k;
-        const macc = R.macchine > 0 ? (nz(x.minMacchina) + nz(x.setup)) / 60 / eff * k : 0;
-        const dur = Math.max(uomo, macc); if (dur <= 0) return;
-        if (!R.corsie.length) { bloccata = R.fase.nome; return; }
-        let li = 0; R.corsie.forEach((v, i) => { if (v < R.corsie[li]) li = i; });
-        const st = Math.max(tt, R.corsie[li]), en = st + dur;
-        R.corsie[li] = en; tt = en; nFasi++;
-        if (primo == null) primo = st;
-        ops.push({ cm, fam, ri, li, st, en, attesa: st - (ops.length && ops[ops.length - 1].cm === cm ? ops[ops.length - 1].en : inizio) });
-      });
+    const I = info.get(cm), pc = I.pc;
+    let t0 = wh(dnDa(cm.rilascio) != null ? dnDa(cm.rilascio) : K.WD[0]);
+    if (P.noPassato !== false) t0 = Math.max(t0, oggi);
+    if (cm.fisso && dnDa(cm.fisso) != null) t0 = Math.max(t0, wh(dnDa(cm.fisso)));
+    else if (P.modo === "jit" && dnDa(cm.consegna) != null && pc && pc.fasi.length) {
+      /* just in time: parto tanti giorni prima della consegna quanti ne servono a lavorare, più il margine */
+      const gg = pc.fasi.reduce((a, f) => a + Math.ceil(f.dur / reps[f.ri].hr - 1e-9), 0) + nz(P.margineGG) * pc.fasi.length;
+      t0 = Math.max(t0, Math.max(0, K.idx(dnDa(cm.consegna) + 1) - Math.ceil(gg)) * H);
     }
-    const due = dnDa(cm.consegna) != null ? (K.idx(dnDa(cm.consegna) + 1)) * H : null;
-    esito[cm.id] = { inizio: primo, fine: nFasi ? tt : null, ritardoH: due != null && nFasi ? tt - due : null, bloccata, senzaFam: !fam, vuota: fam && !nFasi && !bloccata };
+    let tt = t0, primo = null, bloccata = null, n = 0, attesa = 0;
+    if (pc) pc.fasi.forEach(f => {
+      if (bloccata) return;
+      const R = reps[f.ri];
+      let li = -1, s = Infinity, en = Infinity;
+      R.corsie.forEach((L, i) => { const x = spazio(L, tt, f.dur, H); if (x[0] < s - 1e-9 || (Math.abs(x[0] - s) < 1e-9 && x[1] < en)) { s = x[0]; en = x[1]; li = i; } });
+      if (li < 0 || s >= 1e11) { bloccata = R.fase.nome; return; }
+      R.corsie[li].occ.push([s, en]);
+      ops.push({ cm, fam: pc.fam, ri: f.ri, li, st: s, en, dur: f.dur, attesa: s - tt });
+      attesa += s - tt; if (primo == null) primo = s; tt = en; n++;
+    });
+    const dueWH = dnDa(cm.consegna) != null ? K.idx(dnDa(cm.consegna) + 1) * H : null;
+    esito[cm.id] = { t0, inizio: primo, fine: n ? tt : null, ritardoH: dueWH != null && n ? tt - dueWH : null, bloccata, senzaFam: !pc,
+      completa: pc && !pc.fasi.length && !!cm.fatto, vuota: pc && !pc.fasi.length && !cm.fatto, lavoro: I.lavoro, attesa, lead: n ? (tt - t0) / H : null };
   });
   ops.forEach(o => { o.tardi = esito[o.cm.id].ritardoH > 0; });
   const fine = ops.reduce((a, o) => Math.max(a, o.en), 0);
-  return { K, H, reps, ops, esito, fine, aperte };
+  return { K, H, reps, ops, esito, fine, aperte, oggi, regola };
+}
+
+function statPiano(r) {
+  const ok = r.aperte.filter(c => r.esito[c.id] && r.esito[c.id].fine != null);
+  const tardi = ok.filter(c => r.esito[c.id].ritardoH > 0);
+  return {
+    n: r.aperte.length, pianificate: ok.length, tardi: tardi.length,
+    ritMed: tardi.length ? tardi.reduce((a, c) => a + r.esito[c.id].ritardoH, 0) / tardi.length / r.H : 0,
+    lead: ok.length ? ok.reduce((a, c) => a + r.esito[c.id].lead, 0) / ok.length : 0,
+    bloc: r.aperte.filter(c => r.esito[c.id] && (r.esito[c.id].bloccata || r.esito[c.id].senzaFam)).length
+  };
 }
 
 const PL_PX = { ore: 26, giorni: 7, settimane: 1.7, mesi: 0.42 };
@@ -2095,59 +2301,109 @@ function periodi(K, fineWH, unita) {
     const dn = K.WD[g], d = new Date(dn * 864e5);
     let key, lab;
     if (unita === "giorni") { key = dn; lab = dnFmt(dn); }
-    else if (unita === "settimane") { const lun = dn - ((d.getUTCDay() + 6) % 7); key = lun; lab = t("Sett.") + " " + dnFmt(lun); }
+    else if (unita === "settimane") { const lun = dn - ((d.getUTCDay() + 6) % 7); key = lun; lab = dnFmt(lun); }
     else if (unita === "mesi") { key = d.getUTCFullYear() * 12 + d.getUTCMonth(); lab = t(MESI_BREVI[d.getUTCMonth()]) + " " + String(d.getUTCFullYear()).slice(2); }
     else { key = d.getUTCFullYear(); lab = String(key); }
-    if (!cur || cur.key !== key) { cur = { key, lab, a: g * K.H, b: (g + 1) * K.H, giorni: 1 }; out.push(cur); }
+    if (!cur || cur.key !== key) { cur = { key, lab, a: g * K.H, b: (g + 1) * K.H, giorni: 1, mese: d.getUTCMonth() }; out.push(cur); }
     else { cur.b = (g + 1) * K.H; cur.giorni++; }
   }
   return out;
 }
+function whOra(K, wh) {
+  const d = Math.floor(wh / K.H + 1e-9), h = nz(S.piano.oraInizio) + (wh - d * K.H);
+  return dnFmt(K.WD[Math.min(K.WD.length - 1, d)], true) + " " + String(Math.floor(h) % 24).padStart(2, "0") + ":" + String(Math.round((h % 1) * 60) % 60).padStart(2, "0");
+}
 
-let PL = null, PL_VAI = null;
+let PL = null, PL_VAI = null, PL_SVG = null, ATP = null;
+const PLF = { q: "", fam: "", rep: "", tardi: false };
+function passaFiltro(cm) {
+  const e = PL && PL.esito[cm.id];
+  if (PLF.q && String(cm.codice || "").toLowerCase().indexOf(PLF.q.toLowerCase()) < 0) return false;
+  if (PLF.fam && cm.famId !== PLF.fam) return false;
+  if (PLF.tardi && !(e && e.ritardoH > 0)) return false;
+  if (PLF.rep && PL && !PL.ops.some(o => o.cm === cm && PL.reps[o.ri].rep && PL.reps[o.ri].rep.id === PLF.rep)) return false;
+  return true;
+}
+
 function renderPiano2() {
   const P = S.piano;
-  [["plInizio", "inizio"], ["plOre", "oreGiorno"], ["plOra", "oraInizio"], ["plGg", "giorniSett"]].forEach(([id, k]) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = P[k]; });
+  document.querySelectorAll("#tab-piano [data-pl]").forEach(el => {
+    if (document.activeElement === el) return;
+    const v = P[el.dataset.pl];
+    if (el.type === "checkbox") el.checked = v !== false; else el.value = v == null ? "" : v;
+  });
   document.querySelectorAll("#plScala button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === P.scala ? "true" : "false"));
   document.querySelectorAll("#plVista button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === P.vista ? "true" : "false"));
   PL = pianifica();
   const { K, H, reps, ops, esito } = PL;
-  const C = TH();
-  const ap = PL.aperte, tardi = ap.filter(c => esito[c.id] && esito[c.id].ritardoH > 0);
-  const ritMed = tardi.length ? tardi.reduce((a, c) => a + esito[c.id].ritardoH, 0) / tardi.length / H : 0;
-  const bloc = ap.filter(c => esito[c.id] && (esito[c.id].bloccata || esito[c.id].senzaFam));
-  document.getElementById("plKpi").innerHTML = kpi(nf(ap.length), "commesse aperte") + kpi(nf(ap.length - tardi.length - bloc.length), "in tempo")
-    + kpi(nf(tardi.length), "in ritardo") + kpi(nf(ritMed, 1) + " " + t("gg"), "ritardo medio") + kpi(PL.fine ? dnFmt(K.giorno(PL.fine), true) : "—", "fine del piano")
-    + (bloc.length ? kpi(nf(bloc.length), "non pianificabili") : "");
+  const C = TH(), st = statPiano(PL);
+
+  /* ---------- ore per reparto ed eventi ---------- */
+  document.getElementById("plOreRep").innerHTML = "<thead><tr>" + S.reparti.map(r => '<th class="num">' + esc(r.nome) + "</th>").join("") + "</tr></thead><tbody><tr>"
+    + S.reparti.map(r => '<td class="num"><input type="number" min="1" max="24" step="0.5" style="width:76px" placeholder="' + nf(K.Hg, 1) + '" value="' + (nz((P.oreRep || {})[r.id]) || "") + '" data-plrep="' + r.id + '"></td>').join("") + "</tr></tbody>";
+  const repOpt = id => S.reparti.map(r => '<option value="' + r.id + '"' + (r.id === id ? " selected" : "") + ">" + esc(r.nome) + "</option>").join("");
+  const tipi = { piu: "Celle in più", meno: "Celle in meno", fermo: "Reparto fermo" };
+  document.getElementById("plEventi").innerHTML = (P.eventi || []).length
+    ? "<thead><tr>" + th("Attivo") + th("Reparto") + th("Evento") + th("Quante celle", "num") + th("Dal") + th("Al") + "<th></th></tr></thead><tbody>"
+      + P.eventi.map(e => '<tr><td><input type="checkbox"' + (e.attivo !== false ? " checked" : "") + ' data-ev="attivo" data-id="' + e.id + '"></td>'
+        + '<td><select data-ev="repId" data-id="' + e.id + '">' + repOpt(e.repId) + "</select></td>"
+        + '<td><select data-ev="tipo" data-id="' + e.id + '">' + Object.keys(tipi).map(k => '<option value="' + k + '"' + (k === e.tipo ? " selected" : "") + ">" + t(tipi[k]) + "</option>").join("") + "</select></td>"
+        + '<td class="num"><input type="number" min="1" step="1" style="width:70px" value="' + (nz(e.n) || 1) + '" data-ev="n" data-id="' + e.id + '"' + (e.tipo === "fermo" ? " disabled" : "") + "></td>"
+        + '<td><input type="date" value="' + esc(e.da || "") + '" data-ev="da" data-id="' + e.id + '"></td>'
+        + '<td><input type="date" value="' + esc(e.a || "") + '" data-ev="a" data-id="' + e.id + '"></td>'
+        + '<td><button class="danger" data-evdel="' + e.id + '">' + t("Elimina") + "</button></td></tr>").join("") + "</tbody>"
+    : '<tbody><tr><td class="empty">' + t("Nessun evento: il piano usa la capacità della Fucina.") + "</td></tr></tbody>";
+
+  /* ---------- data promessa ---------- */
+  const af = document.getElementById("atpFam"), keepF = af.value;
+  af.innerHTML = S.famiglie.map(f => '<option value="' + f.id + '">' + esc(f.nome) + "</option>").join("");
+  if (keepF) af.value = keepF;
+  const ar = document.getElementById("atpRil"); if (!ar.value) ar.value = dnStr(Math.floor(Date.now() / 864e5));
+
+  /* ---------- KPI ---------- */
+  document.getElementById("plKpi").innerHTML = kpi(nf(st.n), "commesse aperte") + kpi(nf(st.pianificate - st.tardi), "in tempo")
+    + kpi(nf(st.tardi), "in ritardo") + kpi(nf(st.ritMed, 1) + " " + t("gg"), "ritardo medio") + kpi(nf(st.lead, 1) + " " + t("gg"), "attraversamento medio")
+    + kpi(PL.fine ? dnFmt(K.giorno(PL.fine), true) : "—", "fine del piano") + (st.bloc ? kpi(nf(st.bloc), "non pianificabili") : "");
+
+  /* ---------- filtri ---------- */
+  const ff = document.getElementById("plfFam"), fr = document.getElementById("plfRep");
+  ff.innerHTML = '<option value="">' + t("Tutte le famiglie") + "</option>" + S.famiglie.map(f => '<option value="' + f.id + '"' + (f.id === PLF.fam ? " selected" : "") + ">" + esc(f.nome) + "</option>").join("");
+  fr.innerHTML = '<option value="">' + t("Tutti i reparti") + "</option>" + S.reparti.map(r => '<option value="' + r.id + '"' + (r.id === PLF.rep ? " selected" : "") + ">" + esc(r.nome) + "</option>").join("");
 
   /* ---------- Gantt ---------- */
   const px = PL_PX[P.scala] || 7;
-  const oggi = K.idx(Math.floor(Date.now() / 864e5)) * H;
-  /* l'asse copre almeno un anno, tutte le consegne e la data scelta in «Vai al» */
   const anno1 = K.idx(dnDa(P.inizio) + 365) * H;
   const ultCons = PL.aperte.reduce((a, c) => { const d = dnDa(c.consegna); return d != null ? Math.max(a, K.idx(d + 1) * H) : a; }, 0);
-  const fineAsse = Math.max(PL.fine, oggi, anno1, ultCons, PL_VAI != null ? K.idx(PL_VAI) * H + 20 * H : 0) + 5 * H;
+  const fineAsse = Math.max(PL.fine, PL.oggi, anno1, ultCons, PL_VAI != null ? K.idx(PL_VAI) * H + 20 * H : 0) + 5 * H;
   const W = Math.ceil(fineAsse * px), HEAD = 46, RH = 22;
+  const vede = new Set(PL.aperte.filter(passaFiltro).map(c => c.id));
   const righe = [];
   if (P.vista === "commesse") {
-    const visti = []; ops.forEach(o => { if (visti.indexOf(o.cm) < 0) visti.push(o.cm); });
-    visti.forEach(cm => righe.push({ lab: (cm.codice || "—") + " · " + ((S.famiglie.find(f => f.id === cm.famId) || {}).nome || ""), cm, tardi: esito[cm.id].ritardoH > 0 }));
+    const visti = []; ops.forEach(o => { if (visti.indexOf(o.cm) < 0 && vede.has(o.cm.id)) visti.push(o.cm); });
+    visti.forEach(cm => righe.push({ lab: (cm.fisso ? "🔒 " : "") + (cm.codice || "—") + " · " + ((S.famiglie.find(f => f.id === cm.famId) || {}).nome || ""), cm, tardi: esito[cm.id].ritardoH > 0 }));
   } else {
     reps.forEach((R, ri) => {
-      if (!R.rep) return;
-      const usato = ops.some(o => o.ri === ri);
-      if (!R.corsie.length && !usato) return;
-      righe.push({ lab: R.rep.nome, head: true });
-      R.corsie.forEach((_, li) => righe.push({ lab: t("Cella") + " " + (li + 1), ri, li }));
+      if (!R.rep || (PLF.rep && R.rep.id !== PLF.rep)) return;
+      if (!R.corsie.length && !ops.some(o => o.ri === ri)) return;
+      righe.push({ lab: R.rep.nome + (R.hr !== K.Hg ? " · " + nf(R.hr, 1) + " h/g" : ""), head: true });
+      R.corsie.forEach((L, li) => righe.push({ lab: t("Cella") + " " + (li + 1) + (L.bl.some(b => b[0] === 0) ? " (" + t("extra") + ")" : ""), ri, li }));
     });
   }
-  const altezza = HEAD + righe.reduce((a, r) => a + (r.head ? 20 : RH), 0) + 6;
-  let ys = [], y = HEAD; righe.forEach(r => { ys.push(y); y += r.head ? 20 : RH; });
-  /* intestazione: periodo superiore e inferiore */
+  const ys = []; let y = HEAD; righe.forEach(r => { ys.push(y); y += r.head ? 20 : RH; });
+  const altezza = y + 6;
   const sup = { ore: "giorni", giorni: "mesi", settimane: "mesi", mesi: "anni" }[P.scala];
   const inf = { ore: null, giorni: "giorni", settimane: "settimane", mesi: "mesi" }[P.scala];
   let g = '<svg width="' + W + '" height="' + altezza + '" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">';
+  g += '<rect width="' + W + '" height="' + altezza + '" fill="' + C.bg + '"/>';
   righe.forEach((r, i) => { if (r.head) g += '<rect x="0" y="' + ys[i] + '" width="' + W + '" height="20" fill="' + C.head + '"/>'; else if (i % 2) g += '<rect x="0" y="' + ys[i] + '" width="' + W + '" height="' + RH + '" fill="' + C.tri + '" opacity=".5"/>'; });
+  /* fermi ed eventi: zone tratteggiate sulle celle interessate */
+  if (P.vista !== "commesse") righe.forEach((r, i) => {
+    if (r.head) return;
+    reps[r.ri].corsie[r.li].bl.forEach(b => {
+      const x0 = b[0] * px, x1 = Math.min(b[1], fineAsse) * px; if (x1 <= x0) return;
+      g += '<rect x="' + x0.toFixed(1) + '" y="' + ys[i] + '" width="' + (x1 - x0).toFixed(1) + '" height="' + RH + '" fill="' + C.dim + '" opacity=".18"/>';
+    });
+  });
   periodi(K, fineAsse, sup).forEach(pr => {
     const x = pr.a * px;
     g += '<line x1="' + x + '" y1="0" x2="' + x + '" y2="' + altezza + '" stroke="' + C.line + '"/>';
@@ -2166,80 +2422,135 @@ function renderPiano2() {
   }
   g += '<line x1="0" y1="' + HEAD + '" x2="' + W + '" y2="' + HEAD + '" stroke="' + C.line + '"/>';
   ops.forEach(o => {
-    let i;
-    if (P.vista === "commesse") i = righe.findIndex(r => r.cm === o.cm);
-    else i = righe.findIndex(r => r.ri === o.ri && r.li === o.li);
+    const i = P.vista === "commesse" ? righe.findIndex(r => r.cm === o.cm) : righe.findIndex(r => r.ri === o.ri && r.li === o.li);
     if (i < 0) return;
+    const fuori = !vede.has(o.cm.id);
     const x = o.st * px, w = Math.max(1.5, (o.en - o.st) * px), yy = ys[i] + 3, hh = RH - 6;
     const col = P.vista === "commesse" ? PAL[o.ri % PAL.length] : famColor(o.fam.id);
-    const tit = (o.cm.codice || "") + " · " + o.fam.nome + " · " + S.fasi[o.ri].nome + "\n" + dnFmt(K.giorno(o.st + 1e-6), true) + " → " + dnFmt(K.giorno(o.en), true) + " · " + nf(o.en - o.st, 1) + " h"
-      + (o.tardi ? "\n" + t("in ritardo di") + " " + nf(esito[o.cm.id].ritardoH / H, 1) + " " + t("gg") : "");
-    g += '<g class="bar"><title>' + esc(tit) + '</title><rect x="' + x.toFixed(1) + '" y="' + yy + '" width="' + w.toFixed(1) + '" height="' + hh + '" rx="' + Math.min(5, w / 2) + '" fill="' + col + '"' + (o.tardi ? ' stroke="' + C.bad + '" stroke-width="2"' : "") + "/>";
-    if (w > 46) g += '<text x="' + (x + 5).toFixed(1) + '" y="' + (yy + hh - 4.5) + '" fill="#fff" font-size="10.5" font-weight="600">' + esc(String(P.vista === "commesse" ? S.fasi[o.ri].nome : o.cm.codice || "").slice(0, Math.floor(w / 7))) + "</text>";
+    const e = esito[o.cm.id];
+    const tit = (o.cm.codice || "") + " · " + o.fam.nome + " · " + S.fasi[o.ri].nome + "\n" + whOra(K, o.st) + " → " + whOra(K, o.en) + " · " + nf(o.dur, 1) + " h " + t("di lavoro")
+      + (o.attesa > .05 ? "\n" + t("in coda prima") + ": " + nf(o.attesa, 1) + " h" : "")
+      + (o.tardi ? "\n" + t("in ritardo di") + " " + nf(e.ritardoH / H, 1) + " " + t("gg") : "")
+      + (o.cm.fisso ? "\n🔒 " + t("non prima del") + " " + dnFmt(dnDa(o.cm.fisso), true) : "");
+    g += '<g class="bar" data-cm="' + o.cm.id + '"' + (fuori ? ' opacity=".15"' : "") + "><title>" + esc(tit) + '</title><rect x="' + x.toFixed(1) + '" y="' + yy + '" width="' + w.toFixed(1) + '" height="' + hh + '" rx="' + Math.min(5, w / 2) + '" fill="' + col + '"' + (o.tardi ? ' stroke="' + C.bad + '" stroke-width="2"' : "") + "/>";
+    if (w > 46) g += '<text x="' + (x + 5).toFixed(1) + '" y="' + (yy + hh - 4.5) + '" fill="#fff" font-size="10.5" font-weight="600" pointer-events="none">' + esc(((o.cm.fisso ? "🔒" : "") + (P.vista === "commesse" ? S.fasi[o.ri].nome : o.cm.codice || "")).slice(0, Math.floor(w / 7))) + "</text>";
     g += "</g>";
   });
-  /* consegne in vista per commessa */
   if (P.vista === "commesse") righe.forEach((r, i) => {
     const dn = dnDa(r.cm.consegna); if (dn == null) return;
     const x = K.idx(dn + 1) * H * px;
-    g += '<path d="M' + x + " " + (ys[i] + 2) + "l5 0l-5 9l-5 -9z" + '" fill="' + (r.tardi ? C.bad : C.ok) + '"><title>' + t("Consegna") + " " + dnFmt(dn, true) + "</title></path>";
+    g += '<path d="M' + x + " " + (ys[i] + 2) + 'l5 0l-5 9l-5 -9z" fill="' + (r.tardi ? C.bad : C.ok) + '"><title>' + t("Consegna") + " " + dnFmt(dn, true) + "</title></path>";
   });
-  g += '<line x1="' + oggi * px + '" y1="0" x2="' + oggi * px + '" y2="' + altezza + '" stroke="' + C.ember + '" stroke-width="2" stroke-dasharray="4 3"/>';
+  g += '<line x1="' + PL.oggi * px + '" y1="0" x2="' + PL.oggi * px + '" y2="' + altezza + '" stroke="' + C.ember + '" stroke-width="2" stroke-dasharray="4 3"/>';
   g += "</svg>";
-  let lab = '<svg width="170" height="' + altezza + '" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">';
+  let lab = '<svg width="170" height="' + altezza + '" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif"><rect width="170" height="' + altezza + '" fill="' + C.panel + '"/>';
   lab += '<text x="12" y="30" fill="' + C.dim + '" font-size="11" font-weight="600">' + t(P.vista === "commesse" ? "COMMESSA" : "REPARTO / CELLA") + "</text>";
   righe.forEach((r, i) => {
-    if (r.head) lab += '<rect x="0" y="' + ys[i] + '" width="170" height="20" fill="' + C.head + '"/><text x="12" y="' + (ys[i] + 14) + '" fill="' + C.ink + '" font-size="12" font-weight="700">' + esc(r.lab.slice(0, 22)) + "</text>";
-    else lab += '<text x="' + (P.vista === "commesse" ? 12 : 22) + '" y="' + (ys[i] + 15) + '" fill="' + (r.tardi ? C.bad : C.dim) + '" font-size="11.5">' + esc(r.lab.slice(0, 24)) + "</text>";
+    if (r.head) lab += '<rect x="0" y="' + ys[i] + '" width="170" height="20" fill="' + C.head + '"/><text x="12" y="' + (ys[i] + 14) + '" fill="' + C.ink + '" font-size="12" font-weight="700">' + esc(r.lab.slice(0, 24)) + "</text>";
+    else lab += '<text x="' + (P.vista === "commesse" ? 12 : 22) + '" y="' + (ys[i] + 15) + '" fill="' + (r.tardi ? C.bad : C.dim) + '" font-size="11.5">' + esc(r.lab.slice(0, 26)) + "</text>";
   });
   lab += "</svg>";
+  PL_SVG = { lab, g, W, altezza };
   const sc = document.getElementById("plScroll"), keep = sc.scrollLeft, keepPx = sc.dataset.px;
   document.getElementById("plLab").innerHTML = lab;
-  sc.innerHTML = righe.length ? g : '<p class="empty" style="padding:18px">' + t("Nessuna commessa da pianificare. Aggiungile qui sotto o creale dal forecast.") + "</p>";
+  sc.innerHTML = righe.length ? g : '<p class="empty" style="padding:18px">' + t("Nessuna commessa da mostrare. Aggiungile qui sotto, creale dal forecast o allarga i filtri.") + "</p>";
   /* cambiando scala resta centrato sullo stesso momento */
   if (keepPx && +keepPx !== px) sc.scrollLeft = keep / +keepPx * px; else sc.scrollLeft = keep;
   sc.dataset.px = px;
-  document.getElementById("plLegend").innerHTML = P.vista === "commesse"
-    ? S.fasi.map((f, i) => '<span><i class="swatch" style="background:' + PAL[i % PAL.length] + '"></i>' + esc(f.nome) + "</span>").join("") + '<span><i class="swatch" style="background:none;border:2px solid ' + C.bad + '"></i>' + t("in ritardo") + "</span>"
-    : S.famiglie.map(f => '<span><i class="swatch" style="background:' + famColor(f.id) + '"></i>' + esc(f.nome) + "</span>").join("") + '<span><i class="swatch" style="background:none;border:2px solid ' + C.bad + '"></i>' + t("in ritardo") + '</span><span><i class="swatch" style="background:' + C.ember + '"></i>' + t("oggi") + "</span>";
+  const sw = (c, l, b) => '<span><i class="swatch" style="' + (b ? "background:none;border:2px solid " + c : "background:" + c) + '"></i>' + l + "</span>";
+  document.getElementById("plLegend").innerHTML = (P.vista === "commesse" ? S.fasi.map((f, i) => sw(PAL[i % PAL.length], esc(f.nome))).join("") : S.famiglie.map(f => sw(famColor(f.id), esc(f.nome))).join(""))
+    + sw(C.bad, t("in ritardo"), true) + sw(C.ember, t("oggi")) + (P.vista !== "commesse" ? sw("rgba(127,120,150,.35)", t("cella ferma o non disponibile")) : "");
 
   /* ---------- carico per periodo ---------- */
   const unita = P.scala === "ore" ? "giorni" : P.scala;
   const per = periodi(K, Math.max(PL.fine, H), unita).slice(0, 400);
   const lav = reps.map(() => per.map(() => 0));
-  ops.forEach(o => per.forEach((pr, pi) => { const a = Math.max(o.st, pr.a), b = Math.min(o.en, pr.b); if (b > a) lav[o.ri][pi] += b - a; }));
-  document.getElementById("plCarico").innerHTML = "<thead><tr>" + th("Reparto") + per.map(pr => '<th class="num">' + esc(unita === "giorni" ? dnFmt(pr.key) : unita === "settimane" ? dnFmt(pr.key) : pr.lab) + "</th>").join("") + "</tr></thead><tbody>"
+  ops.forEach(o => { const L = reps[o.ri].corsie[o.li]; per.forEach((pr, pi) => { if (o.en > pr.a && o.st < pr.b) lav[o.ri][pi] += quota(L, o, pr.a, pr.b, H); }); });
+  document.getElementById("plCarico").innerHTML = "<thead><tr>" + th("Reparto") + per.map(pr => '<th class="num">' + esc(unita === "mesi" ? pr.lab : dnFmt(pr.key)) + "</th>").join("") + "</tr></thead><tbody>"
     + reps.map((R, ri) => {
       if (!R.rep || !R.corsie.length) return "";
       return "<tr><td>" + esc(R.rep.nome) + "</td>" + per.map((pr, pi) => {
-        const cap = R.corsie.length * (pr.b - pr.a), v = cap > 0 ? lav[ri][pi] / cap : 0;
-        return '<td class="mese ' + (v <= 0 ? "m-off" : v > .95 ? "m-bad" : v >= .8 ? "m-warn" : "m-ok") + '" title="' + nf(lav[ri][pi], 1) + " / " + nf(cap) + ' h">' + (v > 0 ? nf(v * 100) + "%" : "·") + "</td>";
+        const cap = R.corsie.reduce((a, L) => a + disponibili(L, pr.a, pr.b, H), 0), v = cap > 0 ? lav[ri][pi] / cap : 0;
+        return '<td class="mese ' + (v <= 0 ? "m-off" : v > .95 ? "m-bad" : v >= .8 ? "m-warn" : "m-ok") + '" title="' + nf(lav[ri][pi], 1) + " / " + nf(cap) + ' h">' + (cap <= 0 ? t("fermo") : v > 0 ? nf(v * 100) + "%" : "·") + "</td>";
       }).join("") + "</tr>";
+    }).join("") + "</tbody>";
+
+  /* ---------- dove si aspetta ---------- */
+  const att = reps.map(() => ({ lav: 0, att: 0, n: 0 }));
+  ops.forEach(o => { att[o.ri].lav += o.dur; att[o.ri].att += o.attesa; att[o.ri].n++; });
+  const maxAtt = Math.max(0, ...att.map(a => a.n ? a.att / a.n : 0));
+  document.getElementById("plAttese").innerHTML = "<thead><tr>" + th("Reparto") + th("Passaggi", "num") + th("Ore di lavoro", "num") + th("Ore in coda", "num") + th("Coda media per commessa", "num") + th("Quota di coda", "num") + "</tr></thead><tbody>"
+    + reps.map((R, ri) => {
+      const a = att[ri]; if (!R.rep || !a.n) return "";
+      const med = a.att / a.n;
+      return "<tr" + (med === maxAtt && med > 0 ? ' class="vincolo"' : "") + "><td>" + esc(R.rep.nome) + '</td><td class="num">' + nf(a.n) + '</td><td class="num">' + nf(a.lav) + '</td><td class="num">' + nf(a.att) + "</td>"
+        + '<td class="num">' + nf(med, 1) + " h · " + nf(med / H, 1) + " " + t("gg") + '</td><td class="num">' + pct(a.att / ((a.att + a.lav) || 1)) + "</td></tr>";
+    }).join("") + "</tbody>";
+
+  /* ---------- confronto regole ---------- */
+  document.getElementById("plRegole").innerHTML = "<thead><tr>" + th("Regola") + th("In ritardo", "num") + th("Ritardo medio", "num") + th("Attraversamento medio", "num") + th("Fine del piano", "num") + "<th></th></tr></thead><tbody>"
+    + Object.keys(REGOLE).map(k => {
+      const r = k === PL.regola ? PL : pianifica({ regola: k }), s = statPiano(r);
+      return "<tr" + (k === PL.regola ? ' class="vincolo"' : "") + "><td>" + t(REGOLE[k]) + '</td><td class="num">' + nf(s.tardi) + '</td><td class="num">' + nf(s.ritMed, 1) + " " + t("gg")
+        + '</td><td class="num">' + nf(s.lead, 1) + " " + t("gg") + '</td><td class="num">' + (r.fine ? dnFmt(K.giorno(r.fine), true) : "—") + "</td><td>"
+        + (k === PL.regola ? '<span class="tag t-ok">' + t("in uso") + "</span>" : '<button class="act ghost" data-regola="' + k + '">' + t("Usa questa") + "</button>") + "</td></tr>";
+    }).join("") + "</tbody>";
+
+  /* ---------- piano contro forecast ---------- */
+  /* un mese tagliato dall'inizio del piano conta solo per i giorni che restano */
+  const ggMese = (K, key) => { const y = Math.floor(key / 12), m = key % 12, gs = nz(S.piano.giorniSett) === 6 ? 6 : 5; let n = 0;
+    for (let d = Date.UTC(y, m, 1) / 864e5; d < Date.UTC(y, m + 1, 1) / 864e5; d++) { const w = (d + 4) % 7; if (w >= 1 && w <= gs && !K.chiusi.has(d)) n++; } return n; };
+  const mesiP = periodi(K, K.idx(dnDa(P.inizio) + 366) * H, "mesi").slice(0, 12);
+  const teor = compute().righe;
+  const pianM = reps.map(() => mesiP.map(() => 0));
+  ops.forEach(o => { const L = reps[o.ri].corsie[o.li]; mesiP.forEach((pr, pi) => { if (o.en > pr.a && o.st < pr.b) pianM[o.ri][pi] += quota(L, o, pr.a, pr.b, H); }); });
+  document.getElementById("plVsFc").innerHTML = "<thead><tr>" + th("Reparto") + mesiP.map(pr => '<th class="num">' + esc(pr.lab) + "</th>").join("") + th("Totale", "num") + "</tr></thead><tbody>"
+    + reps.map((R, ri) => {
+      const tr = teor.find(x => x.fase.id === R.fase.id); if (!R.rep || !tr || (tr.caricoH <= 0 && !pianM[ri].some(v => v > 0))) return "";
+      let sp = 0, stt = 0;
+      return "<tr><td>" + esc(R.rep.nome) + "</td>" + mesiP.map((pr, pi) => {
+        const pv = pianM[ri][pi], tv = tr.meseH[pr.mese] * pr.giorni / Math.max(1, ggMese(K, pr.key));
+        sp += pv; stt += tv;
+        const r = tv > 0 ? pv / tv : null;
+        return '<td class="mese ' + (r == null ? "m-off" : r > 1.15 ? "m-bad" : r < .85 ? "m-warn" : "m-ok") + '" title="' + t("piano") + " " + nf(pv) + " h · " + t("forecast") + " " + nf(tv) + ' h">' + nf(pv) + ' <span style="color:var(--dim)">/ ' + nf(tv) + "</span></td>";
+      }).join("") + '<td class="num"><strong>' + nf(sp) + "</strong> / " + nf(stt) + "</td></tr>";
     }).join("") + "</tbody>";
 
   /* ---------- tabella commesse ---------- */
   const famOpt = id => '<option value="">—</option>' + S.famiglie.map(f => '<option value="' + f.id + '"' + (f.id === id ? " selected" : "") + ">" + esc(f.nome) + "</option>").join("");
-  const elenco = S.commesse.slice().sort((a, b) => (a.chiusa ? 1 : 0) - (b.chiusa ? 1 : 0) || (dnDa(a.consegna) || 1e9) - (dnDa(b.consegna) || 1e9));
-  document.getElementById("plTab").innerHTML = "<thead><tr>" + th("Commessa") + th("Famiglia") + th("Rilascio") + th("Consegna") + th("Priorità", "num") + th("Inizio") + th("Fine prevista") + th("Esito") + th("Chiusa") + "<th></th></tr></thead><tbody>"
+  const avOpt = cm => {
+    const fam = S.famiglie.find(f => f.id === cm.famId);
+    const fasi = fam ? S.fasi.filter(fa => fam.tempi[fa.id] && fam.tempi[fa.id].on) : [];
+    return '<option value="">' + t("da iniziare") + "</option>" + fasi.map(fa => '<option value="' + fa.id + '"' + (fa.id === cm.fatto ? " selected" : "") + ">" + t("fatto") + ": " + esc(fa.nome) + "</option>").join("");
+  };
+  const elenco = S.commesse.filter(passaFiltro).sort((a, b) => (a.chiusa ? 1 : 0) - (b.chiusa ? 1 : 0) || (dnDa(a.consegna) || 1e9) - (dnDa(b.consegna) || 1e9));
+  document.getElementById("plTab").innerHTML = "<thead><tr>" + th("Commessa") + th("Famiglia") + th("Rilascio") + th("Consegna") + th("Priorità", "num") + th("Non prima di") + th("Avanzamento")
+    + th("Inizio") + th("Fine prevista") + th("Lavoro", "num") + th("In coda", "num") + th("Esito") + th("Chiusa") + "<th></th></tr></thead><tbody>"
     + (elenco.length ? elenco.map(cm => {
       const e = esito[cm.id] || {};
       const tag = cm.chiusa ? '<span class="tag t-idle">' + t("chiusa") + "</span>"
         : e.senzaFam ? '<span class="tag t-bad">' + t("manca la famiglia") + "</span>"
         : e.bloccata ? '<span class="tag t-bad">' + t("nessuna cella in") + " " + esc(e.bloccata) + "</span>"
+        : e.completa ? '<span class="tag t-ok">' + t("tutte le fasi fatte: chiudila") + "</span>"
         : e.vuota ? '<span class="tag t-idle">' + t("nessun tempo") + "</span>"
         : e.ritardoH > 0 ? '<span class="tag t-bad">+' + nf(e.ritardoH / H, 1) + " " + t("gg") + "</span>"
         : e.ritardoH != null ? '<span class="tag t-ok">' + t("in tempo") + " · " + nf(-e.ritardoH / H, 1) + " " + t("gg di margine") + "</span>" : '<span class="tag t-idle">' + t("senza consegna") + "</span>";
+      const on = !cm.chiusa && e.fine != null;
       return '<tr><td><input class="cod" value="' + esc(cm.codice) + '" data-cm="codice" data-id="' + cm.id + '"></td>'
         + '<td><select data-cm="famId" data-id="' + cm.id + '">' + famOpt(cm.famId) + "</select></td>"
         + '<td><input type="date" value="' + esc(cm.rilascio || "") + '" data-cm="rilascio" data-id="' + cm.id + '"></td>'
         + '<td><input type="date" value="' + esc(cm.consegna || "") + '" data-cm="consegna" data-id="' + cm.id + '"></td>'
         + '<td class="num"><input type="number" min="1" max="9" step="1" style="width:60px" value="' + (nz(cm.priorita) || 5) + '" data-cm="priorita" data-id="' + cm.id + '"></td>'
-        + "<td>" + (e.inizio != null && !cm.chiusa ? dnFmt(K.giorno(e.inizio + 1e-6), true) : "—") + "</td>"
-        + "<td>" + (e.fine != null && !cm.chiusa ? dnFmt(K.giorno(e.fine), true) : "—") + "</td>"
+        + '<td style="white-space:nowrap"><input type="date" value="' + esc(cm.fisso || "") + '" data-cm="fisso" data-id="' + cm.id + '">' + (cm.fisso ? " 🔒" : "") + "</td>"
+        + '<td><select data-cm="fatto" data-id="' + cm.id + '">' + avOpt(cm) + "</select></td>"
+        + "<td>" + (on ? dnFmt(K.giorno(e.inizio + 1e-6), true) : "—") + "</td>"
+        + "<td>" + (on ? dnFmt(K.giorno(e.fine), true) : "—") + "</td>"
+        + '<td class="num">' + (on ? nf(e.lavoro, 1) + " h" : "—") + "</td>"
+        + '<td class="num">' + (on ? nf(e.attesa, 1) + " h" : "—") + "</td>"
         + '<td class="pl-tag">' + tag + "</td>"
         + '<td><input type="checkbox"' + (cm.chiusa ? " checked" : "") + ' data-cm="chiusa" data-id="' + cm.id + '"></td>'
         + '<td><button class="danger" data-cmdel="' + cm.id + '">' + t("Elimina") + "</button></td></tr>";
-    }).join("") : '<tr><td class="empty" colspan="10">' + t("Nessuna commessa.") + "</td></tr>")
+    }).join("") : '<tr><td class="empty" colspan="14">' + t(S.commesse.length ? "Nessuna commessa con questi filtri." : "Nessuna commessa.") + "</td></tr>")
     + "</tbody>";
 }
 
@@ -2249,42 +2560,129 @@ function dataDa(s) {
   if ((m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/.exec(s))) return (m[3].length === 2 ? "20" + m[3] : m[3]) + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
   return "";
 }
-function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + String(S.commesse.length + 1).padStart(4, "0"), famId: S.famiglie[0] ? S.famiglie[0].id : "", rilascio: S.piano.inizio, consegna: "", priorita: 5, chiusa: false }, o); }
+function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: "C" + String(S.commesse.length + 1).padStart(4, "0"), famId: S.famiglie[0] ? S.famiglie[0].id : "", rilascio: S.piano.inizio, consegna: "", priorita: 5, chiusa: false, fisso: "", fatto: "" }, o); }
 
 (function () {
   const ri = () => { queueSave(); renderPiano2(); };
-  document.getElementById("tab-piano").addEventListener("change", e => {
+  const tab = document.getElementById("tab-piano");
+  tab.addEventListener("change", e => {
     const el = e.target;
-    if (el.dataset.pl) { S.piano[el.dataset.pl] = el.type === "date" ? el.value : nz(el.value); return ri(); }
+    if (el.dataset.pl) {
+      const k = el.dataset.pl;
+      S.piano[k] = el.type === "checkbox" ? el.checked : (el.tagName === "SELECT" || el.tagName === "TEXTAREA" || el.type === "date") ? el.value : nz(el.value);
+      return ri();
+    }
+    if (el.dataset.plrep) { S.piano.oreRep = S.piano.oreRep || {}; if (nz(el.value) > 0) S.piano.oreRep[el.dataset.plrep] = nz(el.value); else delete S.piano.oreRep[el.dataset.plrep]; return ri(); }
+    if (el.dataset.ev) {
+      const ev = (S.piano.eventi || []).find(x => x.id === el.dataset.id); if (!ev) return;
+      ev[el.dataset.ev] = el.type === "checkbox" ? el.checked : el.dataset.ev === "n" ? nz(el.value) : el.value;
+      return ri();
+    }
     if (el.dataset.cm) {
       const cm = S.commesse.find(x => x.id === el.dataset.id); if (!cm) return;
       const f = el.dataset.cm;
       cm[f] = f === "chiusa" ? el.checked : f === "priorita" ? nz(el.value) : el.value;
+      if (f === "famId") cm.fatto = "";
       return ri();
     }
+  });
+  tab.addEventListener("click", e => {
+    const d = e.target.closest("[data-cmdel]"); if (d) { S.commesse = S.commesse.filter(x => x.id !== d.dataset.cmdel); return ri(); }
+    const ev = e.target.closest("[data-evdel]"); if (ev) { S.piano.eventi = S.piano.eventi.filter(x => x.id !== ev.dataset.evdel); return ri(); }
+    const rg = e.target.closest("[data-regola]"); if (rg) { S.piano.regola = rg.dataset.regola; return ri(); }
+  });
+  document.getElementById("plEvAdd").addEventListener("click", () => {
+    const oggi = dnStr(Math.floor(Date.now() / 864e5));
+    S.piano.eventi = S.piano.eventi || [];
+    S.piano.eventi.push({ id: uid(), attivo: true, repId: S.reparti[0] ? S.reparti[0].id : "", tipo: "piu", n: 1, da: oggi, a: dnStr(dnDa(oggi) + 13) });
+    ri();
   });
   document.getElementById("plScala").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.scala = b.dataset.v; ri(); } });
   document.getElementById("plVista").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.piano.vista = b.dataset.v; ri(); } });
   const vai = dn => { PL_VAI = dn; renderPiano2(); const K = calendario(), px = PL_PX[S.piano.scala] || 7; document.getElementById("plScroll").scrollLeft = Math.max(0, K.idx(dn) * K.H * px - 120); };
   document.getElementById("plOggi").addEventListener("click", () => vai(Math.floor(Date.now() / 864e5)));
   document.getElementById("plVai").addEventListener("change", e => { const dn = dnDa(e.target.value); if (dn != null) vai(dn); });
+  document.getElementById("plfQ").addEventListener("input", e => { PLF.q = e.target.value; renderPiano2(); document.getElementById("plfQ").focus(); });
+  document.getElementById("plfFam").addEventListener("change", e => { PLF.fam = e.target.value; renderPiano2(); });
+  document.getElementById("plfRep").addEventListener("change", e => { PLF.rep = e.target.value; renderPiano2(); });
+  document.getElementById("plfTardi").addEventListener("change", e => { PLF.tardi = e.target.checked; renderPiano2(); });
   document.getElementById("plAdd").addEventListener("click", () => { S.commesse.push(nuovaCommessa({})); ri(); });
   document.getElementById("plSvuota").addEventListener("click", () => { if (S.commesse.length && confirm(t("Elimino tutte le commesse?"))) { S.commesse = []; ri(); } });
-  document.getElementById("tab-piano").addEventListener("click", e => {
-    const b = e.target.closest("[data-cmdel]"); if (!b) return;
-    S.commesse = S.commesse.filter(x => x.id !== b.dataset.cmdel); ri();
+
+  /* trascinamento: sposta tutta la commessa e ne fissa l'inizio */
+  const sc = document.getElementById("plScroll");
+  let DR = null;
+  sc.addEventListener("pointerdown", e => {
+    const b = e.target.closest(".bar"); if (!b || !PL) return;
+    DR = { id: b.dataset.cm, x: e.clientX, dx: 0 }; sc.setPointerCapture(e.pointerId); e.preventDefault();
   });
+  sc.addEventListener("pointermove", e => {
+    if (!DR) return; DR.dx = e.clientX - DR.x;
+    sc.querySelectorAll('.bar[data-cm="' + DR.id + '"]').forEach(b => b.setAttribute("transform", "translate(" + DR.dx + ",0)"));
+  });
+  const fine = () => {
+    if (!DR) return; const d = DR; DR = null;
+    if (Math.abs(d.dx) < 4) { sc.querySelectorAll('.bar[data-cm="' + d.id + '"]').forEach(b => b.removeAttribute("transform")); return; }
+    const cm = S.commesse.find(x => x.id === d.id), e = PL.esito[d.id]; if (!cm || !e || e.inizio == null) return;
+    const px = PL_PX[S.piano.scala] || 7, nuovo = Math.max(0, e.inizio + d.dx / px);
+    cm.fisso = dnStr(PL.K.WD[Math.min(PL.K.WD.length - 1, Math.floor(nuovo / PL.H + 1e-9))]);
+    ri();
+  };
+  sc.addEventListener("pointerup", fine); sc.addEventListener("pointercancel", fine);
+
+  /* data promessa */
+  document.getElementById("atpGo").addEventListener("click", () => {
+    const famId = document.getElementById("atpFam").value, out = document.getElementById("atpOut");
+    if (!famId) { out.innerHTML = '<p class="empty">' + t("Serve almeno una famiglia nella Fucina.") + "</p>"; return; }
+    const tmp = nuovaCommessa({ id: "__atp", codice: t("(nuova)"), famId, rilascio: document.getElementById("atpRil").value, priorita: nz(document.getElementById("atpPri").value) || 5 });
+    const base = statPiano(pianifica()), r = pianifica({ extra: [tmp] }), e = r.esito.__atp;
+    const tardiPrima = new Set(PL.aperte.filter(c => { const x = PL.esito[c.id]; return x && x.ritardoH > 0; }).map(c => c.id));
+    const nuoviTardi = r.aperte.filter(c => c.id !== "__atp" && r.esito[c.id].ritardoH > 0 && !tardiPrima.has(c.id));
+    if (!e || e.fine == null) { out.innerHTML = '<p class="empty">' + t("Non pianificabile") + (e && e.bloccata ? ": " + t("nessuna cella in") + " " + esc(e.bloccata) : "") + ".</p>"; ATP = null; document.getElementById("atpAdd").hidden = true; return; }
+    ATP = { famId, rilascio: tmp.rilascio, priorita: tmp.priorita, consegna: dnStr(r.K.giorno(e.fine)) };
+    out.innerHTML = '<div class="constraint" style="margin:0"><p class="k">' + t("Data promessa") + '</p><div class="v">' + dnFmt(r.K.giorno(e.fine), true) + "</div><p>"
+      + t("Inizia il") + " " + dnFmt(r.K.giorno(e.inizio + 1e-6), true) + ", " + nf(e.lavoro, 1) + " " + t("ore di lavoro e") + " " + nf(e.attesa, 1) + " " + t("di coda") + ". "
+      + (nuoviTardi.length ? "<strong>" + t("Con questa priorità") + " " + nuoviTardi.length + " " + t("commesse andrebbero in ritardo") + "</strong>: " + nuoviTardi.slice(0, 6).map(c => esc(c.codice)).join(", ") + (nuoviTardi.length > 6 ? "…" : "") + "."
+        : t("Nessun'altra commessa va in ritardo.")) + " " + t("Oggi in ritardo") + ": " + base.tardi + ".</p></div>";
+    document.getElementById("atpAdd").hidden = false;
+  });
+  document.getElementById("atpAdd").addEventListener("click", () => {
+    if (!ATP) return;
+    S.commesse.push(nuovaCommessa(ATP)); ATP = null;
+    document.getElementById("atpAdd").hidden = true; document.getElementById("atpOut").innerHTML = '<p class="hint">' + t("Commessa aggiunta.") + "</p>";
+    ri();
+  });
+
+  /* export */
+  document.getElementById("plDlSvg").addEventListener("click", () => {
+    if (!PL_SVG) return;
+    const s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + (170 + PL_SVG.W) + '" height="' + PL_SVG.altezza + '">' + PL_SVG.lab + '<g transform="translate(170,0)">' + PL_SVG.g + "</g></svg>";
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([s], { type: "image/svg+xml" })); a.download = fname("easyfabio-gantt-", "svg"); a.click(); URL.revokeObjectURL(a.href);
+  });
+  document.getElementById("plDlCsv").addEventListener("click", () => {
+    if (!PL) return;
+    const K = PL.K, q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+    const rows = [["Commessa", "Famiglia", "Fase", "Reparto", "Cella", "Settimana", "Inizio", "Fine", "Ore di lavoro", "Ore in coda", "Consegna", "Ritardo gg"].map(x => q(t(x))).join(";")];
+    PL.ops.slice().sort((a, b) => a.ri - b.ri || a.st - b.st).forEach(o => {
+      const R = PL.reps[o.ri], dn = K.giorno(o.st + 1e-6), lun = dn - ((new Date(dn * 864e5).getUTCDay() + 6) % 7), e = PL.esito[o.cm.id];
+      rows.push([o.cm.codice, o.fam.nome, R.fase.nome, R.rep ? R.rep.nome : "", o.li + 1, dnFmt(lun, true), whOra(K, o.st), whOra(K, o.en), nf(o.dur, 2), nf(o.attesa, 2),
+        o.cm.consegna ? dnFmt(dnDa(o.cm.consegna), true) : "", e.ritardoH > 0 ? nf(e.ritardoH / PL.H, 1) : ""].map(q).join(";"));
+    });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + rows.join("\r\n")], { type: "text/csv" })); a.download = fname("easyfabio-lavori-", "csv"); a.click(); URL.revokeObjectURL(a.href);
+  });
+
   document.getElementById("plForecast").addEventListener("click", () => {
-    const anno = S.meta.anno || 0, base = dnDa(S.piano.inizio), y0 = new Date(base * 864e5).getUTCFullYear(), m0 = new Date(base * 864e5).getUTCMonth();
+    const anno = S.meta.anno || 0, base = dnDa(S.piano.inizio), y0 = new Date(base * 864e5).getUTCFullYear();
     const nuove = [];
     S.famiglie.forEach(f => {
       const n = Math.round(nz(f.forecastAnni[anno])); if (n <= 0) return;
       const tot = f.mensile.reduce((a, b) => a + nz(b), 0) || 1;
       const quote = ripartisci(f.mensile.map(v => nz(v) / tot * n), n);
       quote.forEach((q, m) => {
+        /* il profilo è per mese di calendario: i mesi già passati vanno all'anno dopo */
+        const y = Date.UTC(y0, m + 1, 0) / 864e5 < base ? y0 + 1 : y0;
         for (let k = 0; k < q; k++) {
-          /* consegna sparsa nel mese, rilascio quattro settimane prima */
-          const cons = Date.UTC(y0, m0 + m, 1 + Math.floor((k + .5) / q * 27)) / 864e5;
+          const cons = Date.UTC(y, m, 1 + Math.floor((k + .5) / q * 27)) / 864e5;
           nuove.push({ famId: f.id, consegna: dnStr(cons), rilascio: dnStr(Math.max(base, cons - 28)) });
         }
       });
