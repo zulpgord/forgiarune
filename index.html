@@ -326,7 +326,7 @@ body.side-off #side{display:none}
   padding:18px 22px;border-top:6px solid #7C4DEB;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
 .rep-tit{font-family:"Poppins",sans-serif;font-weight:700;font-size:17px}
 .rep-sub{color:#7B7596;font-size:11.5px;margin-bottom:10px}
-.rep-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rep-cards{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px}
 .rep-card{background:#F6F2FD;border-radius:10px;padding:8px 12px;line-height:1.45;border-top:3px solid #7C4DEB}
 .rep-card:nth-child(2){border-top-color:#EC5C97}
 .rep-anno{font-size:11px;font-weight:700;color:#7B7596;text-transform:uppercase;letter-spacing:.05em}
@@ -343,6 +343,8 @@ body.side-off #side{display:none}
 .rep-tab tfoot td{font-weight:700}
 .rep-note{margin-top:auto;font-size:11px;color:#7B7596}
 @media (max-width:700px){#repPreview{grid-template-columns:1fr}}
+.anni-btn{display:inline-flex;gap:6px;margin-left:6px}
+.anni-btn button{padding:5px 12px;font-size:13px}
 /* pannelli collassabili: clic sul titolo */
 .panel.fold > h2{cursor:pointer;display:flex;align-items:center;user-select:none}
 .panel.fold > h2::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg);transition:transform .2s}
@@ -434,7 +436,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 <section id="tab-setup">
   <div class="panel">
     <h2>Reparti e celle</h2>
-    <p class="hint">Celle, celle max, operatori e ore valgono solo per l'anno selezionato in alto: puoi progettare una configurazione diversa per ciascuno dei tre anni. Nome, fase, ripristino, lotto e macchine sono invece comuni. Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.</p>
+    <p class="hint">Celle, celle max, operatori e ore valgono solo per l'anno selezionato in alto: puoi progettare una configurazione diversa per ciascun anno del piano. Nome, fase, ripristino, lotto e macchine sono invece comuni. Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.</p>
     <p class="hint">Lotto = quanti pezzi della stessa famiglia passano di fila prima di cambiare: l'attrezzaggio si conta solo al cambio di famiglia, quindi una volta per lotto. Lasciato a 0 si assume una campagna per famiglia in ogni mese in cui ha consegne. Le persone di un reparto sono celle × operatori per cella × turni.</p>
     <div class="scroller"><table id="tblReparti"></table></div>
     <div class="row-actions"><button class="act" id="addReparto">Aggiungi reparto</button>
@@ -505,7 +507,8 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
       <div class="lever"><label for="pCostoOra">Costo orario di una cella</label><input type="number" id="pCostoOra" data-param="costoOraCella" min="0" step="1"></div>
       <div class="lever"><label for="pCostoCella">Costo annuo di una cella in più</label><input type="number" id="pCostoCella" data-param="costoCellaAnno" min="0" step="100"></div>
       <div class="lever"><label for="pAnno0">Nomi degli anni del piano</label>
-        <input id="pAnno0" data-anno="0" style="width:88px"> <input data-anno="1" style="width:88px"> <input data-anno="2" style="width:88px"></div>
+        <span id="anniNomi"></span>
+        <span class="anni-btn"><button class="act ghost" id="annoPiu" title="Aggiungi un anno">+ Anno</button> <button class="act ghost" id="annoMeno" title="Togli l'ultimo anno">− Anno</button></span></div>
     </div>
     <h3 style="margin-top:22px">Fasi di lavorazione</h3>
     <p class="hint">L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.</p>
@@ -749,7 +752,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 
   <div class="panel">
     <h2>Mix produttivo</h2>
-    <p class="hint">I modelli che attraversano il flusso, con i volumi dei tre anni e la loro progressione. Stampando la mappa esce anche questo: la mappa dice come si produce, il mix dice cosa.</p>
+    <p class="hint">I modelli che attraversano il flusso, con i volumi degli anni del piano e la loro progressione. Stampando la mappa esce anche questo: la mappa dice come si produce, il mix dice cosa.</p>
     <div class="scroller"><table id="tblMix"></table></div>
     <div id="mixWrap"></div>
     <div class="legend" id="mixLegend"></div>
@@ -892,8 +895,8 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 
 <section id="tab-scenari" hidden>
   <div class="panel">
-    <h2>Report 3 anni</h2>
-    <p class="hint">Due slide pronte per una presentazione: la sintesi dei tre anni (volumi, celle, persone, vincolo e ore di carico interne ed esterne) e il dettaglio per reparto. I numeri sono quelli salvati nella Fucina per ciascun anno, con lo stesso calcolo del Responso. Il PowerPoint ha testi, tabelle e grafico modificabili.</p>
+    <h2>Report pluriennale</h2>
+    <p class="hint">Due slide pronte per una presentazione: la sintesi degli anni (volumi, celle, persone, vincolo e ore di carico interne ed esterne) e il dettaglio per reparto. I numeri sono quelli salvati nella Fucina per ciascun anno, con lo stesso calcolo del Responso. Il PowerPoint ha testi, tabelle e grafico modificabili.</p>
     <div class="row-actions" style="margin:0 0 16px"><button class="act" id="repPptx">Scarica PowerPoint</button></div>
     <div id="repPreview"></div>
   </div>
@@ -930,13 +933,24 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.9";
+const VERSION = "v6.0";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
+  "Report pluriennale": "Multi-year report",
+  "+ Anno": "+ Year",
+  "− Anno": "− Year",
+  "Aggiungi un anno": "Add a year",
+  "Togli l'ultimo anno": "Remove the last year",
+  "Nome anno": "Year name",
+  "Anno aggiunto: celle, operatori e forecast copiati dall'anno prima.": "Year added: cells, operators and forecast copied from the year before.",
+  "Tolgo": "Remove",
+  "con forecast e configurazione dei reparti di quell'anno?": "with that year's forecast and department configuration?",
+  "Colonne attese: nome famiglia": "Expected columns: family name",
+  "scarto %, valore pezzo. Bastano le prime due.": "scrap %, piece value. The first two are enough.",
   "Report 3 anni": "3-year report",
   "Scarica PowerPoint": "Download PowerPoint",
   "Piano di capacità": "Capacity plan",
@@ -960,7 +974,7 @@ const EN = {
   "Preparo il file…": "Preparing the file…",
   "PowerPoint scaricato": "PowerPoint downloaded",
   "Non riesco a creare il PowerPoint: serve la connessione a internet": "Cannot create the PowerPoint: an internet connection is needed",
-  "Due slide pronte per una presentazione: la sintesi dei tre anni (volumi, celle, persone, vincolo e ore di carico interne ed esterne) e il dettaglio per reparto. I numeri sono quelli salvati nella Fucina per ciascun anno, con lo stesso calcolo del Responso. Il PowerPoint ha testi, tabelle e grafico modificabili.": "Two slides ready for a presentation: the three-year summary (volumes, cells, people, constraint, in-house and outside load hours) and the detail by department. The numbers are those saved in the Forge for each year, with the same calculation as the Verdict. The PowerPoint has editable text, tables and chart.",
+  "Due slide pronte per una presentazione: la sintesi degli anni (volumi, celle, persone, vincolo e ore di carico interne ed esterne) e il dettaglio per reparto. I numeri sono quelli salvati nella Fucina per ciascun anno, con lo stesso calcolo del Responso. Il PowerPoint ha testi, tabelle e grafico modificabili.": "Two slides ready for a presentation: the summary of the years (volumes, cells, people, constraint, in-house and outside load hours) and the detail by department. The numbers are those saved in the Forge for each year, with the same calculation as the Verdict. The PowerPoint has editable text, tables and chart.",
   "regge con l'esterno": "holds with outside cells",
   "Ore fuori": "Hours outside",
   "Le celle esterne sono capacità in subfornitura: il carico riempie le tue celle fino al target e il resto va fuori («Ore fuori»). Celle al target = celle che servono per stare al target di saturazione; la freccia indica l'arrotondamento.": "Outside cells are subcontracted capacity: the load fills your cells up to the target and the rest goes outside (“Hours outside”). Cells at target = cells needed to stay at the utilisation target; the arrow shows the rounding.",
@@ -1141,7 +1155,7 @@ const EN = {
   "L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.": "The order here sets the flow sequence and the order on the map. Add or remove steps when the process changes.",
   "Aggiungi fase": "Add step",
   "Reparti e celle": "Departments and cells",
-  "Celle, celle max, operatori e ore valgono solo per l'anno selezionato in alto: puoi progettare una configurazione diversa per ciascuno dei tre anni. Nome, fase, ripristino, lotto e macchine sono invece comuni. Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.": "Cells, max cells, operators and hours apply only to the year selected at the top: you can plan a different configuration for each of the three years. Name, step, replenishment, batch and machines are shared. Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. The hours here are net per cell, already multiplied by shifts and efficiency: they are the real capacity of one cell. Left blank, the box shows in grey the value derived from the general parameters. Type a number only for departments on a different schedule from the rest. Gross hours live only in the general parameters.",
+  "Celle, celle max, operatori e ore valgono solo per l'anno selezionato in alto: puoi progettare una configurazione diversa per ciascun anno del piano. Nome, fase, ripristino, lotto e macchine sono invece comuni. Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.": "Cells, max cells, operators and hours apply only to the year selected at the top: you can plan a different configuration for each year of the plan. Name, step, replenishment, batch and machines are shared. Each department works one step and holds cells. One cell is one operator. Max cells is the physical ceiling you can reach: the simulation warns you when the suggestion goes past it. The hours here are net per cell, already multiplied by shifts and efficiency: they are the real capacity of one cell. Left blank, the box shows in grey the value derived from the general parameters. Type a number only for departments on a different schedule from the rest. Gross hours live only in the general parameters.",
   "Aggiungi reparto": "Add department",
   "Famiglie di prodotto e tempi": "Product families and times",
   "Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto.": "Switch on the steps a family goes through and enter the times per piece in minutes: labour, machine time and changeover. A step switched off means no load on that department.",
@@ -1392,7 +1406,7 @@ const EN = {
   "Nessun cambiamento: le celle erano già dimensionate.": "No change: the cells were already sized.",
   "il forecast ne chiederebbe": "the forecast would ask for", "Da": "From", "A": "To",
   "Mix produttivo": "Product mix",
-  "I modelli che attraversano il flusso, con i volumi dei tre anni e la loro progressione. Stampando la mappa esce anche questo: la mappa dice come si produce, il mix dice cosa.": "The models that run through the flow, with the volumes of the three years and their progression. Printing the map prints this too: the map says how you produce, the mix says what.",
+  "I modelli che attraversano il flusso, con i volumi degli anni del piano e la loro progressione. Stampando la mappa esce anche questo: la mappa dice come si produce, il mix dice cosa.": "The models that run through the flow, with the volumes of the plan years and their progression. Printing the map prints this too: the map says how you produce, the mix says what.",
   "Modello": "Model", "Gruppo": "Group", "Quota": "Share", "Progressione": "Progression",
   "Nessuna famiglia con forecast.": "No family with a forecast.", "Scarica il grafico": "Download the chart",
   "Riassunto": "Summary", "Celle reali": "Actual cells", "Cella": "Cell", "nessuna cella": "no cell", "da": "from",
@@ -1508,12 +1522,20 @@ let S = blankState();
 
 /* usata dalla migrazione e dal caricamento di uno scenario salvato:
    uno scenario creato con una versione precedente non ha i campi del rodaggio */
-/* Ogni reparto ha una configurazione diversa per ciascuno dei tre anni: celle, operatori,
+/* Ogni reparto ha una configurazione diversa per ciascun anno del piano: celle, operatori,
    tetto, ore e piano di assunzione. Nome, fase, lotto, lead time e macchine restano comuni. */
+/* numero di anni del piano: da 1 a 5, quanti sono i nomi in S.meta.anni */
+const MAX_ANNI = 5;
+function nAnni() {
+  /* durante la creazione dello stato iniziale S non esiste ancora: si parte da 3 */
+  try { return Math.min(MAX_ANNI, Math.max(1, (S.meta.anni || []).length)); } catch (e) { return 3; }
+}
+function anniIdx() { return Array.from({ length: nAnni() }, (_, i) => i); }
 function cfgRep(r, anno) {
-  const y = Math.min(2, Math.max(0, anno == null ? (S.meta.anno || 0) : anno));
   if (!Array.isArray(r.anni)) r.anni = [];
-  if (!r.anni[y]) r.anni[y] = {};
+  const y = Math.min(Math.max(nAnni(), r.anni.length) - 1, Math.max(0, anno == null ? (S.meta.anno || 0) : anno));
+  /* un anno mai configurato parte dalla configurazione dell'anno prima */
+  for (let k = 0; k <= y; k++) if (!r.anni[k]) r.anni[k] = k > 0 && r.anni[k - 1] ? JSON.parse(JSON.stringify(r.anni[k - 1])) : {};
   const c = r.anni[y];
   if (c.celleAttuali == null) c.celleAttuali = 1;
   if (c.celleEsterne == null) c.celleEsterne = 0;
@@ -1526,7 +1548,8 @@ function cfgRep(r, anno) {
   return c;
 }
 
-function normalizzaReparti(list) {
+function normalizzaReparti(list, n) {
+  n = n || nAnni();
   (list || []).forEach(r => {
     if (r.ltGiorni == null) r.ltGiorni = 1;
     if (r.lotto == null) r.lotto = 0;
@@ -1534,12 +1557,13 @@ function normalizzaReparti(list) {
     if (r.buffer == null) r.buffer = true;
     /* stato salvato prima della configurazione per anno: i valori piatti diventano
        il punto di partenza di tutti e tre gli anni */
-    if (!Array.isArray(r.anni) || r.anni.length !== 3) {
+    if (!Array.isArray(r.anni) || !r.anni.length) {
       const piatto = {};
       CAMPI_ANNO.forEach(k => { if (r[k] !== undefined) piatto[k] = r[k]; });
-      r.anni = [0, 1, 2].map(() => JSON.parse(JSON.stringify(piatto)));
+      r.anni = [JSON.parse(JSON.stringify(piatto))];
     }
-    [0, 1, 2].forEach(y => cfgRep(r, y));
+    /* si allunga, non si accorcia mai: gli anni in più di uno scenario restano salvati */
+    for (let y = 0; y < n; y++) cfgRep(r, y);
     CAMPI_ANNO.forEach(k => delete r[k]);
   });
   return list;
@@ -1549,8 +1573,9 @@ function migrate(o) {
   const b = blankState();
   if (!o || typeof o !== "object") return b;
   o.meta = Object.assign({ nome: "Scenario base", lang: "it", theme: "dark", anno: 0, anni: ["Anno 1", "Anno 2", "Anno 3"] }, o.meta);
-  if (!Array.isArray(o.meta.anni) || o.meta.anni.length !== 3) o.meta.anni = ["Anno 1", "Anno 2", "Anno 3"];
-  if (!(o.meta.anno >= 0 && o.meta.anno <= 2)) o.meta.anno = 0;
+  if (!Array.isArray(o.meta.anni) || o.meta.anni.length < 1) o.meta.anni = ["Anno 1", "Anno 2", "Anno 3"];
+  o.meta.anni = o.meta.anni.slice(0, MAX_ANNI);
+  if (!(o.meta.anno >= 0 && o.meta.anno < o.meta.anni.length)) o.meta.anno = 0;
   o.rilievi = Array.isArray(o.rilievi) ? o.rilievi : [];
   o.snapshots = Array.isArray(o.snapshots) ? o.snapshots : [];
   o.commesse = Array.isArray(o.commesse) ? o.commesse : [];
@@ -1562,13 +1587,14 @@ function migrate(o) {
   o.params = Object.assign({}, b.params, o.params);
   o.fasi = Array.isArray(o.fasi) ? o.fasi : b.fasi;
   o.reparti = Array.isArray(o.reparti) ? o.reparti : [];
-  normalizzaReparti(o.reparti);
+  normalizzaReparti(o.reparti, o.meta.anni.length);
   o.famiglie = Array.isArray(o.famiglie) ? o.famiglie : [];
   o.famiglie.forEach(f => {
     f.tempi = f.tempi || {};
     if (f.scarto == null) f.scarto = 0;
     if (f.valore == null) f.valore = 0;
-    if (!Array.isArray(f.forecastAnni) || f.forecastAnni.length !== 3) f.forecastAnni = [nz(f.forecast), 0, 0];
+    if (!Array.isArray(f.forecastAnni) || !f.forecastAnni.length) f.forecastAnni = [nz(f.forecast)];
+    while (f.forecastAnni.length < o.meta.anni.length) f.forecastAnni.push(0);
     delete f.forecast;
     if (!Array.isArray(f.mensile) || f.mensile.length !== 12) f.mensile = uniform();
     o.fasi.forEach(fa => {
@@ -1982,14 +2008,14 @@ function renderFamiglie() {
     }).join("");
     return '<tr><td><input value="' + esc(fa.nome) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="nome"></td>'
       + '<td><input style="width:92px" value="' + esc(fa.cluster) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="cluster"></td>'
-      + [0, 1, 2].map(i => '<td class="num"><input type="number" min="0" step="1" style="width:74px" value="' + nz(fa.forecastAnni[i]) + '" data-k="anno" data-id="' + fa.id + '" data-y="' + i + '"></td>').join("")
+      + anniIdx().map(i => '<td class="num"><input type="number" min="0" step="1" style="width:74px" value="' + nz(fa.forecastAnni[i]) + '" data-k="anno" data-id="' + fa.id + '" data-y="' + i + '"></td>').join("")
       + '<td class="num"><input type="number" min="0" max="95" step="0.5" style="width:62px" value="' + nz(fa.scarto) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="scarto"></td>' 
       + '<td class="num"><input type="number" min="0" step="1" style="width:72px" value="' + nz(fa.valore) + '" data-k="famiglia" data-id="' + fa.id + '" data-f="valore"></td>' 
       + cells
       + '<td><button class="danger" data-del="famiglia" data-id="' + fa.id + '">' + t("Elimina") + "</button></td></tr>";
   }).join("");
   el.innerHTML = head + "<tbody>" + body + "</tbody><tfoot><tr><td colspan='2'>" + t("Totale") + "</td>"
-    + [0, 1, 2].map(i => "<td class='num'>" + nf(S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[i]), 0)) + "</td>").join("")
+    + anniIdx().map(i => "<td class='num'>" + nf(S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[i]), 0)) + "</td>").join("")
     + "<td colspan='" + (S.fasi.length + 3) + "'></td></tr></tfoot>";
 }
 
@@ -2047,7 +2073,12 @@ function renderParams() {
   document.getElementById("pSic").value = S.params.giorniSicurezza;
   document.getElementById("pCostoOra").value = S.params.costoOraCella;
   document.getElementById("pCostoCella").value = S.params.costoCellaAnno;
-  document.querySelectorAll("[data-anno]").forEach(el => el.value = S.meta.anni[+el.dataset.anno] || "");
+  /* un campo per anno; non si ridisegna mentre scrivi, quindi il cursore resta dov'è */
+  const box = document.getElementById("anniNomi");
+  if (box.children.length !== nAnni()) box.innerHTML = anniIdx().map(i => '<input' + (i ? "" : ' id="pAnno0"') + ' data-anno="' + i + '" style="width:88px" aria-label="' + t("Nome anno") + " " + (i + 1) + '">').join(" ");
+  box.querySelectorAll("[data-anno]").forEach(el => { if (document.activeElement !== el) el.value = S.meta.anni[+el.dataset.anno] || ""; });
+  document.getElementById("annoPiu").disabled = nAnni() >= MAX_ANNI;
+  document.getElementById("annoMeno").disabled = nAnni() <= 1;
   document.getElementById("scenName").value = S.meta.nome || "";
 }
 function renderSetup() { renderFasi(); renderReparti(); renderPianoAssunzioni(); renderFamiglie(); renderMensile(); renderParams(); }
@@ -3309,7 +3340,7 @@ function renderGuida() { document.getElementById("guidaBody").innerHTML = GUIDA[
    nella Fucina per quell'anno. Ore interne = carico che resta in casa e ci sta; esterne =
    quelle mandate al terzista; scoperte = quelle che non stanno né dentro né fuori. */
 function datiReport() {
-  return [0, 1, 2].map(anno => {
+  return anniIdx().map(anno => {
     const c = compute({ anno });
     const R = c.righe.filter(r => r.rep);
     const somma = f => R.reduce((a, r) => a + f(r), 0);
@@ -3333,7 +3364,7 @@ function renderReport() {
   const el = document.getElementById("repPreview"); if (!el) return;
   const A = datiReport(), C = TH();
   const P = S.params;
-  const titolo = esc(S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + esc(A[0].nome) + " → " + esc(A[2].nome);
+  const titolo = esc(S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + esc(A[0].nome) + (A.length > 1 ? " → " + esc(A[A.length - 1].nome) : "");
   const sotto = nf(nz(P.turni) || 1) + " " + t("turno/i") + " · " + t("efficienza") + " " + nf(nz(P.efficienza)) + "% · " + t("target") + " " + nf(nz(P.targetSaturazione)) + "%";
   /* slide 1: tre colonne e grafico delle ore */
   const card = (a, i) => {
@@ -3345,10 +3376,10 @@ function renderReport() {
       + '<div class="rep-vinc">' + t("Vincolo") + ": <b>" + esc(a.vincolo) + "</b>" + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : "") + "</div></div>";
   };
   const max = Math.max(1, ...A.map(a => Math.max(a.oreTot, a.capCasa)));
-  const W = 900, H = 200, BW = 120, base = 160, sc = 130 / max;
+  const W = 900, H = 200, passo = 780 / A.length, BW = Math.min(120, passo * .55), base = 160, sc = 130 / max;
   let g = '<svg viewBox="0 0 ' + W + " " + H + '" class="rep-chart" font-family="Inter,sans-serif">';
   A.forEach((a, i) => {
-    const x = 120 + i * 260;
+    const x = 80 + passo * i + (passo - BW) / 2;
     let y = base;
     [[a.oreInt, C.gold, t("interne")], [a.oreEst, C.ember, t("esterne")], [a.oreScop, C.bad, t("scoperte")]].forEach(([v, col]) => {
       if (v <= 0) return; const h = v * sc; y -= h;
@@ -3409,20 +3440,20 @@ async function creaPptx(solo) {
   };
   /* slide 1 */
   const s1 = pptx.addSlide();
-  testa(s1, (S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + A[0].nome + " → " + A[2].nome,
+  testa(s1, (S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + A[0].nome + (A.length > 1 ? " → " + A[A.length - 1].nome : ""),
     nf(nz(P.turni) || 1) + " " + t("turno/i") + " · " + t("efficienza") + " " + nf(nz(P.efficienza)) + "% · " + t("target") + " " + nf(nz(P.targetSaturazione)) + "%");
   A.forEach((a, i) => {
-    const p = i ? A[i - 1] : null, x = 0.5 + i * 4.18;
-    s1.addShape(pptx.ShapeType.roundRect, { x, y: 1.4, w: 3.95, h: 2.25, fill: { color: BG }, line: { color: "E4DDF3" }, rectRadius: 0.12 });
-    s1.addShape(pptx.ShapeType.rect, { x, y: 1.4, w: 3.95, h: 0.07, fill: { color: i === 1 ? ROSA : VIOLA } });
+    const larg = (12.33 - 0.23 * (A.length - 1)) / A.length, p = i ? A[i - 1] : null, x = 0.5 + i * (larg + 0.23);
+    s1.addShape(pptx.ShapeType.roundRect, { x, y: 1.4, w: larg, h: 2.25, fill: { color: BG }, line: { color: "E4DDF3" }, rectRadius: 0.12 });
+    s1.addShape(pptx.ShapeType.rect, { x, y: 1.4, w: larg, h: 0.07, fill: { color: i === 1 ? ROSA : VIOLA } });
     s1.addText([
       { text: a.nome.toUpperCase(), options: { fontSize: 12, bold: true, color: DIM, breakLine: true } },
-      { text: nf(a.pezzi) + " " + t("pz"), options: { fontSize: 28, bold: true, color: VIOLA } },
+      { text: nf(a.pezzi) + " " + t("pz"), options: { fontSize: A.length > 3 ? 22 : 28, bold: true, color: VIOLA } },
       { text: p ? "  " + segno(varPct(p.pezzi, a.pezzi)) : "", options: { fontSize: 13, color: ROSA, breakLine: true } },
       { text: nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? " (" + segnoN(a.celle - p.celle) + ")" : "") + (a.esterne ? " · " + nf(a.esterne) + " " + t("esterne") : ""), options: { fontSize: 14, color: INK, breakLine: true } },
       { text: nf(a.persone, a.persone % 1 ? 1 : 0) + " " + t("persone") + (p && a.persone !== p.persone ? "  (" + segnoN(a.persone - p.persone, (a.persone - p.persone) % 1 ? 1 : 0) + ")" : ""), options: { fontSize: 14, color: INK, breakLine: true } },
       { text: t("Vincolo") + ": " + a.vincolo + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : ""), options: { fontSize: 12, color: DIM } }
-    ], { x: x + 0.2, y: 1.55, w: 3.6, h: 2.0, fontFace: "Calibri", valign: "top", paraSpaceAfter: 3 });
+    ], { x: x + 0.15, y: 1.55, w: larg - 0.3, h: 2.0, fontFace: "Calibri", valign: "top", paraSpaceAfter: 3, fontSize: A.length > 3 ? 12 : 14 });
   });
   s1.addText(t("Ore di carico per anno"), { x: 0.5, y: 3.85, w: 6, h: 0.35, fontFace: "Calibri", fontSize: 14, bold: true, color: INK });
   const lab = A.map(a => a.nome), serie = [
@@ -3432,7 +3463,7 @@ async function creaPptx(solo) {
   const conScop = A.some(a => a.oreScop > 0);
   if (conScop) serie.push({ name: t("ore scoperte"), labels: lab, values: A.map(a => Math.round(a.oreScop)) });
   s1.addChart(pptx.ChartType.bar, serie, {
-    x: 0.5, y: 4.2, w: 8.6, h: 3.1, barDir: "col", barGrouping: "stacked", chartColors: [VIOLA, ROSA, ROSSO].slice(0, serie.length),
+    x: 0.5, y: 4.2, w: A.length > 3 ? 7.2 : 8.6, h: 3.1, barDir: "col", barGrouping: "stacked", chartColors: [VIOLA, ROSA, ROSSO].slice(0, serie.length),
     showLegend: true, legendPos: "b", legendFontSize: 11, catAxisLabelFontSize: 12, valAxisLabelFontSize: 10, valAxisLabelFormatCode: "#,##0",
     showValue: true, dataLabelFontSize: 10, dataLabelColor: "FFFFFF", dataLabelFormatCode: "#,##0", valGridLine: { color: "EEEEEE" }, catGridLine: { style: "none" }
   });
@@ -3441,7 +3472,8 @@ async function creaPptx(solo) {
     [t("Interne"), ...A.map(a => nf(a.oreInt))], [t("Esterne"), ...A.map(a => nf(a.oreEst))]];
   if (conScop) rig.push([t("Scoperte"), ...A.map(a => nf(a.oreScop))]);
   s1.addTable(rig.map(r => r.map((c, j) => typeof c === "object" ? c : { text: c, options: { align: j ? "right" : "left" } })),
-    { x: 9.35, y: 4.3, w: 3.5, colW: [1.25, 0.75, 0.75, 0.75], fontFace: "Calibri", fontSize: 10, color: INK, border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.3 });
+    /* più anni, tabella più larga: a 5 anni le cifre andavano a capo */
+    { x: A.length > 3 ? 7.9 : 9.35, y: 4.3, w: A.length > 3 ? 4.95 : 3.5, colW: [1.25].concat(A.map(() => (A.length > 3 ? 3.7 : 2.25) / A.length)), fontFace: "Calibri", fontSize: A.length > 3 ? 9 : 10, color: INK, border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.3 });
   /* slide 2 */
   const s2 = pptx.addSlide();
   testa(s2, t("Celle, persone e saturazione per reparto"), (S.meta.nome || "") + " · " + t("celle di casa + esterne · ▲ = vincolo · colore = saturazione"));
@@ -3459,7 +3491,7 @@ async function creaPptx(solo) {
     { text: nf(a.persone, a.persone % 1 ? 1 : 0), options: { bold: true, align: "right" } }, { text: "" }]));
   const volumi = [{ text: t("Volumi (pz)"), options: { color: DIM } }].concat(...A.map(a => [{ text: nf(a.pezzi), options: { colspan: 3, align: "center", color: DIM } }]));
   s2.addTable([intest1, intest2, ...corpo, piede, volumi], {
-    x: 0.5, y: 1.4, w: 12.3, colW: [2.7].concat(Array(9).fill(9.6 / 9)), fontFace: "Calibri", fontSize: 12, color: INK,
+    x: 0.5, y: 1.4, w: 12.3, colW: [2.3].concat(Array(3 * A.length).fill(10 / (3 * A.length))), fontFace: "Calibri", fontSize: A.length > 3 ? 10 : 12, color: INK,
     border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.34, autoPage: false
   });
   if (solo) return pptx;
@@ -3699,21 +3731,22 @@ let VSM_MODE = "sintesi";
 
 function renderMix() {
   const el = document.getElementById("tblMix"), wrap = document.getElementById("mixWrap"), C = TH();
-  const fam = S.famiglie.filter(f => [0, 1, 2].some(y => nz(f.forecastAnni[y]) > 0));
+  const Y = anniIdx(), ul = Y.length - 1;
+  const fam = S.famiglie.filter(f => Y.some(y => nz(f.forecastAnni[y]) > 0));
   if (!fam.length) {
     el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna famiglia con forecast.") + "</td></tr></tbody>";
     wrap.innerHTML = ""; document.getElementById("mixLegend").innerHTML = "";
     return;
   }
-  const tot = [0, 1, 2].map(y => fam.reduce((a, f) => a + nz(f.forecastAnni[y]), 0));
+  const tot = Y.map(y => fam.reduce((a, f) => a + nz(f.forecastAnni[y]), 0));
   const anno = S.meta.anno || 0;
   el.innerHTML = "<thead><tr>" + th("Modello") + th("Gruppo")
     + S.meta.anni.map(a => '<th class="num">' + esc(a) + "</th>").join("")
     + th("Quota", "num") + th("Progressione", "num") + "</tr></thead><tbody>"
     + fam.map(f => {
-      const v = [0, 1, 2].map(y => nz(f.forecastAnni[y]));
+      const v = Y.map(y => nz(f.forecastAnni[y]));
       const quota = tot[anno] > 0 ? v[anno] / tot[anno] : 0;
-      const prog = v[0] > 0 ? v[2] / v[0] - 1 : null;
+      const prog = v[0] > 0 && ul > 0 ? v[ul] / v[0] - 1 : null;
       return '<tr><td><i class="swatch" style="background:' + famColor(f.id) + '"></i> ' + esc(f.nome) + "</td>"
         + '<td style="color:var(--dim)">' + (f.cluster ? esc(f.cluster) : "—") + "</td>"
         + v.map(x => '<td class="num">' + nf(x) + "</td>").join("")
@@ -3723,11 +3756,11 @@ function renderMix() {
     }).join("")
     + "</tbody><tfoot><tr><td>" + t("Totale") + "</td><td></td>"
     + tot.map(x => '<td class="num">' + nf(x) + "</td>").join("")
-    + '<td class="num">100%</td><td class="num">' + (tot[0] > 0 ? (tot[2] / tot[0] - 1 > 0 ? "+" : "") + nf((tot[2] / tot[0] - 1) * 100, 0) + "%" : "—") + "</td></tr></tfoot>";
+    + '<td class="num">100%</td><td class="num">' + (tot[0] > 0 && ul > 0 ? (tot[ul] / tot[0] - 1 > 0 ? "+" : "") + nf((tot[ul] / tot[0] - 1) * 100, 0) + "%" : "—") + "</td></tr></tfoot>";
 
   /* colonne impilate: una per anno, un segmento per modello */
   const BW = 120, GAP = 76, L = 70, TOPM = 30, PLOT = 260, BOTM = 46;
-  const W = L + 3 * (BW + GAP) + 40, H = TOPM + PLOT + BOTM;
+  const W = L + Y.length * (BW + GAP) + 40, H = TOPM + PLOT + BOTM;
   const maxV = Math.max.apply(null, tot) * 1.12 || 1;
   const FS = 'font-family="Alegreya Sans,sans-serif"';
   let s = '<svg class="mix" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
@@ -3738,7 +3771,7 @@ function renderMix() {
     s += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - 20) + '" y2="' + y + '" stroke="' + C.line + '" stroke-width="1"/>';
     s += '<text x="' + (L - 8) + '" y="' + (y + 4) + '" fill="' + C.dim + '" ' + FS + ' font-size="11" text-anchor="end">' + nf(maxV * q) + "</text>";
   });
-  [0, 1, 2].forEach(y => {
+  Y.forEach(y => {
     const x = L + 20 + y * (BW + GAP);
     let base = TOPM + PLOT;
     fam.forEach(f => {
@@ -3892,7 +3925,7 @@ let FORZA_RENDER = false;
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
 function refreshOutputs() { if (visibile("guida")) renderGuida(); if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
-function refreshAll() { applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
+function refreshAll() { S.famiglie.forEach(f => { if (!Array.isArray(f.forecastAnni)) f.forecastAnni = []; while (f.forecastAnni.length < nAnni()) f.forecastAnni.push(0); }); applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
    EVENTI
@@ -4076,11 +4109,28 @@ document.getElementById("addFase").onclick = () => {
   S.reparti.push({ id: uid(), nome: f.nome, faseId: f.id, celleAttuali: 1, celleMax: 4, oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true, nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100], operatori: 1 });
   queueSave(); refreshAll();
 };
+/* aggiungere un anno copia celle, operatori e forecast dell'ultimo: si parte da lì e si corregge */
+document.getElementById("annoPiu").onclick = () => {
+  const n = nAnni(); if (n >= MAX_ANNI) return;
+  S.reparti.forEach(r => { r.anni[n] = JSON.parse(JSON.stringify(cfgRep(r, n - 1))); });
+  S.famiglie.forEach(f => { while (f.forecastAnni.length < n) f.forecastAnni.push(0); f.forecastAnni[n] = nz(f.forecastAnni[n - 1]); });
+  S.meta.anni.push(t("Anno") + " " + (n + 1));
+  queueSave(); refreshAll(); flag(t("Anno aggiunto: celle, operatori e forecast copiati dall'anno prima."));
+};
+document.getElementById("annoMeno").onclick = () => {
+  const n = nAnni(); if (n <= 1) return;
+  if (!confirm(t("Tolgo") + " «" + S.meta.anni[n - 1] + "» " + t("con forecast e configurazione dei reparti di quell'anno?"))) return;
+  S.meta.anni.pop();
+  S.reparti.forEach(r => { r.anni.length = Math.min(r.anni.length, n - 1); });
+  S.famiglie.forEach(f => { f.forecastAnni.length = Math.min(f.forecastAnni.length, n - 1); });
+  if ((S.meta.anno || 0) > n - 2) S.meta.anno = n - 2;
+  queueSave(); refreshAll();
+};
 document.getElementById("copiaAnnoAvanti").onclick = () => {
   const y = S.meta.anno || 0;
-  if (y >= 2) { flag(t("Sei già sull'ultimo anno.")); return; }
+  if (y >= nAnni() - 1) { flag(t("Sei già sull'ultimo anno.")); return; }
   if (!confirm(t("Copio la configurazione di questo anno in tutti gli anni successivi, sovrascrivendoli?"))) return;
-  S.reparti.forEach(r => { for (let k = y + 1; k <= 2; k++) r.anni[k] = JSON.parse(JSON.stringify(cfgRep(r, y))); });
+  S.reparti.forEach(r => { for (let k = y + 1; k < nAnni(); k++) r.anni[k] = JSON.parse(JSON.stringify(cfgRep(r, y))); });
   queueSave(); refreshAll(); flag(t("Configurazione copiata."));
 };
 
@@ -4099,7 +4149,7 @@ document.getElementById("addReparto").onclick = () => {
 };
 document.getElementById("addFamiglia").onclick = () => {
   const x = {}; S.fasi.forEach(f => x[f.id] = { on: false, min: 0, minMacchina: 0, setup: 0 });
-  S.famiglie.push({ id: uid(), nome: t("Nuova famiglia"), cluster: "", forecastAnni: [0, 0, 0], scarto: 0, valore: 0, tempi: x, mensile: uniform() });
+  S.famiglie.push({ id: uid(), nome: t("Nuova famiglia"), cluster: "", forecastAnni: anniIdx().map(() => 0), scarto: 0, valore: 0, tempi: x, mensile: uniform() });
   queueSave(); refreshAll();
 };
 function calcOre() {
@@ -4303,9 +4353,10 @@ document.getElementById("annoSeg").addEventListener("click", e => {
    ============================================================ */
 let PASTE_MODE = "famiglie";
 function pasteHelp() {
-  document.getElementById("pasteHelp").textContent = t(PASTE_MODE === "famiglie"
-    ? "Colonne attese: nome famiglia, anno 1, anno 2, anno 3, scarto %, valore pezzo. Bastano le prime due."
-    : "Colonne attese: nome famiglia, fase, minuti uomo, minuti macchina, minuti di attrezzaggio. Bastano le prime tre.");
+  document.getElementById("pasteHelp").textContent = PASTE_MODE === "famiglie"
+    ? (nAnni() === 3 ? t("Colonne attese: nome famiglia, anno 1, anno 2, anno 3, scarto %, valore pezzo. Bastano le prime due.")
+      : t("Colonne attese: nome famiglia") + ", " + S.meta.anni.join(", ") + ", " + t("scarto %, valore pezzo. Bastano le prime due."))
+    : t("Colonne attese: nome famiglia, fase, minuti uomo, minuti macchina, minuti di attrezzaggio. Bastano le prime tre.");
   document.querySelectorAll("#pasteMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.pmode === PASTE_MODE ? "true" : "false"));
 }
 function pnum(s) {
@@ -4338,12 +4389,14 @@ function applyPaste() {
       let f = findFam(nome);
       if (!f) {
         const x = {}; S.fasi.forEach(fa => x[fa.id] = { on: false, min: 0, minMacchina: 0, setup: 0 });
-        f = { id: uid(), nome: nome, cluster: "", forecastAnni: [0, 0, 0], scarto: 0, valore: 0, tempi: x, mensile: uniform() };
+        f = { id: uid(), nome: nome, cluster: "", forecastAnni: anniIdx().map(() => 0), scarto: 0, valore: 0, tempi: x, mensile: uniform() };
         S.famiglie.push(f); creati++;
       } else aggiornati++;
-      [1, 2, 3].forEach(i => { if (r[i] !== undefined && r[i] !== "") f.forecastAnni[i - 1] = pnum(r[i]); });
-      if (r[4] !== undefined && r[4] !== "") f.scarto = pnum(r[4]);
-      if (r[5] !== undefined && r[5] !== "") f.valore = pnum(r[5]);
+      /* colonne: nome, un forecast per ogni anno del piano, scarto, valore */
+      const N = nAnni();
+      anniIdx().forEach(i => { if (r[i + 1] !== undefined && r[i + 1] !== "") f.forecastAnni[i] = pnum(r[i + 1]); });
+      if (r[N + 1] !== undefined && r[N + 1] !== "") f.scarto = pnum(r[N + 1]);
+      if (r[N + 2] !== undefined && r[N + 2] !== "") f.valore = pnum(r[N + 2]);
     } else {
       const f = findFam(nome);
       const fs = S.fasi.find(x => String(x.nome).trim().toLowerCase() === String(r[1] || "").trim().toLowerCase());
@@ -4478,7 +4531,7 @@ function renderPoliv() {
    PIANO PLURIENNALE E RICERCA OBIETTIVO
    ============================================================ */
 function renderPiano() {
-  const anni = [0, 1, 2].map(y => compute({ anno: y }));
+  const anni = anniIdx().map(y => compute({ anno: y }));
   document.getElementById("tblPiano").innerHTML =
     "<thead><tr>" + th("Reparto") + S.meta.anni.map(a => '<th class="num">' + esc(a) + "</th>").join("") + "</tr></thead><tbody>"
     + S.fasi.map((f, i) => "<tr><td>" + esc(anni[0].righe[i].nome) + "</td>"
@@ -4642,7 +4695,7 @@ function exportCSV() {
   B.forEach(b => push([b.r.nome, csvNum(b.domGG), csvNum(b.ciclo), csvNum(b.sic), csvNum(b.mezzoLotto), csvNum(b.totInt), csvNum(b.giorni)]));
   L.push("");
   push([t("Piano pluriennale")]);
-  const anni = [0, 1, 2].map(y => compute({ anno: y }));
+  const anni = anniIdx().map(y => compute({ anno: y }));
   push([t("Reparto")].concat(S.meta.anni));
   S.fasi.forEach((f, i) => push([anni[0].righe[i].nome].concat(anni.map(x => csvNum(x.righe[i].sugg)))));
   const blob = new Blob(["\ufeff" + L.join("\n")], { type: "text/csv;charset=utf-8" });
