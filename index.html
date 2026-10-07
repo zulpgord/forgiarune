@@ -540,6 +540,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
   <div class="panel" id="panBanco">
     <h2>Banco di prova</h2>
     <p class="hint">Cambia celle e operatori per cella e guarda subito la saturazione. Puoi usare anche mezzi operatori (0,5 = un operatore a metà tempo sulla cella). Finché non premi «Salva nella Fucina» non cambia niente: con il tasto la configurazione viene scritta nella Fucina per l'anno selezionato in alto.</p>
+    <p class="hint">Le celle esterne sono capacità in subfornitura: il carico riempie le tue celle fino al target e il resto va fuori («Ore fuori»). Celle al target = celle che servono per stare al target di saturazione; la freccia indica l'arrotondamento.</p>
     <div class="scroller"><table id="tblBanco"></table></div>
     <div class="row-actions">
       <button class="act" id="bancoSalva">Salva nella Fucina</button>
@@ -574,11 +575,6 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
     <summary><h2>Come leggere le ore</h2></summary>
     <div id="oreSpiega"></div>
   </details>
-  <div class="panel">
-    <h2>Carico e celle per reparto</h2>
-    <p class="hint">Calcolo sul forecast annuo medio, con i parametri generali e le celle che hai oggi.</p>
-    <div class="scroller"><table id="tblRisultati"></table></div>
-  </div>
   <div class="panel">
     <h2>Quanto costa</h2>
     <p class="hint">Traduzione in denaro del dimensionamento, con i costi che hai messo nei parametri. Se lasci i costi a zero questa tabella resta vuota.</p>
@@ -905,13 +901,168 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.6";
+const VERSION = "v5.8";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
+  "regge con l'esterno": "holds with outside cells",
+  "Ore fuori": "Hours outside",
+  "Le celle esterne sono capacità in subfornitura: il carico riempie le tue celle fino al target e il resto va fuori («Ore fuori»). Celle al target = celle che servono per stare al target di saturazione; la freccia indica l'arrotondamento.": "Outside cells are subcontracted capacity: the load fills your cells up to the target and the rest goes outside (“Hours outside”). Cells at target = cells needed to stay at the utilisation target; the arrow shows the rounding.",
+  "Dal": "From", "Al": "To",
+  /* EasyFabio, copie del piano, guida alle ore (v5.7) */
+  "(nuova)": "(new)",
+  "Aggiungi come commessa": "Add as job",
+  "Aggiungi evento": "Add event",
+  "Aggiungo": "Add",
+  "Aperte": "Open",
+  "Attivo": "Active",
+  "Attraversamento medio": "Average lead time",
+  "attraversamento medio": "average lead time",
+  "Avanzamento": "Progress",
+  "Calcola": "Calculate",
+  "Calcola il confronto": "Run the comparison",
+  "Celle in meno": "Fewer cells",
+  "Celle in più": "Extra cells",
+  "Cerca commessa": "Search job",
+  "Chiusure": "Closures",
+  "Coda media per commessa": "Average queue per job",
+  "Commessa aggiunta.": "Job added.",
+  "Con": "With",
+  "Con questa priorità": "With this priority",
+  "Confronta le regole": "Compare the rules",
+  "Consegna più vicina": "Earliest due date",
+  "Copia": "Copy",
+  "Copia aggiornata": "Copy updated",
+  "Copia importata": "Copy imported",
+  "Copia salvata": "Copy saved",
+  "Data promessa": "Promise date",
+  "Dove si aspetta": "Where jobs wait",
+  "Elimino la copia": "Delete the copy",
+  "Elimino tutte le commesse?": "Delete all jobs?",
+  "Evento": "Event",
+  "Festività nazionali italiane (Pasquetta compresa)": "Italian public holidays (Easter Monday included)",
+  "File non valido: non è una copia del piano": "Invalid file: not a plan copy",
+  "Fine del piano": "Plan end",
+  "Giorni di margine per fase (just in time)": "Slack days per step (just in time)",
+  "Giorni lavorativi a settimana": "Working days per week",
+  "Il forecast genera": "The forecast generates",
+  "In coda": "Queued",
+  "In ritardo": "Late",
+  "Inizia il": "Starts on",
+  "Inizio del piano": "Plan start",
+  "Lavoro": "Work",
+  "Lista lavori (CSV)": "Work list (CSV)",
+  "Margine minimo": "Least slack",
+  "Nessun evento: il piano usa la capacità della Fucina.": "No events: the plan uses the Forge capacity.",
+  "Nessun forecast nell'anno selezionato.": "No forecast in the selected year.",
+  "Nessun'altra commessa va in ritardo.": "No other job becomes late.",
+  "Nessuna commessa.": "No jobs.",
+  "Nessuna copia salvata.": "No saved copies.",
+  "Nome della copia": "Copy name",
+  "Non pianificabile": "Cannot be scheduled",
+  "Non pianificare prima di oggi": "Do not schedule before today",
+  "Non prima di": "Not before",
+  "Oggi in ritardo": "Late today",
+  "Ora di inizio giornata": "Start of the working day",
+  "Ore al giorno per reparto": "Hours per day by department",
+  "Ore di lavoro": "Work hours",
+  "Ore in coda": "Queue hours",
+  "Ore lavorate al giorno per cella": "Hours worked per day per cell",
+  "Passaggi": "Passes",
+  "Piano": "Plan",
+  "piano": "plan",
+  "Piano caricato": "Plan loaded",
+  "Piano contro forecast": "Plan versus forecast",
+  "Prima le più corte": "Shortest first",
+  "Priorità, poi consegna": "Priority, then due date",
+  "Quando far partire una commessa": "When a job starts",
+  "Quante celle": "How many cells",
+  "Quota di coda": "Queue share",
+  "REPARTO / CELLA": "DEPARTMENT / CELL",
+  "COMMESSA": "JOB",
+  "Regola": "Rule",
+  "Regola di priorità": "Priority rule",
+  "Reparto fermo": "Department stopped",
+  "Ritardo medio": "Average delay",
+  "Salvata il": "Saved on",
+  "Scarica il Gantt": "Download the Gantt",
+  "Se non l'hai salvato, il piano attuale va perso.": "If you have not saved it, the current plan will be lost.",
+  "Serve almeno una famiglia nella Fucina.": "The Forge needs at least one family.",
+  "Solo in ritardo": "Late only",
+  "Sostituisco il piano attuale con la copia": "Replace the current plan with the copy",
+  "Sovrascrivo la copia": "Overwrite the copy",
+  "Tutte le famiglie": "All families",
+  "Tutti i reparti": "All departments",
+  "Usa questa": "Use this",
+  "cella ferma o non disponibile": "cell stopped or unavailable",
+  "chiusa": "closed",
+  "commesse a quelle esistenti?": "jobs to the existing ones?",
+  "commesse aggiunte": "jobs added",
+  "commesse andrebbero in ritardo": "jobs would become late",
+  "commesse il confronto richiede qualche secondo.": "jobs the comparison takes a few seconds.",
+  "con il piano attuale?": "with the current plan?",
+  "da iniziare": "not started",
+  "di coda": "of queue",
+  "di lavoro": "of work",
+  "extra": "extra",
+  "famiglie non trovate": "families not found",
+  "fatto": "done",
+  "fermo": "stopped",
+  "forecast": "forecast",
+  "gg di margine": "days of slack",
+  "in coda prima": "queued before",
+  "in ritardo di": "late by",
+  "manca la famiglia": "family missing",
+  "nessun tempo": "no time",
+  "nessuna cella in": "no cell in",
+  "non prima del": "not before",
+  "oppure": "or",
+  "ore di lavoro e": "work hours and",
+  "senza consegna": "no due date",
+  "turni": "shifts",
+  "tutte le fasi fatte: chiudila": "all steps done: close it",
+  "⛶ Schermo intero": "⛶ Full screen",
+  "Sett.": "Wk",
+  "Settimana": "Week",
+  "Ritardo gg": "Delay days",
+  "Fine": "End",
+  "gen": "Jan",
+  "feb": "Feb",
+  "mar": "Mar",
+  "apr": "Apr",
+  "mag": "May",
+  "giu": "Jun",
+  "lug": "Jul",
+  "ago": "Aug",
+  "set": "Sep",
+  "ott": "Oct",
+  "nov": "Nov",
+  "dic": "Dec",
+  "commesse: EasyFabio è pensato per qualche centinaio e il piano diventerà lento. Continuo?": "jobs: EasyFabio is meant for a few hundred and the plan will become slow. Continue?",
+  "quello che le celle possono dare. Per cella: ore lorde": "what the cells can deliver. Per cell: gross hours",
+  "operatori per cella; poi × celle. Saturazione = carico ÷ capacità.": "operators per cell; then × cells. Utilisation = load ÷ capacity.",
+  "la capacità che resta libera sotto il target di saturazione": "the capacity left free below the utilisation target",
+  "dopo aver servito il tuo carico: capacità × target − carico in casa. Sono ore che potresti cedere a terzi senza intaccare il margine.": "after serving your own load: capacity × target − in-house load. These are hours you could sell to others without eating into the margin.",
+  "il lavoro che il forecast richiede. Per ogni famiglia e reparto: pezzi a forecast ÷ (1 − scarto) × minuti uomo ÷ 60, più gli attrezzaggi (un attrezzaggio a ogni cambio di famiglia: pezzi ÷ lotto × minuti di setup ÷ 60). È domanda: non dipende da quante celle hai.": "the work the forecast asks for. For each family and department: forecast pieces ÷ (1 − scrap) × labour minutes ÷ 60, plus changeovers (one at every family change: pieces ÷ batch × setup minutes ÷ 60). It is demand: it does not depend on how many cells you have.",
+  "Ferie e ponti aziendali: un giorno o un intervallo per riga, per esempio": "Company holidays and bridge days: one day or one range per line, for example",
+  "Vuoto = il valore generale. Un reparto su due turni, per esempio, lavora 16 ore al giorno.": "Blank = the general value. A department on two shifts, for example, works 16 hours a day.",
+  "Trascina una barra per fissare l'inizio della commessa (🔒).": "Drag a bar to lock the job's start (🔒).",
+  "Lo stesso piano con le quattro regole di priorità: scegli quella che ti dà meno ritardi o meno attraversamento.": "The same plan with the four priority rules: pick the one that gives you fewer delays or a shorter lead time.",
+  "Nessuna commessa da mostrare. Aggiungile qui sotto, creale dal forecast o allarga i filtri.": "No jobs to show. Add them below, create them from the forecast or widen the filters.",
+  "Nessuna commessa con questi filtri.": "No jobs match these filters.",
+  "Quando potrebbe uscire una commessa nuova se la lanci adesso, tenendo conto di tutte quelle già in piano. Vedi anche se la sua priorità farebbe slittare altre commesse.": "When a new job could be finished if you release it now, taking into account all the jobs already planned. You also see whether its priority would push other jobs back.",
+  "Cambi temporanei di capacità che valgono solo qui, senza toccare la Fucina: celle in più (un turno extra, un prestito da un altro reparto), celle in meno (assenze), un reparto fermo (guasto, manutenzione). Spegni la spunta per vedere il piano senza quell'evento.": "Temporary capacity changes that apply only here, without touching the Forge: extra cells (an extra shift, a loan from another department), fewer cells (absences), a stopped department (breakdown, maintenance). Untick to see the plan without that event.",
+  "Per ogni reparto, quanto lavorano le commesse e quanto restano in coda prima di entrarci. Una coda lunga davanti a un reparto che non è il più saturo dice che il problema è la sequenza, non la capacità.": "For each department, how long jobs are worked and how long they wait in the queue before entering. A long queue in front of a department that is not the busiest means the problem is the sequence, not the capacity.",
+  "Ore pianificate in ogni reparto diviso le ore disponibili nel periodo, contando ore per reparto, chiusure ed eventi «E se…?». Il periodo segue la scala del Gantt; in vista oraria si ragiona per giorno.": "Planned hours in each department divided by the hours available in the period, counting hours per department, closures and “What if…?” events. The period follows the Gantt scale; in the hourly view it works by day.",
+  "Ore pianificate mese per mese contro le ore che il Responso calcola dal forecast (profilo di consegna della famiglia). Se il piano sta molto sotto il forecast mancano commesse; se sta sopra la sequenza reale carica il reparto più di quanto il dimensionamento prevedeva.": "Planned hours month by month against the hours the Verdict derives from the forecast (family delivery profile). If the plan is well below the forecast, jobs are missing; if it is above, the real sequence loads the department more than the sizing expected.",
+  "Fotografie del piano: commesse, avanzamento, date fissate, eventi «E se…?», chiusure e impostazioni. Sono separate dagli Scenari, che fotografano invece la Fucina (fasi, reparti, famiglie). Caricare una copia sostituisce il piano attuale e lascia la Fucina com'è.": "Snapshots of the plan: jobs, progress, locked dates, “What if…?” events, closures and settings. They are separate from Scenarios, which capture the Forge (steps, departments, families). Loading a copy replaces the current plan and leaves the Forge as it is.",
+  "Lotto = quanti pezzi della stessa famiglia passano di fila prima di cambiare: l'attrezzaggio si conta solo al cambio di famiglia, quindi una volta per lotto. Lasciato a 0 si assume una campagna per famiglia in ogni mese in cui ha consegne. Le persone di un reparto sono celle × operatori per cella × turni.": "Batch = how many pieces of the same family run in a row before changing: a changeover is counted only when the family changes, so once per batch. Left at 0, one campaign per family is assumed in every month with deliveries. People in a department are cells × operators per cell × shifts.",
+  "Ogni commessa è un pezzo di una famiglia: attraversa le fasi accese per quella famiglia, con i tempi della Fucina. La capacità di ogni reparto è quella dell'anno selezionato in alto: ogni cella lavora una commessa alla volta, e la durata di una fase è minuti uomo (più attrezzaggio) ÷ operatori per cella ÷ efficienza, corretta per lo scarto. Le commesse con una data «non prima di» passano per prime, le altre seguono la regola scelta. Ogni fase parte quando finisce la precedente e una cella del reparto è libera.": "Each job is one piece of a family: it goes through the steps switched on for that family, with the Forge times. Each department's capacity is that of the year selected at the top: every cell works one job at a time, and a step lasts labour minutes (plus changeover) ÷ operators per cell ÷ efficiency, corrected for scrap. Jobs with a “not before” date go first, the others follow the chosen rule. Each step starts when the previous one is finished and a cell of the department is free.",
+  "Scrivi o incolla le commesse. «Crea dal forecast» genera una commessa per ogni pezzo previsto nell'anno selezionato, distribuite sui mesi con il profilo di consegna della famiglia. «Avanzamento» è l'ultima fase già fatta: il piano riparte dalla successiva. «Non prima di» fissa l'inizio (lo stesso che ottieni trascinando la barra). I filtri del Gantt valgono anche qui.": "Type or paste the jobs. “Create from forecast” generates one job per forecast piece in the selected year, spread over the months with the family delivery profile. “Progress” is the last step already done: the plan restarts from the next one. “Not before” locks the start (the same as dragging the bar). The Gantt filters apply here too.",
+  "Una riga per commessa, colonne separate da tab o punto e virgola: codice; famiglia; rilascio; consegna; priorità. Date come 15/03/2027 o 2027-03-15. La famiglia deve avere lo stesso nome che ha nella Fucina.": "One row per job, columns separated by tab or semicolon: code; family; release; due; priority. Dates as 15/03/2027 or 2027-03-15. The family must have the same name it has in the Forge.",
   "Banco di prova": "Test bench", "Menu": "Menu", "Nascondi il menu": "Hide menu", "Dati": "Data", "Macchine: servono / hai": "Machines: needed / have", "macchine": "machines", "limite macchina": "machine limit", "Turni": "Shifts", "dai parametri": "from parameters", "con attrezzaggio": "with changeover", "senza attrezzaggio (stessa famiglia)": "no changeover (same family)", "Guida": "Guide", "Schermo intero": "Full screen", "Esci da schermo intero": "Exit full screen", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
   "Carico per periodo": "Load by period", "Commesse": "Job orders", "Ore": "Hours", "Giorni": "Days", "Settimane": "Weeks", "Mesi": "Months",
   "Per reparto": "By department", "Per commessa": "By job", "Vai a oggi": "Go to today", "Aggiungi commessa": "Add job", "Crea dal forecast": "Create from forecast",
@@ -1430,7 +1581,7 @@ function compute(ov) {
     /* una macchina lavora le ore del turno, non raddoppia con gli operatori */
     const capMacc = ore * turni * eff;
     const celle = dr ? nz(dr.celle) : cfg ? nz(cfg.celleAttuali) : 0;
-    const esterne = cfg ? Math.max(0, nz(cfg.celleEsterne)) : 0;
+    const esterne = dr && dr.est != null ? Math.max(0, nz(dr.est)) : cfg ? Math.max(0, nz(cfg.celleEsterne)) : 0;
     const max = cfg ? nz(cfg.celleMax) : 0;
     const macchine = rep ? nz(rep.macchine) : 0;
     const lotto = rep ? nz(rep.lotto) : 0;
@@ -1480,9 +1631,11 @@ function compute(ov) {
        le macchine a parte: se la pressa è satura serve una pressa, non più operatori */
     const risorsa = satM != null && (satU == null || satM > satU) ? "macchina" : "uomo";
     const necFraz = necUomo;
-    const maccSugg = macchine > 0 && target > 0 ? Math.max(0, Math.ceil(necMacc / target - 1e-9)) : 0;
-    /* saturazione dopo aver mandato fuori: il lavoro che va al terzista libera anche la macchina */
+    /* saturazione dopo aver mandato fuori: il lavoro che va al terzista libera anche la macchina,
+       quindi anche le macchine necessarie si contano sul carico che resta in casa */
     const fFuori = caricoH > 0 ? oreFuori / caricoH : 0;
+    const necMaccCasa = necMacc * (1 - fFuori);
+    const maccSugg = macchine > 0 && target > 0 ? Math.max(0, Math.ceil(necMaccCasa / target - 1e-9)) : 0;
     const satCasaU = capTot > 0 ? caricoDentro / capTot : (caricoH > 0 ? null : 0);
     const satCasaM = satM != null ? satM * (1 - fFuori) : null;
     const satTotU = (celle + esterne) * capCella > 0 ? caricoH / ((celle + esterne) * capCella) : (caricoH > 0 ? null : 0);
@@ -1554,7 +1707,7 @@ function compute(ov) {
       scoperteFuori: Math.max(0, caricoDentro - celle * capCella),
       satCasa: piuAlta(satCasaU, satCasaM), satCasaU, satCasaM,
       satTotale: piuAlta(satTotU, satCasaM),
-      maccNec: necMacc, maccSugg, maccGap: macchine > 0 ? maccSugg - macchine : 0,
+      maccNec: necMaccCasa, maccSugg, maccGap: macchine > 0 ? maccSugg - macchine : 0,
       necFraz, necInt: Math.ceil(necFraz - 1e-9), sat,
       suggFraz, sugg, gap: sugg - celle, oltreMax: max > 0 && sugg > max,
       picH, picIdx, satPicco, picDentro, picFuori, satPiccoCasa, satPiccoTot, cellePiccoServono, capEstMese, taktMin, tcMedio, tcVA, maxPezzi, cv, targetCons, meseH,
@@ -1638,6 +1791,9 @@ function verdict(r) {
   if (r.caricoH <= 0) return '<span class="tag t-idle">' + t("nessun carico") + "</span>";
   if (r.celle <= 0) return '<span class="tag t-bad">' + t("nessuna cella") + "</span>";
   const m = r.maccGap > 0 ? ' <span class="tag t-warn">+' + r.maccGap + " " + t(r.maccGap === 1 ? "macchina" : "macchine") + "</span>" : "";
+  /* oltre la capacità di casa ma coperto dal terzista: regge, a patto di mandare fuori */
+  if (r.sat > 1 && r.oreFuori > 0 && r.satCasa != null && r.satCasa <= 1 && r.scoperteFuori <= 1e-6)
+    return '<span class="tag t-warn">' + t("regge con l'esterno") + "</span>" + m;
   if (r.sat > 1) return '<span class="tag t-bad">' + t("non regge") + "</span>" + m;
   if (r.sat >= .85) return '<span class="tag t-warn">' + t("al limite") + "</span>" + m;
   if (m) return '<span class="tag t-ok">' + t("regge") + "</span>" + m;
@@ -2077,23 +2233,6 @@ function renderRisultati() {
     kpi(nf(pezzi), "pezzi a forecast") + kpi(nf(tot), "ore di carico all'anno") + kpi(nf(setupTot), "di cui attrezzaggio")
     + kpi(nf(celleOggi), "celle installate") + kpi(nf(celleServ), "celle al minimo tecnico") + kpi(nf(c.oreFerme), "ore di capacità non usata");
 
-  document.getElementById("tblRisultati").innerHTML =
-    "<thead><tr>" + th("Reparto") + th("Pezzi lanciati", "num") + th("Ore in casa", "num") + th("Ore fuori", "num") + th("Ore setup", "num")
-    + th("Ore standard per cella", "num") + th("Limite") + th("Celle necessarie", "num") + th("Celle oggi", "num") + th("Gap", "num")
-    + th("Macchine: servono / hai", "num") + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Esito") + "</tr></thead><tbody>"
-    + (c.righe.length ? c.righe.map(r =>
-      '<tr' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.pezzi) + '</td><td class="num">' + nf(r.caricoDentro) + "</td>"
-      + '<td class="num"' + (r.oreFuori > 0 ? ' style="color:var(--gold)"' : ' style="color:var(--dim)"') + ">" + (r.oreFuori > 0 ? nf(r.oreFuori) : "—") + "</td>"
-      + '<td class="num" style="color:' + (r.oreSetup > 0 ? "var(--warn-fg)" : "var(--dim)") + '">' + nf(r.oreSetup) + "</td>"
-      + '<td class="num">' + nf(r.capCella) + "</td>"
-      + "<td>" + (r.caricoH <= 0 ? "—" : r.risorsa === "macchina" ? '<span class="tag t-warn">' + t("macchina") + "</span>" : '<span class="tag t-idle">' + t("uomo") + "</span>") + "</td>"
-      + '<td class="num">' + nf(r.necFraz, 2) + " <span style=\"color:var(--dim)\">→ " + nf(r.necInt) + "</span></td>"
-      + '<td class="num">' + nf(r.celle) + "</td>"
-      + '<td class="num" style="color:' + (r.necInt - r.celle > 0 ? "var(--bad-fg)" : "var(--dim)") + '">' + (r.necInt - r.celle > 0 ? "+" : "") + nf(r.necInt - r.celle) + "</td>"
-      + '<td class="num">' + (r.macchine > 0 && r.caricoH > 0 ? nf(r.maccNec, 2) + ' <span style="color:var(--dim)">→ ' + nf(r.maccSugg) + " / " + nf(r.macchine) + "</span>" : "—") + "</td>"
-      + satBarra(r) + "<td>" + verdict(r) + "</td></tr>").join("") : '<tr><td class="empty">—</td></tr>')
-    + "</tbody>";
-
   document.getElementById("tblPicco").innerHTML =
     "<thead><tr>" + th("Reparto") + th("Mese di picco") + th("Ore nel mese", "num") + th("di cui fuori", "num")
     + th("Capacità del mese", "num") + th("Esterna nel mese", "num")
@@ -2139,41 +2278,53 @@ function renderRisultati() {
 let BANCO = null;
 function bancoDaFucina() {
   BANCO = {};
-  S.reparti.forEach(r => { const c = cfgRep(r); BANCO[r.id] = { celle: nz(c.celleAttuali), op: opCella(c.operatori) }; });
+  S.reparti.forEach(r => { const c = cfgRep(r); BANCO[r.id] = { celle: nz(c.celleAttuali), est: Math.max(0, nz(c.celleEsterne)), op: opCella(c.operatori) }; });
   BANCO._anno = S.meta.anno || 0;
 }
 function bancoModificato() {
-  return S.reparti.some(r => { const c = cfgRep(r), b = BANCO[r.id]; return b && (b.celle !== nz(c.celleAttuali) || b.op !== opCella(c.operatori)); });
+  return S.reparti.some(r => { const c = cfgRep(r), b = BANCO[r.id]; return b && (b.celle !== nz(c.celleAttuali) || b.est !== Math.max(0, nz(c.celleEsterne)) || b.op !== opCella(c.operatori)); });
 }
+/* Il banco è la tabella principale del Responso: celle, celle esterne e operatori si
+   modificano qui; carico, capacità, saturazione, macchine ed esito si ricalcolano al volo. */
+const BANCO_INPUT = 5; /* colonne fino agli input compresi: reparto, carico, celle, esterne, operatori */
 function renderBanco() {
   if (!BANCO || BANCO._anno !== (S.meta.anno || 0) || S.reparti.some(r => !BANCO[r.id])) bancoDaFucina();
   const c = compute({ draft: BANCO });
   const righe = c.righe.filter(r => r.rep);
+  const inp = (r, k, min, step) => '<td class="num"><input type="number" min="' + min + '" step="' + step + '" style="width:66px" value="' + BANCO[r.rep.id][k] + '" data-banco="' + k + '" data-id="' + r.rep.id + '"></td>';
   document.getElementById("tblBanco").innerHTML =
-    "<thead><tr>" + th("Reparto") + th("Carico (h)", "num") + th("Celle", "num") + th("Operatori per cella", "num") + th("Persone", "num")
-    + th("Capacità (h)", "num") + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Celle al target", "num") + "</tr></thead><tbody>"
-    + righe.map(r => '<tr data-banco-row="' + r.rep.id + '"><td>' + esc(r.nome) + '</td><td class="num">' + nf(r.caricoH) + "</td>"
-      + '<td class="num"><input type="number" min="0" step="1" style="width:70px" value="' + BANCO[r.rep.id].celle + '" data-banco="celle" data-id="' + r.rep.id + '"></td>'
-      + '<td class="num"><input type="number" min="0.5" step="0.5" style="width:70px" value="' + BANCO[r.rep.id].op + '" data-banco="op" data-id="' + r.rep.id + '"></td>'
-      + bancoCelle(r) + "</tr>").join("")
+    "<thead><tr>" + th("Reparto") + th("Carico (h)", "num") + th("Celle", "num") + th("Celle esterne", "num") + th("Operatori per cella", "num")
+    + th("Persone", "num") + th("Capacità (h)", "num") + th("Ore fuori", "num") + th("Limite")
+    + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Celle al target", "num") + th("Macchine: servono / hai", "num") + th("Esito") + "</tr></thead><tbody>"
+    + righe.map(r => '<tr data-banco-row="' + r.rep.id + '"' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.caricoH) + "</td>"
+      + inp(r, "celle", 0, 1) + inp(r, "est", 0, 1) + inp(r, "op", 0.5, 0.5) + bancoCelle(r) + "</tr>").join("")
     + '</tbody><tfoot><tr id="bancoTot">' + bancoTot(righe) + "</tr></tfoot>";
   bancoStato();
 }
 function bancoCelle(r) {
-  return '<td class="num">' + nf(r.celle * r.operatori * r.turni, 1) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
-    + satCell(r.caricoH > 0 ? r.sat : null) + '<td class="num">' + (r.caricoH > 0 ? nf(r.suggFraz, 2) + (r.risorsa === "macchina" ? ' <span class="tag t-warn">' + t("limite macchina") + "</span>" : "") : "—") + "</td>";
+  const ok = r.caricoH > 0;
+  return '<td class="num">' + nf(r.persone, r.persone % 1 ? 1 : 0) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
+    + '<td class="num"' + (r.oreFuori > 0 ? ' style="color:var(--gold)"' : ' style="color:var(--dim)"') + ">" + (r.oreFuori > 0 ? nf(r.oreFuori) : "—") + "</td>"
+    + "<td>" + (!ok ? "—" : r.risorsa === "macchina" ? '<span class="tag t-warn">' + t("macchina") + "</span>" : '<span class="tag t-idle">' + t("uomo") + "</span>") + "</td>"
+    + (ok ? satBarra(r) : '<td class="num">—</td><td class="num">—</td>')
+    + '<td class="num">' + (ok ? nf(r.suggFraz, 2) + ' <span style="color:var(--dim)">→ ' + nf(r.sugg) + "</span>" : "—") + "</td>"
+    + '<td class="num">' + (r.macchine > 0 && ok ? nf(r.maccNec, 2) + ' <span style="color:var(--dim)">→ ' + nf(r.maccSugg) + " / " + nf(r.macchine) + "</span>" : "—") + "</td>"
+    + "<td>" + verdict(r) + "</td>";
 }
 function bancoTot(righe) {
-  return "<td><strong>" + t("Totale") + '</strong></td><td class="num">' + nf(righe.reduce((a, r) => a + r.caricoH, 0)) + '</td><td class="num"><strong>' + nf(righe.reduce((a, r) => a + r.celle, 0))
-    + '</strong></td><td></td><td class="num"><strong>' + nf(righe.reduce((a, r) => a + r.celle * r.operatori * r.turni, 0), 1) + '</strong></td><td class="num">' + nf(righe.reduce((a, r) => a + r.celle * r.capCella, 0)) + "</td><td></td><td></td><td></td>";
+  const somma = f => righe.reduce((a, r) => a + f(r), 0), pers = somma(r => r.persone);
+  return "<td><strong>" + t("Totale") + '</strong></td><td class="num">' + nf(somma(r => r.caricoH)) + '</td><td class="num"><strong>' + nf(somma(r => r.celle))
+    + '</strong></td><td class="num">' + nf(somma(r => r.esterne)) + '</td><td></td><td class="num"><strong>' + nf(pers, pers % 1 ? 1 : 0) + '</strong></td><td class="num">' + nf(somma(r => r.celle * r.capCella))
+    + '</td><td class="num">' + nf(somma(r => r.oreFuori)) + "</td><td></td><td></td><td></td><td></td><td></td><td></td>";
 }
 /* aggiorna solo i risultati, senza ridisegnare gli input (non perdi il cursore) */
 function aggiornaBanco() {
-  const righe = compute({ draft: BANCO }).righe.filter(r => r.rep);
+  const c = compute({ draft: BANCO }), righe = c.righe.filter(r => r.rep);
   righe.forEach(r => {
     const tr = document.querySelector('[data-banco-row="' + r.rep.id + '"]'); if (!tr) return;
-    while (tr.children.length > 4) tr.removeChild(tr.lastChild);
+    while (tr.children.length > BANCO_INPUT) tr.removeChild(tr.lastChild);
     tr.insertAdjacentHTML("beforeend", bancoCelle(r));
+    tr.classList.toggle("vincolo", !!(c.vincolo && r.fase.id === c.vincolo.fase.id));
   });
   document.getElementById("bancoTot").innerHTML = bancoTot(righe);
   bancoStato();
@@ -2187,7 +2338,7 @@ function renderOreSpiega(c) {
   const tot = k => righe.reduce((a, r) => a + r[k], 0);
   document.getElementById("oreSpiega").innerHTML =
     '<p class="hint">' + t("Sono tre grandezze diverse, tutte in ore all'anno:") + '</p><ul class="hint">'
-    + "<li><strong>" + t("Ore di carico") + "</strong> (" + nf(tot("caricoH")) + " h): " + t("il lavoro che il forecast richiede. Per ogni famiglia e reparto: pezzi a forecast ÷ (1 − scarto) × minuti uomo ÷ 60, più gli attrezzaggi (pezzi ÷ lotto × minuti di setup ÷ 60). È domanda: non dipende da quante celle hai.") + "</li>"
+    + "<li><strong>" + t("Ore di carico") + "</strong> (" + nf(tot("caricoH")) + " h): " + t("il lavoro che il forecast richiede. Per ogni famiglia e reparto: pezzi a forecast ÷ (1 − scarto) × minuti uomo ÷ 60, più gli attrezzaggi (un attrezzaggio a ogni cambio di famiglia: pezzi ÷ lotto × minuti di setup ÷ 60). È domanda: non dipende da quante celle hai.") + "</li>"
     + "<li><strong>" + t("Ore di capacità") + "</strong> (" + nf(tot("capInterna")) + " h): " + t("quello che le celle possono dare. Per cella: ore lorde") + " " + nf(nz(P.oreAnnuePerCella)) + " × " + t("turni") + " " + nf(nz(P.turni) || 1) + " × " + t("efficienza") + " " + nf(nz(P.efficienza)) + "% × " + t("operatori per cella; poi × celle. Saturazione = carico ÷ capacità.") + "</li>"
     + "<li><strong>" + t("Ore vendibili") + "</strong> (" + nf(tot("oreVendibili")) + " h): " + t("la capacità che resta libera sotto il target di saturazione") + " (" + nf(nz(P.targetSaturazione)) + "%) " + t("dopo aver servito il tuo carico: capacità × target − carico in casa. Sono ore che potresti cedere a terzi senza intaccare il margine.") + "</li></ul>";
 }
@@ -3383,7 +3534,10 @@ function renderVSM() {
   const perCelle = VSM_MODE === "celle";
   const CH = 32, CG = 6;
   const maxCelle = perCelle ? Math.max(1, ...R.map(r => Math.round(nz(r.celle)) + Math.round(nz(r.cfg && r.cfg.nuoveCelle)))) : 0;
-  const W = 236, H = perCelle ? 94 + maxCelle * (CH + CG) + 26 : 196, GAP = 96, PADX = 34, TOP = 96;
+  /* altezza del riquadro dalle righe che contiene: con più operatori per cella c'è una riga
+     in più, e con l'altezza fissa la barra di saturazione copriva la riga «Capacità» */
+  const righeSintesi = 6 + (R.some(r => r.operatori > 1) ? 1 : 0);
+  const W = 236, H = perCelle ? 108 + maxCelle * (CH + CG) + 26 : 52 + righeSintesi * 20 + 40, GAP = 96, PADX = 34, TOP = 96;
   const width = PADX * 2 + R.length * W + Math.max(0, R.length - 1) * GAP;
   const height = TOP + H + 200;
   const FS = 'font-family="Alegreya Sans,sans-serif"';
@@ -3556,7 +3710,7 @@ document.addEventListener("input", e => {
   }
   if (el.dataset.banco) {
     const b = BANCO && BANCO[el.dataset.id]; if (!b) return;
-    if (el.dataset.banco === "celle") b.celle = Math.max(0, nz(el.value)); else b.op = opCella(el.value);
+    if (el.dataset.banco === "celle") b.celle = Math.max(0, nz(el.value)); else if (el.dataset.banco === "est") b.est = Math.max(0, nz(el.value)); else b.op = opCella(el.value);
     aggiornaBanco(); return;
   }
   if (!k) return;
@@ -3564,7 +3718,7 @@ document.addEventListener("input", e => {
   else if (k === "reparto") {
     const r = findById(S.reparti, el.dataset.id), f = el.dataset.f, c = cfgRep(r);
     /* la Fucina è cambiata: il banco di prova riparte dai valori nuovi */
-    if (f === "celleAttuali" || f === "operatori") BANCO = null;
+    if (f === "celleAttuali" || f === "celleEsterne" || f === "operatori") BANCO = null;
     if (f === "operatori") { c.operatori = opCella(el.value); renderReparti(); }
     else if (f === "curva") { c.curva[+el.dataset.i] = el.value === "" ? 0 : parseFloat(el.value); }
     else if (f === "oreNette") {
@@ -3659,7 +3813,7 @@ document.addEventListener("input", e => {
   });
 })();
 document.getElementById("bancoSalva").addEventListener("click", () => {
-  S.reparti.forEach(r => { const b = BANCO && BANCO[r.id]; if (!b) return; const c = cfgRep(r); c.celleAttuali = b.celle; c.operatori = b.op; });
+  S.reparti.forEach(r => { const b = BANCO && BANCO[r.id]; if (!b) return; const c = cfgRep(r); c.celleAttuali = b.celle; c.celleEsterne = b.est; c.operatori = b.op; });
   queueSave(); renderReparti(); refreshOutputs(); flag(t("Salvato nella Fucina") + " · " + S.meta.anni[S.meta.anno || 0]);
 });
 document.getElementById("bancoReset").addEventListener("click", () => { BANCO = null; renderBanco(); });
