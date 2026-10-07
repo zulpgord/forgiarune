@@ -320,6 +320,29 @@ body.side-off #side{display:none}
   #side{position:fixed;left:0;top:var(--hh, 160px);margin:0;border-radius:0 var(--radius) var(--radius) 0;z-index:60;max-height:calc(100vh - var(--hh, 160px))}
 }
 @media print{#side,.sidebtn{display:none!important}}
+/* report 3 anni: anteprima delle slide in 16:9 */
+#repPreview{display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:20px}
+.rep-slide{aspect-ratio:16/9;background:#fff;color:#2E2A45;border:1px solid var(--border-2);border-radius:14px;box-shadow:0 10px 26px var(--shadow);
+  padding:18px 22px;border-top:6px solid #7C4DEB;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+.rep-tit{font-family:"Poppins",sans-serif;font-weight:700;font-size:17px}
+.rep-sub{color:#7B7596;font-size:11.5px;margin-bottom:10px}
+.rep-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rep-card{background:#F6F2FD;border-radius:10px;padding:8px 12px;line-height:1.45;border-top:3px solid #7C4DEB}
+.rep-card:nth-child(2){border-top-color:#EC5C97}
+.rep-anno{font-size:11px;font-weight:700;color:#7B7596;text-transform:uppercase;letter-spacing:.05em}
+.rep-big{font-family:"Poppins",sans-serif;font-size:20px;font-weight:700;color:#7C4DEB}
+.rep-big small{font-size:12px}
+.rep-var{font-size:11px;color:#EC5C97;font-weight:600}
+.rep-vinc{color:#7B7596;font-size:12px}
+.rep-sez{font-weight:600;margin:10px 0 0}
+.rep-chart{width:100%;flex:1;min-height:0}
+.rep-leg{margin-top:2px;font-size:11px;color:#7B7596}
+.rep-tab{font-size:12px}
+.rep-tab th,.rep-tab td{padding:4px 6px;color:#2E2A45}
+.rep-tab thead tr:first-child th{background:#7C4DEB;color:#fff;text-align:center}
+.rep-tab tfoot td{font-weight:700}
+.rep-note{margin-top:auto;font-size:11px;color:#7B7596}
+@media (max-width:700px){#repPreview{grid-template-columns:1fr}}
 /* pannelli collassabili: clic sul titolo */
 .panel.fold > h2{cursor:pointer;display:flex;align-items:center;user-select:none}
 .panel.fold > h2::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg);transition:transform .2s}
@@ -869,6 +892,12 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 
 <section id="tab-scenari" hidden>
   <div class="panel">
+    <h2>Report 3 anni</h2>
+    <p class="hint">Due slide pronte per una presentazione: la sintesi dei tre anni (volumi, celle, persone, vincolo e ore di carico interne ed esterne) e il dettaglio per reparto. I numeri sono quelli salvati nella Fucina per ciascun anno, con lo stesso calcolo del Responso. Il PowerPoint ha testi, tabelle e grafico modificabili.</p>
+    <div class="row-actions" style="margin:0 0 16px"><button class="act" id="repPptx">Scarica PowerPoint</button></div>
+    <div id="repPreview"></div>
+  </div>
+  <div class="panel">
     <h2>Scenari salvati</h2>
     <p class="hint">Fotografa lo stato attuale con un nome e tienilo da parte. Serve per confrontare as-is e to-be senza esportare e reimportare file.</p>
     <div class="row-actions">
@@ -901,13 +930,37 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.8";
+const VERSION = "v5.9";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
+  "Report 3 anni": "3-year report",
+  "Scarica PowerPoint": "Download PowerPoint",
+  "Piano di capacità": "Capacity plan",
+  "target": "target",
+  "esterne": "outside",
+  "persone": "people",
+  "Ore di carico per anno": "Load hours per year",
+  "ore interne": "in-house hours",
+  "ore esterne (terzista)": "outside hours (subcontractor)",
+  "ore scoperte": "uncovered hours",
+  "capacità di casa": "in-house capacity",
+  "Celle, persone e saturazione per reparto": "Cells, people and utilisation by department",
+  "pers.": "ppl",
+  "sat.": "util.",
+  "celle di casa + esterne · ▲ = vincolo · colore = saturazione": "in-house + outside cells · ▲ = constraint · colour = utilisation",
+  "Carico totale": "Total load",
+  "Interne": "In-house",
+  "Esterne": "Outside",
+  "Scoperte": "Uncovered",
+  "Volumi (pz)": "Volumes (pcs)",
+  "Preparo il file…": "Preparing the file…",
+  "PowerPoint scaricato": "PowerPoint downloaded",
+  "Non riesco a creare il PowerPoint: serve la connessione a internet": "Cannot create the PowerPoint: an internet connection is needed",
+  "Due slide pronte per una presentazione: la sintesi dei tre anni (volumi, celle, persone, vincolo e ore di carico interne ed esterne) e il dettaglio per reparto. I numeri sono quelli salvati nella Fucina per ciascun anno, con lo stesso calcolo del Responso. Il PowerPoint ha testi, tabelle e grafico modificabili.": "Two slides ready for a presentation: the three-year summary (volumes, cells, people, constraint, in-house and outside load hours) and the detail by department. The numbers are those saved in the Forge for each year, with the same calculation as the Verdict. The PowerPoint has editable text, tables and chart.",
   "regge con l'esterno": "holds with outside cells",
   "Ore fuori": "Hours outside",
   "Le celle esterne sono capacità in subfornitura: il carico riempie le tue celle fino al target e il resto va fuori («Ore fuori»). Celle al target = celle che servono per stare al target di saturazione; la freccia indica l'arrotondamento.": "Outside cells are subcontracted capacity: the load fills your cells up to the target and the rest goes outside (“Hours outside”). Cells at target = cells needed to stay at the utilisation target; the arrow shows the rounding.",
@@ -1622,7 +1675,11 @@ function compute(ov) {
     /* Riempio la fabbrica fino al target di saturazione, il resto va fuori entro le celle
        esterne disponibili: sopra il target le code crescono più in fretta del carico,
        quindi la soglia giusta è il target e non il 100% della capacità. */
-    const oreFuori = Math.min(Math.max(0, caricoH - celle * capCella * target), esterne * capCella);
+    /* quota da mandare fuori: quella che riporta al target sia le persone sia le macchine.
+       Guardando solo la manodopera, un reparto bloccato dalla macchina non mandava fuori niente. */
+    const quotaU = caricoH > 0 ? 1 - celle * capCella * target / caricoH : 0;
+    const quotaM = macchine > 0 && caricoM > 0 ? 1 - macchine * capMacc * target / caricoM : 0;
+    const oreFuori = Math.min(caricoH * Math.max(0, quotaU, quotaM), esterne * capCella);
     const caricoDentro = caricoH - oreFuori;
     const satU = capTot > 0 ? caricoU / capTot : null;
     const satM = macchine > 0 && capMacc > 0 ? caricoM / (macchine * capMacc) : null;
@@ -1704,7 +1761,8 @@ function compute(ov) {
       /* ore libere sotto il target: quelle che potrei vendere tenendomi il margine */
       oreVendibili: Math.max(0, celle * capCella * target - caricoDentro),
       /* quello che resta dentro e non ci sta comunque */
-      scoperteFuori: Math.max(0, caricoDentro - celle * capCella),
+      /* ore che restano dentro ma non ci stanno: sulla manodopera o, se è lei il limite, sulla macchina */
+      scoperteFuori: Math.max(0, caricoDentro - celle * capCella, satCasaM != null && satCasaM > 1 ? caricoDentro * (1 - 1 / satCasaM) : 0),
       satCasa: piuAlta(satCasaU, satCasaM), satCasaU, satCasaM,
       satTotale: piuAlta(satTotU, satCasaM),
       maccNec: necMaccCasa, maccSugg, maccGap: macchine > 0 ? maccSugg - macchine : 0,
@@ -3245,6 +3303,180 @@ const GUIDA = {
 function renderGuida() { document.getElementById("guidaBody").innerHTML = GUIDA[LANG === "en" ? "en" : "it"]; }
 
 /* ============================================================
+   REPORT 3 ANNI: anteprima di due slide e PowerPoint modificabile
+   ============================================================ */
+/* Numeri di ogni anno con lo stesso calcolo del Responso, sulla configurazione salvata
+   nella Fucina per quell'anno. Ore interne = carico che resta in casa e ci sta; esterne =
+   quelle mandate al terzista; scoperte = quelle che non stanno né dentro né fuori. */
+function datiReport() {
+  return [0, 1, 2].map(anno => {
+    const c = compute({ anno });
+    const R = c.righe.filter(r => r.rep);
+    const somma = f => R.reduce((a, r) => a + f(r), 0);
+    const scoperte = somma(r => r.scoperteFuori);
+    return {
+      anno, nome: S.meta.anni[anno] || ("Anno " + (anno + 1)), c, righe: R,
+      pezzi: S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[anno]), 0),
+      celle: somma(r => r.celle), esterne: somma(r => r.esterne), persone: somma(r => r.persone),
+      oreTot: somma(r => r.caricoH), oreEst: somma(r => r.oreFuori), oreScop: scoperte,
+      oreInt: somma(r => r.caricoDentro) - scoperte, capCasa: somma(r => r.capInterna),
+      vincolo: c.vincolo ? c.vincolo.nome : "—", vincoloSat: c.vincolo ? (c.vincolo.satCasa != null ? c.vincolo.satCasa : c.vincolo.sat) : null,
+      throughput: c.throughput
+    };
+  });
+}
+const varPct = (a, b) => a > 0 ? (b - a) / a : null;
+const segno = v => v == null ? "" : (v > 0 ? "+" : "") + nf(v * 100) + "%";
+const segnoN = (v, d) => (v > 0 ? "+" : "") + nf(v, d);
+
+function renderReport() {
+  const el = document.getElementById("repPreview"); if (!el) return;
+  const A = datiReport(), C = TH();
+  const P = S.params;
+  const titolo = esc(S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + esc(A[0].nome) + " → " + esc(A[2].nome);
+  const sotto = nf(nz(P.turni) || 1) + " " + t("turno/i") + " · " + t("efficienza") + " " + nf(nz(P.efficienza)) + "% · " + t("target") + " " + nf(nz(P.targetSaturazione)) + "%";
+  /* slide 1: tre colonne e grafico delle ore */
+  const card = (a, i) => {
+    const p = i ? A[i - 1] : null;
+    return '<div class="rep-card"><div class="rep-anno">' + esc(a.nome) + "</div>"
+      + '<div class="rep-big">' + nf(a.pezzi) + " <small>" + t("pz") + "</small>" + (p ? ' <span class="rep-var">' + segno(varPct(p.pezzi, a.pezzi)) + "</span>" : "") + "</div>"
+      + "<div>" + nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? ' <span class="rep-var">' + segnoN(a.celle - p.celle) + "</span>" : "") + (a.esterne ? " · " + nf(a.esterne) + " " + t("esterne") : "") + "</div>"
+      + "<div>" + nf(a.persone, a.persone % 1 ? 1 : 0) + " " + t("persone") + (p && a.persone !== p.persone ? ' <span class="rep-var">' + segnoN(a.persone - p.persone, (a.persone - p.persone) % 1 ? 1 : 0) + "</span>" : "") + "</div>"
+      + '<div class="rep-vinc">' + t("Vincolo") + ": <b>" + esc(a.vincolo) + "</b>" + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : "") + "</div></div>";
+  };
+  const max = Math.max(1, ...A.map(a => Math.max(a.oreTot, a.capCasa)));
+  const W = 900, H = 200, BW = 120, base = 160, sc = 130 / max;
+  let g = '<svg viewBox="0 0 ' + W + " " + H + '" class="rep-chart" font-family="Inter,sans-serif">';
+  A.forEach((a, i) => {
+    const x = 120 + i * 260;
+    let y = base;
+    [[a.oreInt, C.gold, t("interne")], [a.oreEst, C.ember, t("esterne")], [a.oreScop, C.bad, t("scoperte")]].forEach(([v, col]) => {
+      if (v <= 0) return; const h = v * sc; y -= h;
+      g += '<rect x="' + x + '" y="' + y.toFixed(1) + '" width="' + BW + '" height="' + h.toFixed(1) + '" fill="' + col + '" rx="3"/>';
+    });
+    const yc = base - a.capCasa * sc;
+    g += '<line x1="' + (x - 14) + '" x2="' + (x + BW + 14) + '" y1="' + yc.toFixed(1) + '" y2="' + yc.toFixed(1) + '" stroke="' + C.ink + '" stroke-width="2" stroke-dasharray="5 4"/>';
+    g += '<text x="' + (x + BW / 2) + '" y="' + (base + 18) + '" text-anchor="middle" font-size="13" fill="' + C.ink + '" font-weight="600">' + esc(a.nome) + "</text>";
+    g += '<text x="' + (x + BW / 2) + '" y="' + (base + 35) + '" text-anchor="middle" font-size="11.5" fill="' + C.dim + '">' + nf(a.oreInt) + " + " + nf(a.oreEst) + (a.oreScop > 0 ? " + " + nf(a.oreScop) : "") + " h</text>";
+  });
+  g += '<line x1="80" x2="' + (W - 40) + '" y1="' + base + '" y2="' + base + '" stroke="' + C.line + '"/></svg>';
+  const leg = (col, l, tratt) => '<span><i class="swatch" style="' + (tratt ? "background:none;border-top:2px dashed " + col + ";height:0" : "background:" + col) + '"></i>' + l + "</span>";
+  const s1 = '<div class="rep-slide"><div class="rep-tit">' + titolo + '</div><div class="rep-sub">' + sotto + "</div>"
+    + '<div class="rep-cards">' + A.map(card).join("") + "</div>"
+    + '<div class="rep-sez">' + t("Ore di carico per anno") + "</div>" + g
+    + '<div class="legend rep-leg">' + leg(C.gold, t("ore interne")) + leg(C.ember, t("ore esterne (terzista)")) + (A.some(a => a.oreScop > 0) ? leg(C.bad, t("ore scoperte")) : "") + leg(C.ink, t("capacità di casa"), true) + "</div></div>";
+  /* slide 2: matrice per reparto */
+  const reps = A[0].righe.map(r => r.rep.id);
+  const cella = (a, id) => {
+    const r = a.righe.find(x => x.rep.id === id); if (!r) return "<td></td><td></td><td></td>";
+    const v = a.c.vincolo && a.c.vincolo.rep && a.c.vincolo.rep.id === id;
+    return '<td class="num">' + nf(r.celle) + (r.esterne ? "+" + nf(r.esterne) : "") + '</td><td class="num">' + nf(r.persone, r.persone % 1 ? 1 : 0)
+      + '</td><td class="num" style="background:' + satColor(r.caricoH > 0 ? r.satCasa : null) + '22;font-weight:' + (v ? 700 : 400) + '">' + (r.caricoH > 0 ? pct(r.satCasa) : "—") + (v ? " ▲" : "") + "</td>";
+  };
+  const s2 = '<div class="rep-slide"><div class="rep-tit">' + t("Celle, persone e saturazione per reparto") + '</div><div class="rep-sub">' + esc(S.meta.nome || "") + "</div>"
+    + '<table class="rep-tab"><thead><tr><th></th>' + A.map(a => '<th colspan="3" class="num">' + esc(a.nome) + "</th>").join("") + "</tr><tr><th>" + t("Reparto") + "</th>"
+    + A.map(() => '<th class="num">' + t("celle") + '</th><th class="num">' + t("pers.") + '</th><th class="num">' + t("sat.") + "</th>").join("") + "</tr></thead><tbody>"
+    + reps.map(id => "<tr><td>" + esc(S.reparti.find(r => r.id === id).nome) + "</td>" + A.map(a => cella(a, id)).join("") + "</tr>").join("")
+    + "</tbody><tfoot><tr><td>" + t("Totale") + "</td>" + A.map(a => '<td class="num">' + nf(a.celle) + (a.esterne ? "+" + nf(a.esterne) : "") + '</td><td class="num">' + nf(a.persone, a.persone % 1 ? 1 : 0) + "</td><td></td>").join("") + "</tr></tfoot></table>"
+    + '<div class="rep-note">' + t("celle di casa + esterne · ▲ = vincolo · colore = saturazione") + "</div></div>";
+  el.innerHTML = s1 + s2;
+}
+
+/* PowerPoint: la libreria si carica solo al primo download */
+function caricaPptx() {
+  if (window.PptxGenJS) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const sc = document.createElement("script");
+    sc.src = "https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js";
+    sc.onload = () => ok(); sc.onerror = () => ko(new Error("rete"));
+    document.head.appendChild(sc);
+  });
+}
+async function creaPptx(solo) {
+  await caricaPptx();
+  const A = datiReport(), P = S.params;
+  const hex = c => String(c).replace("#", "").toUpperCase();
+  const VIOLA = "7C4DEB", ROSA = "EC5C97", ROSSO = "E04870", INK = "2E2A45", DIM = "7B7596", BG = "F6F2FD";
+  const satHex = s => s == null ? "FFFFFF" : s > 1 ? "FBD5DF" : s >= .85 ? "FCEBC7" : "D8F2E6";
+  const pptx = new PptxGenJS();
+  pptx.layout = "LAYOUT_WIDE"; /* 13,33 × 7,5 pollici */
+  pptx.title = (S.meta.nome || "Scenario") + " · " + t("Report 3 anni");
+  const testa = (sl, tit, sub) => {
+    sl.background = { color: "FFFFFF" };
+    sl.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.12, fill: { color: VIOLA } });
+    sl.addText(tit, { x: 0.5, y: 0.3, w: 12.3, h: 0.6, fontFace: "Calibri", fontSize: 26, bold: true, color: INK });
+    sl.addText(sub, { x: 0.5, y: 0.85, w: 12.3, h: 0.35, fontFace: "Calibri", fontSize: 13, color: DIM });
+  };
+  /* slide 1 */
+  const s1 = pptx.addSlide();
+  testa(s1, (S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + A[0].nome + " → " + A[2].nome,
+    nf(nz(P.turni) || 1) + " " + t("turno/i") + " · " + t("efficienza") + " " + nf(nz(P.efficienza)) + "% · " + t("target") + " " + nf(nz(P.targetSaturazione)) + "%");
+  A.forEach((a, i) => {
+    const p = i ? A[i - 1] : null, x = 0.5 + i * 4.18;
+    s1.addShape(pptx.ShapeType.roundRect, { x, y: 1.4, w: 3.95, h: 2.25, fill: { color: BG }, line: { color: "E4DDF3" }, rectRadius: 0.12 });
+    s1.addShape(pptx.ShapeType.rect, { x, y: 1.4, w: 3.95, h: 0.07, fill: { color: i === 1 ? ROSA : VIOLA } });
+    s1.addText([
+      { text: a.nome.toUpperCase(), options: { fontSize: 12, bold: true, color: DIM, breakLine: true } },
+      { text: nf(a.pezzi) + " " + t("pz"), options: { fontSize: 28, bold: true, color: VIOLA } },
+      { text: p ? "  " + segno(varPct(p.pezzi, a.pezzi)) : "", options: { fontSize: 13, color: ROSA, breakLine: true } },
+      { text: nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? " (" + segnoN(a.celle - p.celle) + ")" : "") + (a.esterne ? " · " + nf(a.esterne) + " " + t("esterne") : ""), options: { fontSize: 14, color: INK, breakLine: true } },
+      { text: nf(a.persone, a.persone % 1 ? 1 : 0) + " " + t("persone") + (p && a.persone !== p.persone ? "  (" + segnoN(a.persone - p.persone, (a.persone - p.persone) % 1 ? 1 : 0) + ")" : ""), options: { fontSize: 14, color: INK, breakLine: true } },
+      { text: t("Vincolo") + ": " + a.vincolo + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : ""), options: { fontSize: 12, color: DIM } }
+    ], { x: x + 0.2, y: 1.55, w: 3.6, h: 2.0, fontFace: "Calibri", valign: "top", paraSpaceAfter: 3 });
+  });
+  s1.addText(t("Ore di carico per anno"), { x: 0.5, y: 3.85, w: 6, h: 0.35, fontFace: "Calibri", fontSize: 14, bold: true, color: INK });
+  const lab = A.map(a => a.nome), serie = [
+    { name: t("ore interne"), labels: lab, values: A.map(a => Math.round(a.oreInt)) },
+    { name: t("ore esterne (terzista)"), labels: lab, values: A.map(a => Math.round(a.oreEst)) }
+  ];
+  const conScop = A.some(a => a.oreScop > 0);
+  if (conScop) serie.push({ name: t("ore scoperte"), labels: lab, values: A.map(a => Math.round(a.oreScop)) });
+  s1.addChart(pptx.ChartType.bar, serie, {
+    x: 0.5, y: 4.2, w: 8.6, h: 3.1, barDir: "col", barGrouping: "stacked", chartColors: [VIOLA, ROSA, ROSSO].slice(0, serie.length),
+    showLegend: true, legendPos: "b", legendFontSize: 11, catAxisLabelFontSize: 12, valAxisLabelFontSize: 10, valAxisLabelFormatCode: "#,##0",
+    showValue: true, dataLabelFontSize: 10, dataLabelColor: "FFFFFF", dataLabelFormatCode: "#,##0", valGridLine: { color: "EEEEEE" }, catGridLine: { style: "none" }
+  });
+  const rig = [[t("Ore"), ...A.map(a => a.nome)].map(v => ({ text: v, options: { bold: true, color: "FFFFFF", fill: { color: VIOLA } } })),
+    [t("Carico totale"), ...A.map(a => nf(a.oreTot))], [t("Capacità di casa"), ...A.map(a => nf(a.capCasa))],
+    [t("Interne"), ...A.map(a => nf(a.oreInt))], [t("Esterne"), ...A.map(a => nf(a.oreEst))]];
+  if (conScop) rig.push([t("Scoperte"), ...A.map(a => nf(a.oreScop))]);
+  s1.addTable(rig.map(r => r.map((c, j) => typeof c === "object" ? c : { text: c, options: { align: j ? "right" : "left" } })),
+    { x: 9.35, y: 4.3, w: 3.5, colW: [1.25, 0.75, 0.75, 0.75], fontFace: "Calibri", fontSize: 10, color: INK, border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.3 });
+  /* slide 2 */
+  const s2 = pptx.addSlide();
+  testa(s2, t("Celle, persone e saturazione per reparto"), (S.meta.nome || "") + " · " + t("celle di casa + esterne · ▲ = vincolo · colore = saturazione"));
+  const intest1 = [{ text: "", options: { fill: { color: VIOLA } } }].concat(...A.map(a => [{ text: a.nome, options: { colspan: 3, align: "center", bold: true, color: "FFFFFF", fill: { color: VIOLA } } }]));
+  const intest2 = [{ text: t("Reparto"), options: { bold: true, color: DIM } }].concat(...A.map(() => [t("celle"), t("pers."), t("sat.")].map(x => ({ text: x, options: { bold: true, color: DIM, align: "right" } }))));
+  const corpo = A[0].righe.map(r0 => [{ text: r0.rep.nome, options: { bold: true } }].concat(...A.map(a => {
+    const r = a.righe.find(x => x.rep.id === r0.rep.id); if (!r) return [{ text: "" }, { text: "" }, { text: "" }];
+    const v = a.c.vincolo && a.c.vincolo.rep && a.c.vincolo.rep.id === r.rep.id, s = r.caricoH > 0 ? r.satCasa : null;
+    return [{ text: nf(r.celle) + (r.esterne ? "+" + nf(r.esterne) : ""), options: { align: "right" } },
+      { text: nf(r.persone, r.persone % 1 ? 1 : 0), options: { align: "right" } },
+      { text: (s != null ? pct(s) : "—") + (v ? " ▲" : ""), options: { align: "right", bold: v, fill: { color: satHex(s) } } }];
+  })));
+  const piede = [{ text: t("Totale"), options: { bold: true } }].concat(...A.map(a => [
+    { text: nf(a.celle) + (a.esterne ? "+" + nf(a.esterne) : ""), options: { bold: true, align: "right" } },
+    { text: nf(a.persone, a.persone % 1 ? 1 : 0), options: { bold: true, align: "right" } }, { text: "" }]));
+  const volumi = [{ text: t("Volumi (pz)"), options: { color: DIM } }].concat(...A.map(a => [{ text: nf(a.pezzi), options: { colspan: 3, align: "center", color: DIM } }]));
+  s2.addTable([intest1, intest2, ...corpo, piede, volumi], {
+    x: 0.5, y: 1.4, w: 12.3, colW: [2.7].concat(Array(9).fill(9.6 / 9)), fontFace: "Calibri", fontSize: 12, color: INK,
+    border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.34, autoPage: false
+  });
+  if (solo) return pptx;
+  await pptx.writeFile({ fileName: fname("report-3-anni-", "pptx") });
+}
+
+(function () {
+  document.getElementById("repPptx").addEventListener("click", async e => {
+    const b = e.currentTarget, testo = b.textContent;
+    b.disabled = true; b.textContent = t("Preparo il file…");
+    try { await creaPptx(); flag(t("PowerPoint scaricato")); }
+    catch (err) { flag(t("Non riesco a creare il PowerPoint: serve la connessione a internet"), true); }
+    finally { b.disabled = false; b.textContent = testo; }
+  });
+})();
+
+/* ============================================================
    SIMULAZIONE
    ============================================================ */
 let SIM = null;
@@ -4298,6 +4530,7 @@ function computeSnap(sn, ov) {
   return c;
 }
 function renderScenari() {
+  renderReport();
   const tb = document.getElementById("tblSnap");
   if (!S.snapshots.length) tb.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuno scenario salvato.") + "</td></tr></tbody>";
   else tb.innerHTML = "<thead><tr>" + th("Scenario") + th("Salvato il") + th("Famiglie", "num") + th("Celle installate", "num") + "<th style='width:280px'></th></tr></thead><tbody>"
