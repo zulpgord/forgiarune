@@ -445,6 +445,13 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
   </div>
 
   <div class="panel">
+    <h2>Persone fuori dalle celle</h2>
+    <p class="hint">Persone che non lavorano in una cella e che dichiari tu: capi reparto, logistica, qualità, manutenzione. Non sono legate a un reparto. Scegli se contarle come manager o come operatori e scrivi quante sono in ogni anno del piano (anche mezze). Si sommano alle persone delle celle nell'organico totale.</p>
+    <div class="scroller"><table id="tblExtra"></table></div>
+    <div class="row-actions"><button class="act" id="addExtra">Aggiungi ruolo</button></div>
+  </div>
+
+  <div class="panel">
     <h2>Famiglie di prodotto e tempi</h2>
     <p class="hint">È qui che vivono i dati. Accendi la fase dove la famiglia passa e inserisci i tempi per pezzo in minuti: lavoro uomo, tempo macchina e attrezzaggio per cambio. Fase spenta significa nessun carico su quel reparto. Il lavoro uomo si intende in minuti-uomo, cioè il contenuto di lavoro totale del pezzo: se due operatori ci lavorano insieme per 500 minuti d'orologio, scrivi 1000. Gli operatori per cella si dichiarano nei reparti e aumentano la capacità, non riducono il tempo.</p>
     <details class="paste">
@@ -933,13 +940,31 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v6.0";
+const VERSION = "v6.1";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
+  "Persone fuori dalle celle": "People outside the cells",
+  "Persone che non lavorano in una cella e che dichiari tu: capi reparto, logistica, qualità, manutenzione. Non sono legate a un reparto. Scegli se contarle come manager o come operatori e scrivi quante sono in ogni anno del piano (anche mezze). Si sommano alle persone delle celle nell'organico totale.": "People who do not work in a cell and that you declare yourself: supervisors, logistics, quality, maintenance. They are not tied to a department. Choose whether they count as managers or operators and enter how many there are in each plan year (halves allowed). They add to the cell headcount in the total headcount.",
+  "Aggiungi ruolo": "Add role",
+  "Nessuna persona fuori dalle celle.": "Nobody outside the cells.",
+  "Ruolo": "Role",
+  "Categoria": "Category",
+  "Operatore": "Operator",
+  "Manager": "Manager",
+  "manager": "managers",
+  "Totale manager": "Total managers",
+  "Totale operatori": "Total operators",
+  "Nuovo ruolo": "New role",
+  "Operatori fuori dalle celle": "Operators outside the cells",
+  "Organico totale": "Total headcount",
+  "Fuori dalle celle (operatori + manager)": "Outside the cells (operators + managers)",
+  "in cella": "in cells",
+  "op. extra": "extra op.",
+  "Totale celle": "Total cells",
   "Report pluriennale": "Multi-year report",
   "+ Anno": "+ Year",
   "− Anno": "− Year",
@@ -1515,7 +1540,7 @@ function blankState() {
       oreOverride: null, ltGiorni: 1, lotto: 0, macchine: 0, buffer: true,
       nuoveCelle: 0, meseIngresso: 1, curva: [50, 75, 90, 100], operatori: 1
     }))),
-    famiglie: [], rilievi: [], snapshots: [], commesse: [], piano: pianoDefault(), pianiSalvati: []
+    famiglie: [], rilievi: [], snapshots: [], commesse: [], piano: pianoDefault(), pianiSalvati: [], extra: []
   };
 }
 let S = blankState();
@@ -1580,6 +1605,7 @@ function migrate(o) {
   o.snapshots = Array.isArray(o.snapshots) ? o.snapshots : [];
   o.commesse = Array.isArray(o.commesse) ? o.commesse : [];
   o.pianiSalvati = Array.isArray(o.pianiSalvati) ? o.pianiSalvati : [];
+  o.extra = Array.isArray(o.extra) ? o.extra : [];
   /* fino alla v5.4 le ore al giorno partivano fisse a 8: ora vuoto = dai parametri */
   if (o.piano && !o.piano.oreAuto) { if (nz(o.piano.oreGiorno) === 8) o.piano.oreGiorno = null; o.piano.oreAuto = true; }
   o.piano = Object.assign(pianoDefault(), o.piano);
@@ -2081,7 +2107,7 @@ function renderParams() {
   document.getElementById("annoMeno").disabled = nAnni() <= 1;
   document.getElementById("scenName").value = S.meta.nome || "";
 }
-function renderSetup() { renderFasi(); renderReparti(); renderPianoAssunzioni(); renderFamiglie(); renderMensile(); renderParams(); }
+function renderSetup() { renderFasi(); renderReparti(); renderExtra(); renderPianoAssunzioni(); renderFamiglie(); renderMensile(); renderParams(); }
 
 /* ============================================================
    RISULTATI
@@ -2432,6 +2458,43 @@ function renderOreSpiega(c) {
     + "<li><strong>" + t("Ore vendibili") + "</strong> (" + nf(tot("oreVendibili")) + " h): " + t("la capacità che resta libera sotto il target di saturazione") + " (" + nf(nz(P.targetSaturazione)) + "%) " + t("dopo aver servito il tuo carico: capacità × target − carico in casa. Sono ore che potresti cedere a terzi senza intaccare il margine.") + "</li></ul>";
 }
 
+/* persone fuori dalle celle per un anno, divise per categoria */
+function extraAnno(anno) {
+  const y = anno == null ? (S.meta.anno || 0) : anno;
+  const r = { manager: 0, operatore: 0 };
+  (S.extra || []).forEach(x => { r[x.cat === "manager" ? "manager" : "operatore"] += Math.max(0, nz((x.n || [])[y])); });
+  r.totale = r.manager + r.operatore;
+  return r;
+}
+function renderExtra() {
+  const el = document.getElementById("tblExtra"), A = S.meta.anni.slice(0, nAnni());
+  if (!(S.extra || []).length) { el.innerHTML = '<tbody><tr><td class="empty">' + t("Nessuna persona fuori dalle celle.") + "</td></tr></tbody>"; return; }
+  const cats = [["operatore", "Operatore"], ["manager", "Manager"]];
+  el.innerHTML = "<thead><tr>" + th("Ruolo") + th("Categoria") + A.map(a => '<th class="num">' + esc(a) + "</th>").join("") + "<th style='width:90px'></th></tr></thead><tbody>"
+    + S.extra.map(x => '<tr><td><input class="wide" value="' + esc(x.ruolo) + '" data-ex="ruolo" data-id="' + x.id + '"></td>'
+      + '<td><select data-ex="cat" data-id="' + x.id + '">' + cats.map(c => '<option value="' + c[0] + '"' + (x.cat === c[0] ? " selected" : "") + ">" + t(c[1]) + "</option>").join("") + "</select></td>"
+      + anniIdx().map(y => '<td class="num"><input type="number" min="0" step="0.5" style="width:70px" value="' + nz(x.n[y]) + '" data-ex="n" data-y="' + y + '" data-id="' + x.id + '"></td>').join("")
+      + '<td><button class="danger" data-exdel="' + x.id + '">' + t("Elimina") + "</button></td></tr>").join("")
+    + "</tbody><tfoot>" + cats.map(c => "<tr><td>" + t(c[1] === "Manager" ? "Totale manager" : "Totale operatori") + "</td><td></td>"
+      + anniIdx().map(y => '<td class="num">' + nf(extraAnno(y)[c[0]], 1) + "</td>").join("") + "<td></td></tr>").join("") + "</tfoot>";
+}
+(function () {
+  const el = document.getElementById("tblExtra");
+  el.addEventListener("change", e => {
+    const i = e.target, x = (S.extra || []).find(q => q.id === i.dataset.id); if (!x || !i.dataset.ex) return;
+    if (i.dataset.ex === "n") x.n[+i.dataset.y] = Math.max(0, nz(i.value)); else x[i.dataset.ex] = i.value;
+    queueSave(); renderExtra(); refreshOutputs();
+  });
+  el.addEventListener("click", e => {
+    const b = e.target.closest("[data-exdel]"); if (!b) return;
+    S.extra = S.extra.filter(q => q.id !== b.dataset.exdel); queueSave(); renderExtra(); refreshOutputs();
+  });
+  document.getElementById("addExtra").addEventListener("click", () => {
+    S.extra = S.extra || [];
+    S.extra.push({ id: uid(), ruolo: t("Nuovo ruolo"), cat: "operatore", n: anniIdx().map(() => 1) });
+    queueSave(); renderExtra(); refreshOutputs();
+  });
+})();
 function renderOrganico() {
   const righe = compute().righe.filter(r => r.rep);
   const somma = f => righe.reduce((a, r) => a + f(r), 0);
@@ -2440,7 +2503,11 @@ function renderOrganico() {
     + righe.map(r => "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.celle) + '</td><td class="num">' + (r.esterne ? nf(r.esterne) : "—") + '</td><td class="num">' + nf(r.operatori, r.operatori % 1 ? 1 : 0)
       + '</td><td class="num">' + nf(r.turni) + '</td><td class="num"><strong>' + nf(r.persone, 1) + '</strong></td><td class="num">' + (r.caricoH > 0 ? pct(r.satCasa) : "—") + "</td></tr>").join("")
     + "</tbody><tfoot><tr><td><strong>" + t("Totale") + '</strong></td><td class="num"><strong>' + nf(somma(r => r.celle)) + '</strong></td><td class="num">' + nf(somma(r => r.esterne))
-    + '</td><td></td><td></td><td class="num"><strong>' + nf(somma(r => r.persone), 1) + "</strong></td><td></td></tr></tfoot>";
+    + '</td><td></td><td></td><td class="num"><strong>' + nf(somma(r => r.persone), 1) + "</strong></td><td></td></tr>"
+    + (() => {
+      const x = extraAnno(), riga = (l, v, b) => "<tr><td>" + (b ? "<strong>" + t(l) + "</strong>" : t(l)) + '</td><td></td><td></td><td></td><td></td><td class="num">' + (b ? "<strong>" + nf(v, 1) + "</strong>" : nf(v, 1)) + "</td><td></td></tr>";
+      return riga("Operatori fuori dalle celle", x.operatore) + riga("Manager", x.manager) + riga("Organico totale", somma(r => r.persone) + x.totale, true);
+    })() + "</tfoot>";
 }
 
 /* ============================================================
@@ -3348,7 +3415,8 @@ function datiReport() {
     return {
       anno, nome: S.meta.anni[anno] || ("Anno " + (anno + 1)), c, righe: R,
       pezzi: S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[anno]), 0),
-      celle: somma(r => r.celle), esterne: somma(r => r.esterne), persone: somma(r => r.persone),
+      celle: somma(r => r.celle), esterne: somma(r => r.esterne), personeCelle: somma(r => r.persone),
+      extraOp: extraAnno(anno).operatore, extraMan: extraAnno(anno).manager, persone: somma(r => r.persone) + extraAnno(anno).totale,
       oreTot: somma(r => r.caricoH), oreEst: somma(r => r.oreFuori), oreScop: scoperte,
       oreInt: somma(r => r.caricoDentro) - scoperte, capCasa: somma(r => r.capInterna),
       vincolo: c.vincolo ? c.vincolo.nome : "—", vincoloSat: c.vincolo ? (c.vincolo.satCasa != null ? c.vincolo.satCasa : c.vincolo.sat) : null,
@@ -3373,6 +3441,7 @@ function renderReport() {
       + '<div class="rep-big">' + nf(a.pezzi) + " <small>" + t("pz") + "</small>" + (p ? ' <span class="rep-var">' + segno(varPct(p.pezzi, a.pezzi)) + "</span>" : "") + "</div>"
       + "<div>" + nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? ' <span class="rep-var">' + segnoN(a.celle - p.celle) + "</span>" : "") + (a.esterne ? " · " + nf(a.esterne) + " " + t("esterne") : "") + "</div>"
       + "<div>" + nf(a.persone, a.persone % 1 ? 1 : 0) + " " + t("persone") + (p && a.persone !== p.persone ? ' <span class="rep-var">' + segnoN(a.persone - p.persone, (a.persone - p.persone) % 1 ? 1 : 0) + "</span>" : "") + "</div>"
+      + (a.extraOp || a.extraMan ? '<div class="rep-vinc">' + nf(a.personeCelle, 1) + " " + t("in cella") + " · " + nf(a.extraOp, 1) + " " + t("op. extra") + " · " + nf(a.extraMan, 1) + " " + t("manager") + "</div>" : "")
       + '<div class="rep-vinc">' + t("Vincolo") + ": <b>" + esc(a.vincolo) + "</b>" + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : "") + "</div></div>";
   };
   const max = Math.max(1, ...A.map(a => Math.max(a.oreTot, a.capCasa)));
@@ -3408,7 +3477,11 @@ function renderReport() {
     + '<table class="rep-tab"><thead><tr><th></th>' + A.map(a => '<th colspan="3" class="num">' + esc(a.nome) + "</th>").join("") + "</tr><tr><th>" + t("Reparto") + "</th>"
     + A.map(() => '<th class="num">' + t("celle") + '</th><th class="num">' + t("pers.") + '</th><th class="num">' + t("sat.") + "</th>").join("") + "</tr></thead><tbody>"
     + reps.map(id => "<tr><td>" + esc(S.reparti.find(r => r.id === id).nome) + "</td>" + A.map(a => cella(a, id)).join("") + "</tr>").join("")
-    + "</tbody><tfoot><tr><td>" + t("Totale") + "</td>" + A.map(a => '<td class="num">' + nf(a.celle) + (a.esterne ? "+" + nf(a.esterne) : "") + '</td><td class="num">' + nf(a.persone, a.persone % 1 ? 1 : 0) + "</td><td></td>").join("") + "</tr></tfoot></table>"
+    + "</tbody><tfoot><tr><td>" + t("Totale celle") + "</td>" + A.map(a => '<td class="num">' + nf(a.celle) + (a.esterne ? "+" + nf(a.esterne) : "") + '</td><td class="num">' + nf(a.personeCelle, a.personeCelle % 1 ? 1 : 0) + "</td><td></td>").join("") + "</tr>"
+    + (A.some(a => a.extraOp || a.extraMan) ? "<tr><td>" + t("Operatori fuori dalle celle") + "</td>" + A.map(a => '<td></td><td class="num">' + nf(a.extraOp, 1) + "</td><td></td>").join("") + "</tr>"
+      + "<tr><td>" + t("Manager") + "</td>" + A.map(a => '<td></td><td class="num">' + nf(a.extraMan, 1) + "</td><td></td>").join("") + "</tr>"
+      + "<tr><td>" + t("Organico totale") + "</td>" + A.map(a => '<td></td><td class="num">' + nf(a.persone, a.persone % 1 ? 1 : 0) + "</td><td></td>").join("") + "</tr>" : "")
+    + "</tfoot></table>"
     + '<div class="rep-note">' + t("celle di casa + esterne · ▲ = vincolo · colore = saturazione") + "</div></div>";
   el.innerHTML = s1 + s2;
 }
@@ -3452,6 +3525,7 @@ async function creaPptx(solo) {
       { text: p ? "  " + segno(varPct(p.pezzi, a.pezzi)) : "", options: { fontSize: 13, color: ROSA, breakLine: true } },
       { text: nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? " (" + segnoN(a.celle - p.celle) + ")" : "") + (a.esterne ? " · " + nf(a.esterne) + " " + t("esterne") : ""), options: { fontSize: 14, color: INK, breakLine: true } },
       { text: nf(a.persone, a.persone % 1 ? 1 : 0) + " " + t("persone") + (p && a.persone !== p.persone ? "  (" + segnoN(a.persone - p.persone, (a.persone - p.persone) % 1 ? 1 : 0) + ")" : ""), options: { fontSize: 14, color: INK, breakLine: true } },
+      ...(a.extraOp || a.extraMan ? [{ text: nf(a.personeCelle, 1) + " " + t("in cella") + " · " + nf(a.extraOp, 1) + " " + t("op. extra") + " · " + nf(a.extraMan, 1) + " " + t("manager"), options: { fontSize: 11, color: DIM, breakLine: true } }] : []),
       { text: t("Vincolo") + ": " + a.vincolo + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : ""), options: { fontSize: 12, color: DIM } }
     ], { x: x + 0.15, y: 1.55, w: larg - 0.3, h: 2.0, fontFace: "Calibri", valign: "top", paraSpaceAfter: 3, fontSize: A.length > 3 ? 12 : 14 });
   });
@@ -3486,11 +3560,14 @@ async function creaPptx(solo) {
       { text: nf(r.persone, r.persone % 1 ? 1 : 0), options: { align: "right" } },
       { text: (s != null ? pct(s) : "—") + (v ? " ▲" : ""), options: { align: "right", bold: v, fill: { color: satHex(s) } } }];
   })));
-  const piede = [{ text: t("Totale"), options: { bold: true } }].concat(...A.map(a => [
+  const piede = [{ text: t("Totale celle"), options: { bold: true } }].concat(...A.map(a => [
     { text: nf(a.celle) + (a.esterne ? "+" + nf(a.esterne) : ""), options: { bold: true, align: "right" } },
-    { text: nf(a.persone, a.persone % 1 ? 1 : 0), options: { bold: true, align: "right" } }, { text: "" }]));
+    { text: nf(a.personeCelle, a.personeCelle % 1 ? 1 : 0), options: { bold: true, align: "right" } }, { text: "" }]));
+  const rigaP = (l, f, b) => [{ text: l, options: { bold: !!b } }].concat(...A.map(a => [{ text: "" }, { text: nf(f(a), f(a) % 1 ? 1 : 0), options: { align: "right", bold: !!b } }, { text: "" }]));
+  const extraRighe = A.some(a => a.extraOp || a.extraMan)
+    ? [rigaP(t("Operatori fuori dalle celle"), a => a.extraOp), rigaP(t("Manager"), a => a.extraMan), rigaP(t("Organico totale"), a => a.persone, true)] : [];
   const volumi = [{ text: t("Volumi (pz)"), options: { color: DIM } }].concat(...A.map(a => [{ text: nf(a.pezzi), options: { colspan: 3, align: "center", color: DIM } }]));
-  s2.addTable([intest1, intest2, ...corpo, piede, volumi], {
+  s2.addTable([intest1, intest2, ...corpo, piede, ...extraRighe, volumi], {
     x: 0.5, y: 1.4, w: 12.3, colW: [2.3].concat(Array(3 * A.length).fill(10 / (3 * A.length))), fontFace: "Calibri", fontSize: A.length > 3 ? 10 : 12, color: INK,
     border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.34, autoPage: false
   });
@@ -3925,7 +4002,7 @@ let FORZA_RENDER = false;
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
 function refreshOutputs() { if (visibile("guida")) renderGuida(); if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
-function refreshAll() { S.famiglie.forEach(f => { if (!Array.isArray(f.forecastAnni)) f.forecastAnni = []; while (f.forecastAnni.length < nAnni()) f.forecastAnni.push(0); }); applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
+function refreshAll() { (S.extra = S.extra || []).forEach(x => { if (!Array.isArray(x.n)) x.n = []; while (x.n.length < nAnni()) x.n.push(x.n.length ? nz(x.n[x.n.length - 1]) : 0); }); S.famiglie.forEach(f => { if (!Array.isArray(f.forecastAnni)) f.forecastAnni = []; while (f.forecastAnni.length < nAnni()) f.forecastAnni.push(0); }); applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
 
 /* ============================================================
    EVENTI
@@ -4546,6 +4623,10 @@ function renderPiano() {
     + anni.map(c => '<td class="num"><strong>' + nf(c.righe.reduce((a, r) => a + r.sugg * r.operatori * r.turni, 0)) + "</strong></td>").join("") + "</tr>"
     + "<tr><td>" + t("Persone di oggi") + "</td>"
     + anni.map(c => '<td class="num">' + nf(c.righe.reduce((a, r) => a + r.persone, 0)) + "</td>").join("") + "</tr>"
+    + "<tr><td>" + t("Fuori dalle celle (operatori + manager)") + "</td>"
+    + anni.map((c, y) => { const x = extraAnno(y); return '<td class="num">' + nf(x.operatore, 1) + " + " + nf(x.manager, 1) + "</td>"; }).join("") + "</tr>"
+    + "<tr><td><strong>" + t("Organico totale") + "</strong></td>"
+    + anni.map((c, y) => '<td class="num"><strong>' + nf(c.righe.reduce((a, r) => a + r.persone, 0) + extraAnno(y).totale, 1) + "</strong></td>").join("") + "</tr>"
     + "<tr><td>" + t("Vincolo") + "</td>" + anni.map(c => "<td class='num'>" + (c.vincolo ? esc(c.vincolo.nome) + " " + pct(c.vincolo.sat) : "—") + "</td>").join("") + "</tr>"
     + "</tbody>";
 }
@@ -4574,7 +4655,7 @@ document.getElementById("goalBtn").onclick = goalSeek;
 /* ============================================================
    SCENARI SALVATI
    ============================================================ */
-function snapData() { return JSON.parse(JSON.stringify({ params: S.params, fasi: S.fasi, reparti: S.reparti, famiglie: S.famiglie })); }
+function snapData() { return JSON.parse(JSON.stringify({ params: S.params, fasi: S.fasi, reparti: S.reparti, famiglie: S.famiglie, extra: S.extra || [] })); }
 function computeSnap(sn, ov) {
   const bak = { params: S.params, fasi: S.fasi, reparti: S.reparti, famiglie: S.famiglie };
   S.params = sn.data.params; S.fasi = sn.data.fasi; normalizzaReparti(sn.data.reparti); S.reparti = sn.data.reparti; S.famiglie = sn.data.famiglie;
@@ -4638,7 +4719,7 @@ document.addEventListener("click", e => {
   if (!confirm(t("Sostituisco i dati attuali con quelli dello scenario salvato. Continuo?"))) return;
   const d = JSON.parse(JSON.stringify(sn.data));
   S.params = Object.assign({}, blankState().params, d.params);
-  S.fasi = d.fasi; S.reparti = normalizzaReparti(d.reparti); S.famiglie = d.famiglie;
+  S.fasi = d.fasi; S.reparti = normalizzaReparti(d.reparti); S.famiglie = d.famiglie; S.extra = Array.isArray(d.extra) ? d.extra : [];
   S.meta.snapCorrente = sn.id; SIM = null; BANCO = null; queueSave(); refreshAll();
 });
 document.addEventListener("click", e => {
