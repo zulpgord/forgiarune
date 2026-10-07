@@ -380,6 +380,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
   <div class="panel">
     <h2>Reparti e celle</h2>
     <p class="hint">Celle, celle max, operatori e ore valgono solo per l'anno selezionato in alto: puoi progettare una configurazione diversa per ciascuno dei tre anni. Nome, fase, ripristino, lotto e macchine sono invece comuni. Ogni reparto lavora una fase e contiene celle. Una cella è un operatore. Celle max è il tetto fisico che puoi raggiungere: la simulazione ti avvisa se il suggerimento lo supera. Le ore qui sono nette per cella, cioè già moltiplicate per turni ed efficienza: sono la capacità vera di una cella. Lasciata vuota, la casella mostra in grigio il valore che deriva dai parametri generali. Scrivi un numero solo per i reparti con un orario diverso dagli altri. Le ore lorde stanno solo nei parametri generali.</p>
+    <p class="hint">Lotto = quanti pezzi della stessa famiglia passano di fila prima di cambiare: l'attrezzaggio si conta solo al cambio di famiglia, quindi una volta per lotto. Lasciato a 0 si assume una campagna per famiglia in ogni mese in cui ha consegne. Le persone di un reparto sono celle × operatori per cella × turni.</p>
     <div class="scroller"><table id="tblReparti"></table></div>
     <div class="row-actions"><button class="act" id="addReparto">Aggiungi reparto</button>
       <button class="act ghost" id="copiaAnnoAvanti">Copia negli anni successivi</button>
@@ -865,14 +866,14 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v5.4";
+const VERSION = "v5.5";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
 let LANG = "it", THEME = "light";
 
 const EN = {
-  "Banco di prova": "Test bench", "Guida": "Guide", "Schermo intero": "Full screen", "Esci da schermo intero": "Exit full screen", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
+  "Banco di prova": "Test bench", "Turni": "Shifts", "dai parametri": "from parameters", "con attrezzaggio": "with changeover", "senza attrezzaggio (stessa famiglia)": "no changeover (same family)", "Guida": "Guide", "Schermo intero": "Full screen", "Esci da schermo intero": "Exit full screen", "Copie del piano": "Plan copies", "Salva come nuova": "Save as new", "Importa da file": "Import from file", "Pianificazione": "Scheduling", "EasyFabio · impostazioni del piano": "EasyFabio · plan settings", "Diagramma di Gantt": "Gantt chart",
   "Carico per periodo": "Load by period", "Commesse": "Job orders", "Ore": "Hours", "Giorni": "Days", "Settimane": "Weeks", "Mesi": "Months",
   "Per reparto": "By department", "Per commessa": "By job", "Vai a oggi": "Go to today", "Aggiungi commessa": "Add job", "Crea dal forecast": "Create from forecast",
   "Elimina tutte": "Delete all", "Incolla da Excel": "Paste from Excel", "Aggiungi le righe": "Add rows", "commesse aperte": "open jobs", "in tempo": "on time",
@@ -1240,7 +1241,7 @@ const uniform = () => Array(12).fill(100 / 12);
 
 function pianoDefault() {
   const d = new Date(), lun = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)));
-  return { inizio: lun.toISOString().slice(0, 10), oreGiorno: 8, oraInizio: 8, giorniSett: 5, scala: "giorni", vista: "reparti",
+  return { inizio: lun.toISOString().slice(0, 10), oreGiorno: null, oraInizio: 8, giorniSett: 5, scala: "giorni", vista: "reparti",
     regola: "priorita", modo: "avanti", margineGG: 1, noPassato: true, festivita: true, chiusure: "", oreRep: {}, eventi: [] };
 }
 function blankState() {
@@ -1311,6 +1312,8 @@ function migrate(o) {
   o.snapshots = Array.isArray(o.snapshots) ? o.snapshots : [];
   o.commesse = Array.isArray(o.commesse) ? o.commesse : [];
   o.pianiSalvati = Array.isArray(o.pianiSalvati) ? o.pianiSalvati : [];
+  /* fino alla v5.4 le ore al giorno partivano fisse a 8: ora vuoto = dai parametri */
+  if (o.piano && !o.piano.oreAuto) { if (nz(o.piano.oreGiorno) === 8) o.piano.oreGiorno = null; o.piano.oreAuto = true; }
   o.piano = Object.assign(pianoDefault(), o.piano);
   o.meta.version = VERSION;
   o.params = Object.assign({}, b.params, o.params);
@@ -1385,6 +1388,8 @@ function compute(ov) {
     const dr = ov.draft && rep ? ov.draft[rep.id] : null;
     const operatori = opCella(dr ? dr.op : cfg ? cfg.operatori : 1);
     const capCella = ore * turni * eff * operatori;
+    /* una macchina lavora le ore del turno, non raddoppia con gli operatori */
+    const capMacc = ore * turni * eff;
     const celle = dr ? nz(dr.celle) : cfg ? nz(cfg.celleAttuali) : 0;
     const esterne = cfg ? Math.max(0, nz(cfg.celleEsterne)) : 0;
     const max = cfg ? nz(cfg.celleMax) : 0;
@@ -1402,7 +1407,11 @@ function compute(ov) {
       const q = netto / (1 - scarto);
       const hU = q * nz(x.min) / 60;
       const hM = q * nz(x.minMacchina) / 60;
-      const nCambi = lotto > 0 ? q / lotto : 0;
+      /* l'attrezzaggio si fa solo cambiando famiglia: un cambio per ogni campagna.
+         Lotto = pezzi di fila della stessa famiglia; vuoto = una campagna per ogni mese
+         in cui la famiglia ha consegne (mai più cambi che pezzi) */
+      const mesiAttivi = f.mensile.filter(v => nz(v) > 0).length || 12;
+      const nCambi = lotto > 0 ? q / lotto : Math.min(q, mesiAttivi);
       const hS = nCambi * nz(x.setup) / 60;
       if (hU + hM + hS <= 0) return;
       oreUomo += hU; oreMacc += hM; oreSetup += hS; cambi += nCambi;
@@ -1416,7 +1425,7 @@ function compute(ov) {
     const caricoM = macchine > 0 ? oreMacc + oreSetup : 0;
     const caricoH = caricoU;
     const necUomo = capCella > 0 ? caricoU / capCella : 0;
-    const necMacc = capCella > 0 && macchine > 0 ? caricoM / capCella : 0;
+    const necMacc = capMacc > 0 && macchine > 0 ? caricoM / capMacc : 0;
     /* La saturazione resta quella dello stabilimento: le celle esterne non alleggeriscono
        il reparto, sono una valvola di sfogo che si vede nel pannello "Dentro e fuori". */
     const capTot = celle * capCella;
@@ -1426,7 +1435,7 @@ function compute(ov) {
     const oreFuori = Math.min(Math.max(0, caricoH - celle * capCella * target), esterne * capCella);
     const caricoDentro = caricoH - oreFuori;
     const satU = capTot > 0 ? caricoU / capTot : null;
-    const satM = macchine > 0 && capCella > 0 ? caricoM / (macchine * capCella) : null;
+    const satM = macchine > 0 && capMacc > 0 ? caricoM / (macchine * capMacc) : null;
     const sat = satM != null && (satU == null || satM > satU) ? satM : satU;
     const risorsa = necMacc > necUomo ? "macchina" : "uomo";
     const necFraz = Math.max(necUomo, necMacc);
@@ -1450,7 +1459,7 @@ function compute(ov) {
     const tcVA = pezzi > 0 ? oreUomo * 60 / pezzi : null;
     const tcMacc = pezzi > 0 && macchine > 0 ? caricoM * 60 / pezzi : null;
     const maxU = tcMedio > 0 ? capTot * 60 / tcMedio : null;
-    const maxM = tcMacc > 0 ? macchine * capCella * 60 / tcMacc : null;
+    const maxM = tcMacc > 0 ? macchine * capMacc * 60 / tcMacc : null;
     const maxPezzi = maxM != null && (maxU == null || maxM < maxU) ? maxM : maxU;
 
     const mediaH = meseH.reduce((a, b) => a + b, 0) / 12;
@@ -1488,7 +1497,7 @@ function compute(ov) {
       ore, capCella, celle, max, macchine, caricoH, pezzi, pezziNetti,
       oreUomo, oreMacc, oreSetup, cambi, lotto,
       necUomo, necMacc, risorsa, satU, satM,
-      cfg, operatori, persone: celle * operatori, personeSugg: 0, esterne,
+      cfg, operatori, turni, persone: celle * operatori * turni, personeSugg: 0, esterne,
       capInterna: celle * capCella, capEsterna: esterne * capCella, soglia: celle * capCella * target,
       oreFuori, caricoDentro,
       /* ore libere sotto il target: quelle che potrei vendere tenendomi il margine */
@@ -2093,12 +2102,12 @@ function renderBanco() {
   bancoStato();
 }
 function bancoCelle(r) {
-  return '<td class="num">' + nf(r.celle * r.operatori, 1) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
+  return '<td class="num">' + nf(r.celle * r.operatori * r.turni, 1) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
     + satCell(r.caricoH > 0 ? r.satU : null) + '<td class="num">' + (r.caricoH > 0 ? nf(r.suggFraz, 2) : "—") + "</td>";
 }
 function bancoTot(righe) {
   return "<td><strong>" + t("Totale") + '</strong></td><td class="num">' + nf(righe.reduce((a, r) => a + r.caricoH, 0)) + '</td><td class="num"><strong>' + nf(righe.reduce((a, r) => a + r.celle, 0))
-    + '</strong></td><td></td><td class="num"><strong>' + nf(righe.reduce((a, r) => a + r.celle * r.operatori, 0), 1) + '</strong></td><td class="num">' + nf(righe.reduce((a, r) => a + r.celle * r.capCella, 0)) + "</td><td></td><td></td><td></td>";
+    + '</strong></td><td></td><td class="num"><strong>' + nf(righe.reduce((a, r) => a + r.celle * r.operatori * r.turni, 0), 1) + '</strong></td><td class="num">' + nf(righe.reduce((a, r) => a + r.celle * r.capCella, 0)) + "</td><td></td><td></td><td></td>";
 }
 /* aggiorna solo i risultati, senza ridisegnare gli input (non perdi il cursore) */
 function aggiornaBanco() {
@@ -2129,11 +2138,11 @@ function renderOrganico() {
   const righe = compute().righe.filter(r => r.rep);
   const somma = f => righe.reduce((a, r) => a + f(r), 0);
   document.getElementById("tblOrganico").innerHTML =
-    "<thead><tr>" + th("Reparto") + th("Celle", "num") + th("Celle esterne", "num") + th("Operatori per cella", "num") + th("Operatori", "num") + th("Saturazione", "num") + "</tr></thead><tbody>"
+    "<thead><tr>" + th("Reparto") + th("Celle", "num") + th("Celle esterne", "num") + th("Operatori per cella", "num") + th("Turni", "num") + th("Operatori", "num") + th("Saturazione", "num") + "</tr></thead><tbody>"
     + righe.map(r => "<tr><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.celle) + '</td><td class="num">' + (r.esterne ? nf(r.esterne) : "—") + '</td><td class="num">' + nf(r.operatori, r.operatori % 1 ? 1 : 0)
-      + '</td><td class="num"><strong>' + nf(r.celle * r.operatori, 1) + '</strong></td><td class="num">' + (r.caricoH > 0 ? pct(r.satCasa) : "—") + "</td></tr>").join("")
+      + '</td><td class="num">' + nf(r.turni) + '</td><td class="num"><strong>' + nf(r.persone, 1) + '</strong></td><td class="num">' + (r.caricoH > 0 ? pct(r.satCasa) : "—") + "</td></tr>").join("")
     + "</tbody><tfoot><tr><td><strong>" + t("Totale") + '</strong></td><td class="num"><strong>' + nf(somma(r => r.celle)) + '</strong></td><td class="num">' + nf(somma(r => r.esterne))
-    + '</td><td></td><td class="num"><strong>' + nf(somma(r => r.celle * r.operatori), 1) + "</strong></td><td></td></tr></tfoot>";
+    + '</td><td></td><td></td><td class="num"><strong>' + nf(somma(r => r.persone), 1) + "</strong></td><td></td></tr></tfoot>";
 }
 
 /* ============================================================
@@ -2165,9 +2174,14 @@ function giorniChiusi(P, y0) {
   });
   return set;
 }
+function oreGiornoParam() {
+  const gg = nz(S.params.giorniLavorativi) || 225;
+  return Math.round(nz(S.params.oreAnnuePerCella) * (nz(S.params.turni) || 1) / gg * 2) / 2 || 8;
+}
 function calendario() {
   const P = S.piano, gs = nz(P.giorniSett) === 6 ? 6 : 5;
-  const Hg = Math.min(24, Math.max(1, nz(P.oreGiorno) || 8));
+  /* vuoto = dai parametri generali: ore lorde × turni ÷ giorni lavorativi */
+  const Hg = Math.min(24, Math.max(1, nz(P.oreGiorno) || oreGiornoParam()));
   const oreR = id => { const v = nz((P.oreRep || {})[id]); return v > 0 ? Math.min(24, v) : Hg; };
   const H = Math.max(Hg, ...S.reparti.map(r => oreR(r.id)));
   let d = dnDa(P.inizio); if (d == null) d = dnDa(pianoDefault().inizio);
@@ -2214,6 +2228,12 @@ function spazio(L, t, dur, H) {
     s = prossimo(L, b[1], H);
   }
   return [1e12, 1e12];
+}
+/* famiglia dell'ultima fase che finisce sulla cella prima di t (null = cella ancora vuota) */
+function precedente(L, t) {
+  let best = null, fine = -1;
+  L.occ.forEach(x => { if (x[1] <= t + 1e-9 && x[1] > fine) { fine = x[1]; best = x[2]; } });
+  return best;
 }
 /* ore di lavoro di una fase che cadono fra a e b: si contano solo le ore in cui la cella lavora */
 function quota(L, o, a, b, H) {
@@ -2263,9 +2283,10 @@ function pianifica(opz) {
     reps.forEach((R, ri) => {
       if (ri <= fatto) return;
       const x = fam.tempi[R.fase.id]; if (!x || !x.on) return;
-      const uomo = (nz(x.min) + nz(x.setup)) / 60 / (R.op || 1) / eff * k;
-      const macc = R.macchine > 0 ? (nz(x.minMacchina) + nz(x.setup)) / 60 / eff * k : 0;
-      const dur = Math.max(uomo, macc); if (dur > 0) fasi.push({ ri, dur });
+      /* due durate: con attrezzaggio (la cella cambia famiglia) e senza (stessa famiglia di prima) */
+      const durata = su => Math.max((nz(x.min) * k + su) / 60 / (R.op || 1) / eff, R.macchine > 0 ? (nz(x.minMacchina) * k + su) / 60 / eff : 0);
+      const dur0 = durata(0), durS = durata(nz(x.setup));
+      if (durS > 0) fasi.push({ ri, dur: durS, dur0, durS });
     });
     return { fam, fasi };
   };
@@ -2296,14 +2317,22 @@ function pianifica(opz) {
     if (pc) pc.fasi.forEach(f => {
       if (bloccata) return;
       const R = reps[f.ri];
-      let li = -1, s = Infinity, en = Infinity;
-      R.corsie.forEach((L, i) => { const x = spazio(L, tt, f.dur, H); if (x[0] < s - 1e-9 || (Math.abs(x[0] - s) < 1e-9 && x[1] < en)) { s = x[0]; en = x[1]; li = i; } });
+      /* per ogni cella: dove finirebbe la fase, contando l'attrezzaggio solo se la commessa
+         che la precede su quella cella è di un'altra famiglia. Vince la cella che finisce prima. */
+      let li = -1, s = Infinity, en = Infinity, set = false;
+      R.corsie.forEach((L, i) => {
+        let x = spazio(L, tt, f.dur0, H), cambio = precedente(L, x[0]) !== pc.fam.id;
+        if (cambio && f.durS > f.dur0) { x = spazio(L, tt, f.durS, H); cambio = precedente(L, x[0]) !== pc.fam.id; if (!cambio) x = spazio(L, x[0], f.dur0, H); }
+        if (x[1] < en - 1e-9 || (Math.abs(x[1] - en) < 1e-9 && x[0] < s)) { s = x[0]; en = x[1]; li = i; set = cambio && f.durS > f.dur0; }
+      });
       if (li < 0 || s >= 1e11) { bloccata = R.fase.nome; return; }
-      R.corsie[li].occ.push([s, en]);
-      ops.push({ cm, fam: pc.fam, ri: f.ri, li, st: s, en, dur: f.dur, attesa: s - tt });
+      f.dur = set ? f.durS : f.dur0;
+      R.corsie[li].occ.push([s, en, pc.fam.id]);
+      ops.push({ cm, fam: pc.fam, ri: f.ri, li, st: s, en, dur: f.dur, setup: set, attesa: s - tt });
       attesa += s - tt; if (primo == null) primo = s; tt = en; n++;
     });
     const dueWH = dnDa(cm.consegna) != null ? K.idx(dnDa(cm.consegna) + 1) * H : null;
+    I.lavoro = ops.filter(o => o.cm === cm).reduce((a, o) => a + o.dur, 0);
     esito[cm.id] = { t0, inizio: primo, fine: n ? tt : null, ritardoH: dueWH != null && n ? tt - dueWH : null, bloccata, senzaFam: !pc,
       completa: pc && !pc.fasi.length && !!cm.fatto, vuota: pc && !pc.fasi.length && !cm.fatto, lavoro: I.lavoro, attesa, lead: n ? (tt - t0) / H : null };
   });
@@ -2381,6 +2410,7 @@ function renderPiano2() {
     const v = P[el.dataset.pl];
     if (el.type === "checkbox") el.checked = v !== false; else el.value = v == null ? "" : v;
   });
+  document.getElementById("plOre").placeholder = nf(oreGiornoParam(), 1) + " " + t("dai parametri");
   document.querySelectorAll("#plScala button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === P.scala ? "true" : "false"));
   document.querySelectorAll("#plVista button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === P.vista ? "true" : "false"));
   PL = pianifica();
@@ -2477,7 +2507,7 @@ function renderPiano2() {
     const x = o.st * px, w = Math.max(1.5, (o.en - o.st) * px), yy = ys[i] + 3, hh = RH - 6;
     const col = P.vista === "commesse" ? PAL[o.ri % PAL.length] : famColor(o.fam.id);
     const e = esito[o.cm.id];
-    const tit = (o.cm.codice || "") + " · " + o.fam.nome + " · " + S.fasi[o.ri].nome + "\n" + whOra(K, o.st) + " → " + whOra(K, o.en) + " · " + nf(o.dur, 1) + " h " + t("di lavoro")
+    const tit = (o.cm.codice || "") + " · " + o.fam.nome + " · " + S.fasi[o.ri].nome + "\n" + whOra(K, o.st) + " → " + whOra(K, o.en) + " · " + nf(o.dur, 1) + " h " + t("di lavoro") + (o.setup ? " " + t("con attrezzaggio") : " " + t("senza attrezzaggio (stessa famiglia)"))
       + (o.attesa > .05 ? "\n" + t("in coda prima") + ": " + nf(o.attesa, 1) + " h" : "")
       + (o.tardi ? "\n" + t("in ritardo di") + " " + nf(e.ritardoH / H, 1) + " " + t("gg") : "")
       + (o.cm.fisso ? "\n🔒 " + t("non prima del") + " " + dnFmt(dnDa(o.cm.fisso), true) : "");
@@ -3332,12 +3362,12 @@ function renderVSM() {
       s += '<text x="' + (x + 12) + '" y="' + yInfo + '" fill="' + C.dim + '" ' + FS + ' font-size="12.5">' + t("Carico") + "</text>";
       s += '<text x="' + (x + W - 12) + '" y="' + yInfo + '" fill="' + C.ink + '" ' + FS + ' font-size="12.5" text-anchor="end">' + nf(r.caricoH) + " " + U.h() + "</text>";
       s += '<text x="' + (x + 12) + '" y="' + (yInfo + 20) + '" fill="' + C.dim + '" ' + FS + ' font-size="12.5">' + t("Persone nel reparto") + "</text>";
-      s += '<text x="' + (x + W - 12) + '" y="' + (yInfo + 20) + '" fill="' + C.gold + '" ' + FS + ' font-size="13" font-weight="600" text-anchor="end">' + nf(r.celle * r.operatori, (r.celle * r.operatori) % 1 ? 1 : 0) + "</text>";
+      s += '<text x="' + (x + W - 12) + '" y="' + (yInfo + 20) + '" fill="' + C.gold + '" ' + FS + ' font-size="13" font-weight="600" text-anchor="end">' + nf(r.persone, r.persone % 1 ? 1 : 0) + "</text>";
     } else {
       const L = [
         [t("Celle"), nf(r.celle) + (r.max ? " / " + nf(r.max) : "")],
         [t("Persone per cella"), nf(r.operatori, r.operatori % 1 ? 1 : 0)],
-        [t("Persone nel reparto"), nf(r.celle * r.operatori, (r.celle * r.operatori) % 1 ? 1 : 0)],
+        [t("Persone nel reparto"), nf(r.persone, r.persone % 1 ? 1 : 0)],
         [t("Tempo medio"), r.tcMedio != null ? nf(r.tcMedio, 1) + " " + U.min() + "/" + U.pz() : "—"],
         ...(r.operatori > 1 ? [[t("Orologio, una cella"), nf(r.tcMedio / r.operatori, 1) + " " + U.min() + "/" + U.pz()]] : []),
         [t("Carico"), nf(r.caricoH) + " " + U.h()],
@@ -3992,7 +4022,7 @@ function renderPiano() {
     + "<tr><td><strong>" + t("Totale celle suggerite") + "</strong></td>"
     + anni.map(c => '<td class="num"><strong>' + nf(c.righe.reduce((a, r) => a + r.sugg, 0)) + "</strong></td>").join("") + "</tr>"
     + "<tr><td><strong>" + t("Persone necessarie") + "</strong></td>"
-    + anni.map(c => '<td class="num"><strong>' + nf(c.righe.reduce((a, r) => a + r.sugg * r.operatori, 0)) + "</strong></td>").join("") + "</tr>"
+    + anni.map(c => '<td class="num"><strong>' + nf(c.righe.reduce((a, r) => a + r.sugg * r.operatori * r.turni, 0)) + "</strong></td>").join("") + "</tr>"
     + "<tr><td>" + t("Persone di oggi") + "</td>"
     + anni.map(c => '<td class="num">' + nf(c.righe.reduce((a, r) => a + r.persone, 0)) + "</td>").join("") + "</tr>"
     + "<tr><td>" + t("Vincolo") + "</td>" + anni.map(c => "<td class='num'>" + (c.vincolo ? esc(c.vincolo.nome) + " " + pct(c.vincolo.sat) : "—") + "</td>").join("") + "</tr>"
