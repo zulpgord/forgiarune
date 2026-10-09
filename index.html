@@ -342,7 +342,10 @@ body.side-off #side{display:none}
 .rep-tab thead tr:first-child th{background:#7C4DEB;color:#fff;text-align:center}
 .rep-tab tfoot td{font-weight:700}
 .rep-note{margin-top:auto;font-size:11px;color:#7B7596}
-.rep-calc{cursor:help;text-decoration:underline dotted #B9AEDB;text-underline-offset:3px}
+.backup-banner{margin:0 0 14px;padding:10px 14px;border-radius:10px;background:var(--warn-bg, #FCEBC7);color:var(--warn-fg, #7A5200);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.backup-banner[hidden]{display:none}
+.backup-banner .act{margin:0}
+.calc,.rep-calc{cursor:help;text-decoration:underline dotted #B9AEDB;text-underline-offset:3px}
 .rep-fuori{font-size:13px;color:#5A5478}
 /* tabella per reparto: deve leggersi bene a colpo d'occhio */
 .rep-slide-tab{aspect-ratio:auto;min-height:0}
@@ -443,6 +446,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
   </nav>
 </aside>
 <main>
+<div id="backupBanner" class="backup-banner" hidden></div>
 <section id="tab-setup">
   <div class="panel">
     <h2>Reparti e celle</h2>
@@ -527,6 +531,14 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
         <span id="anniNomi"></span>
         <span class="anni-btn"><button class="act ghost" id="annoPiu" title="Aggiungi un anno">+ Anno</button> <button class="act ghost" id="annoMeno" title="Togli l'ultimo anno">− Anno</button></span></div>
     </div>
+    <h3 style="margin-top:22px">Calendario: giorni lavorativi mese per mese</h3>
+    <p class="hint">Servono a distribuire la capacità sui mesi: un agosto con la chiusura estiva rende meno di ottobre. Contano le proporzioni fra i mesi, le ore annue restano quelle qui sopra. Senza calendario la capacità è divisa in dodici parti uguali.</p>
+    <div class="scroller"><table id="tblCalendario"></table></div>
+    <div class="row-actions">
+      <button class="act ghost" id="calProposta">Proponi con chiusure di agosto e Natale</button>
+      <button class="act ghost" id="calUniforme">Dodici parti uguali</button>
+      <span id="calNota" class="hint" style="margin:0"></span>
+    </div>
     <h3 style="margin-top:22px">Fasi di lavorazione</h3>
     <p class="hint">L'ordine qui definisce la sequenza del flusso e l'ordine della mappa. Aggiungi o togli fasi quando cambia il processo.</p>
     <div class="scroller"><table id="tblFasi"></table></div>
@@ -545,6 +557,17 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
       <button class="act" id="csvBtn">Esporta risultati CSV</button>
       <button class="act" id="printBtn">Stampa</button>
       <button class="act ghost" id="wipeBtn">Svuota tutto</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Copia automatica su file</h2>
+    <p class="hint">Il browser può perdere i dati (cache svuotata, cambio di computer). Scegli un file, anche nella cartella di Google Drive: l'app lo riscrive da sola a ogni salvataggio. Funziona con Chrome e Edge; dopo aver riaperto il browser basta un clic su «Riattiva».</p>
+    <div id="backupStato" class="hint"></div>
+    <div class="row-actions">
+      <button class="act" id="fileScegli">Scegli il file di salvataggio</button>
+      <button class="act" id="fileRiattiva" hidden>Riattiva</button>
+      <button class="act ghost" id="fileApri">Apri da file…</button>
+      <button class="act ghost" id="fileScollega" hidden>Scollega</button>
     </div>
   </div>
 </section>
@@ -680,7 +703,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
   </div>
   <div class="panel">
     <h2>Capacità mese per mese</h2>
-    <p class="hint">Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Risente delle leve qui sopra, così puoi provare forecast e turni diversi. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.</p>
+    <p class="hint">Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Risente delle leve qui sopra, così puoi provare forecast e turni diversi. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua si distribuisce sui mesi secondo il calendario dei giorni lavorativi (Parametri generali): senza calendario, in dodici parti uguali.</p>
     <div class="scroller"><table id="tblRodaggio"></table></div>
     <div id="rodNote"></div>
   </div>
@@ -950,7 +973,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v6.1";
+const VERSION = "v6.2";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -973,6 +996,83 @@ const EN = {
   "Organico totale": "Total headcount",
   "Fuori dalle celle (operatori + manager)": "Outside the cells (operators + managers)",
   "in cella": "in cells",
+  "(celle − celle necessarie) × capacità di una cella": "(cells − cells needed) × capacity of one cell",
+  "(ore del mese − soglia al target) ÷ capacità mensile di una cella, per eccesso": "(month hours − threshold at target) ÷ monthly capacity of one cell, rounded up",
+  "(ore di lavoro + attrezzaggio) × 60 ÷ pezzi": "(work + setup hours) × 60 ÷ pieces",
+  "= massimo − minimo dello scostamento cumulato fra carico del mese e ritmo livellato": "= max − min of the cumulative gap between monthly load and levelled rate",
+  "Attiva la copia automatica": "Turn on automatic copy",
+  "Calendario con mesi oltre 23 giorni lavorativi": "Calendar with months over 23 working days",
+  "Capacità di una cella": "Capacity of one cell",
+  "Carico del mese = carico annuo distribuito secondo il profilo mensile delle famiglie": "Month load = annual load spread by the families' monthly profile",
+  "Celle al target = carico ÷ capacità di una cella ÷ target": "Cells at target = load ÷ capacity of one cell ÷ target",
+  "Celle che servono al 100% di saturazione: carico ÷ capacità di una cella, per eccesso": "Cells needed at 100% utilisation: load ÷ capacity of one cell, rounded up",
+  "Celle di casa per reparto": "In-house cells per department",
+  "Celle installate oltre il tetto di celle max": "Installed cells above the max cells cap",
+  "Copia automatica attiva": "Automatic copy on",
+  "Efficienza insolita": "Unusual efficiency",
+  "Esporta ora": "Export now",
+  "Famiglie con lo stesso nome: nei report si confondono": "Families with the same name: they get mixed up in reports",
+  "Fasi attive con tempi a zero: la famiglia passa dal reparto senza caricarlo": "Active steps with zero times: the family passes through without loading it",
+  "Fasi con carico ma senza reparto: il loro carico non viene dimensionato": "Steps with load but no department: their load is not sized",
+  "File collegato": "Linked file",
+  "Forecast che va a zero da un anno all'altro: è voluto o manca il dato?": "Forecast dropping to zero from one year to the next: intended or missing data?",
+  "Il totale non coincide con i giorni lavorativi all'anno": "The total does not match the working days per year",
+  "La copia automatica su file è in pausa dopo la riapertura del browser.": "The automatic file copy is paused after the browser was reopened.",
+  "Macchine necessarie = carico macchina rimasto in casa ÷ ore macchina": "Machines needed = in-house machine load ÷ machine hours",
+  "Nessun calendario: dodici parti uguali.": "No calendar: twelve equal parts.",
+  "Nessun file collegato.": "No linked file.",
+  "Nessuna copia su file recente: i dati sono solo nel browser": "No recent file copy: data is only in the browser",
+  "Non hai ancora mai salvato una copia su file: i dati sono solo in questo browser.": "You have never saved a file copy: data is only in this browser.",
+  "Ore di attrezzaggio: cambi di famiglia × minuti di setup ÷ 60": "Setup hours: family changeovers × setup minutes ÷ 60",
+  "Ore fuori = carico oltre il target, entro le celle esterne": "Hours outside = load above target, within the outside cells",
+  "Ore scoperte": "Uncovered hours",
+  "Producendo a ritmo livellato, la scorta da accumulare prima del picco": "Producing at a levelled rate, the stock to build before the peak",
+  "Questo browser non permette la copia automatica: usa Chrome o Edge, oppure «Esporta file».": "This browser does not allow automatic copy: use Chrome or Edge, or “Export file”.",
+  "Regge sull'anno ma non nel mese di picco": "Holds over the year but not in the peak month",
+  "Riattiva": "Resume",
+  "Saturazione obiettivo oltre il 95%: con la variabilità reale le code esplodono": "Target utilisation above 95%: with real variability queues explode",
+  "Scarto oltre il 50%: probabile errore di battitura (il calcolo lo limita al 95%)": "Scrap above 50%: probably a typo (the calculation caps it at 95%)",
+  "Somma del carico dei reparti (lavoro + attrezzaggio)": "Sum of department load (work + setup)",
+  "Somma del forecast delle famiglie per": "Sum of family forecasts for",
+  "Sostituisco i dati attuali con quelli del file e lo tengo collegato. Continuo?": "This replaces the current data with the file and keeps it linked. Continue?",
+  "Takt = capacità di una cella × 60 ÷ pezzi": "Takt = capacity of one cell × 60 ÷ pieces",
+  "Ultima copia su file": "Last file copy",
+  "arrotondate al target": "rounded at target",
+  "arrotondato per eccesso": "rounded up",
+  "cambi": "changeovers",
+  "carico": "load",
+  "contano solo le proporzioni fra i mesi.": "only the proportions between months count.",
+  "di solito sta fra 60% e 90%": "usually between 60% and 90%",
+  "giorni fa": "days ago",
+  "i dati recenti sono solo in questo browser.": "recent data is only in this browser.",
+  "ieri": "yesterday",
+  "in pausa: serve un clic su Riattiva": "paused: click Resume",
+  "interne": "in-house",
+  "lavoro": "work",
+  "mai": "never",
+  "non riesco a scriverlo": "cannot write it",
+  "ore di lavoro × 60 ÷ pezzi": "work hours × 60 ÷ pieces",
+  "quota dal calendario dei giorni lavorativi": "share from the working-day calendar",
+  "quota del mese": "month share",
+  "scoperte": "uncovered",
+  "senza calendario: un dodicesimo dell'anno": "no calendar: one twelfth of the year",
+  "setup": "setup",
+  "si aggiorna da solo": "updates itself",
+  "soglia": "threshold",
+  "takt di una cella × celle": "one-cell takt × cells",
+  "tetto esterne": "outside cap",
+  "È il mese più carico rispetto alla sua capacità": "It is the most loaded month relative to its capacity",
+  "è lei il limite": "it is the limit",
+  "Cambia file": "Change file",
+  "Scegli il file di salvataggio": "Choose the save file",
+  "Scollega": "Unlink",
+  "Apri da file…": "Open from file…",
+  "Copia automatica su file": "Automatic copy to file",
+  "Dodici parti uguali": "Twelve equal parts",
+  "Proponi con chiusure di agosto e Natale": "Suggest with August and Christmas closures",
+  "Calendario: giorni lavorativi mese per mese": "Calendar: working days month by month",
+  "Servono a distribuire la capacità sui mesi: un agosto con la chiusura estiva rende meno di ottobre. Contano le proporzioni fra i mesi, le ore annue restano quelle qui sopra. Senza calendario la capacità è divisa in dodici parti uguali.": "They spread capacity over the months: an August with the summer shutdown yields less than October. Only the proportions between months count; annual hours stay as above. Without a calendar capacity is split into twelve equal parts.",
+  "Il browser può perdere i dati (cache svuotata, cambio di computer). Scegli un file, anche nella cartella di Google Drive: l'app lo riscrive da sola a ogni salvataggio. Funziona con Chrome e Edge; dopo aver riaperto il browser basta un clic su «Riattiva».": "The browser can lose data (cleared cache, another computer). Choose a file, even in your Google Drive folder: the app rewrites it on every save. Works in Chrome and Edge; after reopening the browser one click on “Resume” is enough.",
   "persone in cella": "people in cells", "Fuori cella": "Outside cells", "Persone fuori cella": "People outside cells", "op.": "op.",
   "solo celle di casa · ▲ = vincolo · colore = saturazione": "in-house cells only · ▲ = constraint · colour = utilisation",
   "solo celle di casa · ▲ = vincolo · colore = saturazione · passa il mouse su una cifra per vedere il calcolo": "in-house cells only · ▲ = constraint · colour = utilisation · hover a figure to see how it is calculated",
@@ -1462,7 +1562,7 @@ const EN = {
   "Pezzi": "Pieces", "Percentuali": "Percentages", "Somma / forecast": "Sum / forecast", "Anno": "Year",
   "Una persona nuova non rende come una esperta. Dichiara quante celle apri per reparto, in che mese entrano e con che curva salgono: la curva è in percentuale della capacità di una cella a regime, un valore per trimestre di anzianità. Reparti diversi imparano a velocità diverse.": "A new hire does not perform like an experienced one. State how many cells you open per department, the month they start and the curve they climb: the curve is a percentage of a fully trained cell's capacity, one value per quarter of seniority. Different departments learn at different speeds.",
   "Capacità mese per mese": "Capacity month by month",
-  "Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Risente delle leve qui sopra, così puoi provare forecast e turni diversi. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua è spalmata in parti uguali sui dodici mesi: se hai una chiusura estiva, tienine conto a mente.": "Saturation of every department month by month, with the new cells ramping up. It reacts to the levers above, so you can try different forecasts and shifts. Red means that month's load exceeds the capacity available in that month. Annual capacity is spread evenly over the twelve months: if you have a summer shutdown, keep it in mind.",
+  "Saturazione di ogni reparto mese per mese, con le celle nuove che entrano in rodaggio. Risente delle leve qui sopra, così puoi provare forecast e turni diversi. Rosso vuol dire che il carico di quel mese supera la capacità disponibile in quel mese. La capacità annua si distribuisce sui mesi secondo il calendario dei giorni lavorativi (Parametri generali): senza calendario, in dodici parti uguali.": "Saturation of every department month by month, with the new cells ramping up. It reacts to the levers above, so you can try different forecasts and shifts. Red means that month's load exceeds the capacity available in that month. Annual capacity is spread over the months according to the working-day calendar (General parameters): without a calendar, in twelve equal parts.",
   "Celle nuove": "New cells", "Mese di ingresso": "Start month",
   "1º trim. %": "1st qtr %", "2º trim. %": "2nd qtr %", "3º trim. %": "3rd qtr %", "4º trim. %": "4th qtr %",
   "Mesi scoperti": "Months short", "Celle guadagnate": "Cells gained", "Assumi entro": "Hire by",
@@ -1655,8 +1755,107 @@ function migrate(o) {
   return o;
 }
 
+/* ---------- copia automatica su file ----------
+   Chrome e Edge permettono di tenere un file scelto dall'utente e riscriverlo a ogni
+   salvataggio. L'handle resta in IndexedDB; il permesso di scrittura va riconfermato
+   con un clic dopo che il browser è stato chiuso. */
+const FILEOK = () => typeof window !== "undefined" && !!window.showSaveFilePicker;
+let fileH = null, fileStato = "nessuno"; /* nessuno | ok | permesso | errore */
+function idbFile(op, val) {
+  return new Promise(ok => {
+    try {
+      const rq = indexedDB.open("soloLevelingFile", 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore("h");
+      rq.onerror = () => ok(null);
+      rq.onsuccess = () => {
+        const st = rq.result.transaction("h", op === "get" ? "readonly" : "readwrite").objectStore("h");
+        const q = op === "get" ? st.get("file") : op === "del" ? st.delete("file") : st.put(val, "file");
+        q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null);
+      };
+    } catch (e) { ok(null); }
+  });
+}
+async function scriviFile(chiedi) {
+  if (!fileH) return false;
+  try {
+    let p = await fileH.queryPermission({ mode: "readwrite" });
+    if (p !== "granted" && chiedi) p = await fileH.requestPermission({ mode: "readwrite" });
+    if (p !== "granted") { fileStato = "permesso"; renderBackup(); return false; }
+    S.meta.ultimoBackup = Date.now();
+    const w = await fileH.createWritable();
+    await w.write(JSON.stringify(S, null, 2)); await w.close();
+    fileStato = "ok"; renderBackup(); return true;
+  } catch (e) { fileStato = "errore"; renderBackup(); return false; }
+}
+async function initFile() {
+  if (!FILEOK()) { renderBackup(); return; }
+  fileH = await idbFile("get");
+  if (fileH) {
+    try { fileStato = (await fileH.queryPermission({ mode: "readwrite" })) === "granted" ? "ok" : "permesso"; }
+    catch (e) { fileStato = "errore"; }
+  }
+  renderBackup();
+}
+const giorniDa = ts => ts ? Math.floor((Date.now() - ts) / 864e5) : null;
+function renderBackup() {
+  const st = document.getElementById("backupStato"); if (!st) return;
+  const gg = giorniDa(S.meta.ultimoBackup);
+  const quando = gg == null ? t("mai") : gg === 0 ? t("oggi") : gg === 1 ? t("ieri") : gg + " " + t("giorni fa");
+  const sc = document.getElementById("fileScegli"), ri = document.getElementById("fileRiattiva"), sl = document.getElementById("fileScollega"), ap = document.getElementById("fileApri");
+  if (!FILEOK()) {
+    st.innerHTML = t("Questo browser non permette la copia automatica: usa Chrome o Edge, oppure «Esporta file».") + " " + t("Ultima copia su file") + ": <b>" + quando + "</b>.";
+    sc.hidden = ri.hidden = sl.hidden = ap.hidden = true;
+  } else {
+    st.innerHTML = (fileH ? t("File collegato") + ": <b>" + esc(fileH.name) + "</b> · "
+      + (fileStato === "ok" ? '<span class="tag t-ok">' + t("si aggiorna da solo") + "</span>"
+        : fileStato === "permesso" ? '<span class="tag t-warn">' + t("in pausa: serve un clic su Riattiva") + "</span>"
+        : '<span class="tag t-bad">' + t("non riesco a scriverlo") + "</span>") + " · "
+      : t("Nessun file collegato.") + " ") + t("Ultima copia su file") + ": <b>" + quando + "</b>.";
+    sc.hidden = false; sc.textContent = t(fileH ? "Cambia file" : "Scegli il file di salvataggio");
+    ri.hidden = !(fileH && fileStato !== "ok"); sl.hidden = !fileH; ap.hidden = false;
+  }
+  /* avviso in cima: file in pausa, oppure nessuna copia da più di 7 giorni con dati veri dentro */
+  const bn = document.getElementById("backupBanner");
+  const conDati = S.famiglie.length > 0;
+  let msg = "", bottone = "";
+  if (fileH && fileStato === "permesso") { msg = t("La copia automatica su file è in pausa dopo la riapertura del browser."); bottone = '<button class="act" data-bk="riattiva">' + t("Riattiva") + "</button>"; }
+  else if (conDati && fileStato !== "ok" && (gg == null || gg > 7)) {
+    msg = gg == null ? t("Non hai ancora mai salvato una copia su file: i dati sono solo in questo browser.") : t("Ultima copia su file") + " " + quando + ": " + t("i dati recenti sono solo in questo browser.");
+    bottone = (FILEOK() ? '<button class="act" data-bk="scegli">' + t("Attiva la copia automatica") + "</button> " : "") + '<button class="act ghost" data-bk="esporta">' + t("Esporta ora") + "</button>";
+  }
+  bn.hidden = !msg; bn.innerHTML = msg ? "<span>⚠ " + msg + "</span>" + bottone : "";
+}
+async function scegliFile() {
+  try {
+    const h = await window.showSaveFilePicker({ suggestedName: fname("solo-leveling-", "json"), types: [{ description: "Solo Leveling", accept: { "application/json": [".json"] } }] });
+    fileH = h; await idbFile("put", h);
+    if (await scriviFile(true)) { await save(); flag(t("Copia automatica attiva")); }
+  } catch (e) { /* annullato */ }
+}
+document.getElementById("fileScegli").onclick = scegliFile;
+document.getElementById("fileRiattiva").onclick = async () => { if (await scriviFile(true)) flag(t("Copia automatica attiva")); };
+document.getElementById("fileScollega").onclick = async () => { fileH = null; fileStato = "nessuno"; await idbFile("del"); renderBackup(); };
+/* apre un salvataggio dal disco e lo tiene collegato: da lì in poi si riscrive quello */
+document.getElementById("fileApri").onclick = async () => {
+  try {
+    const [h] = await window.showOpenFilePicker({ types: [{ description: "Solo Leveling", accept: { "application/json": [".json"] } }] });
+    const testo = await (await h.getFile()).text();
+    let dati; try { dati = JSON.parse(testo); } catch (e) { flag(t("File non leggibile: non è un salvataggio Solo Leveling"), true); return; }
+    if (!confirm(t("Sostituisco i dati attuali con quelli del file e lo tengo collegato. Continuo?"))) return;
+    S = migrate(dati); SIM = null; fileH = h; await idbFile("put", h);
+    await scriviFile(true); await save(); refreshAll(); flag(t("File importato"));
+  } catch (e) { /* annullato */ }
+};
+document.getElementById("backupBanner").addEventListener("click", e => {
+  const b = e.target.closest("[data-bk]"); if (!b) return;
+  if (b.dataset.bk === "riattiva") document.getElementById("fileRiattiva").click();
+  else if (b.dataset.bk === "scegli") scegliFile();
+  else document.getElementById("exportBtn").click();
+});
+
 async function save() {
   S.meta.lang = LANG; S.meta.theme = THEME; S.meta.version = VERSION;
+  if (fileH && fileStato === "ok") await scriviFile(false);
   try {
     const r = await store.set(KEY, JSON.stringify(S));
     if (!r) throw new Error("no result");
@@ -1687,6 +1886,15 @@ async function load() {
    ============================================================ */
 function nz(v) { const n = parseFloat(v); return isFinite(n) ? n : 0; }
 
+/* Quota della capacità annua che cade in ciascun mese. Con i giorni lavorativi mese per
+   mese la capacità segue il calendario (agosto corto, dicembre corto); senza, dodici parti uguali. */
+function quoteMese() {
+  const g = S.params.giorniMese;
+  if (!Array.isArray(g) || g.length !== 12) return Array(12).fill(1 / 12);
+  const tot = g.reduce((a, b) => a + Math.max(0, nz(b)), 0);
+  return tot > 0 ? g.map(v => Math.max(0, nz(v)) / tot) : Array(12).fill(1 / 12);
+}
+
 function compute(ov) {
   ov = ov || {};
   const P = S.params;
@@ -1696,6 +1904,7 @@ function compute(ov) {
   const eff = (ov.eff != null ? ov.eff : nz(P.efficienza)) / 100;
   const target = (ov.target != null ? ov.target : nz(P.targetSaturazione)) / 100;
   const anno = ov.anno != null ? ov.anno : (S.meta.anno || 0);
+  const Q = quoteMese();
 
   const righe = S.fasi.map(fase => {
     const rep = S.reparti.find(r => r.faseId === fase.id) || null;
@@ -1774,17 +1983,20 @@ function compute(ov) {
     const suggFraz = target > 0 ? necFraz / target : 0;
     const sugg = Math.max(0, Math.ceil(suggFraz - 1e-9));
 
-    const picH = Math.max.apply(null, meseH);
-    const picIdx = meseH.indexOf(picH);
-    const capMese = capTot / 12;
+    /* il mese di picco è quello più carico rispetto alla sua capacità: con il calendario
+       un agosto corto può essere il mese peggiore anche senza essere il più carico */
+    const pesoMese = meseH.map((h, m) => Q[m] > 0 ? h / Q[m] : (h > 0 ? Infinity : 0));
+    const picIdx = pesoMese.indexOf(Math.max.apply(null, pesoMese));
+    const picH = meseH[picIdx], qPicco = Q[picIdx];
+    const capMese = capTot * qPicco;
     const satPicco = capMese > 0 ? picH / capMese : null;
     /* stesso ragionamento del conto annuo, ma sul mese peggiore */
-    const sogliaMese = celle * capCella * target / 12, capEstMese = esterne * capCella / 12;
+    const sogliaMese = celle * capCella * target * qPicco, capEstMese = esterne * capCella * qPicco;
     const picFuori = Math.min(Math.max(0, picH - sogliaMese), capEstMese);
     const picDentro = picH - picFuori;
     const satPiccoCasa = capMese > 0 ? picDentro / capMese : null;
     const satPiccoTot = (capMese + capEstMese) > 0 ? picH / (capMese + capEstMese) : null;
-    const cellePiccoServono = capCella > 0 && picH > sogliaMese ? Math.ceil((picH - sogliaMese) / (capCella / 12)) : 0;
+    const cellePiccoServono = capCella > 0 && qPicco > 0 && picH > sogliaMese ? Math.ceil((picH - sogliaMese) / (capCella * qPicco)) : 0;
 
     const taktMin = pezzi > 0 ? capCella * 60 / pezzi : null;
     const tcMedio = pezzi > 0 ? caricoU * 60 / pezzi : null;
@@ -1813,9 +2025,9 @@ function compute(ov) {
     // l'escursione fra il massimo e il minimo dello scostamento cumulato non dipende
     // da quale mese si prende come inizio dell'anno
     let cum = 0, maxCum = 0, minCum = 0;
-    const mediaMese = caricoU / 12;
+    /* ritmo livellato = carico spalmato in proporzione ai giorni lavorativi di ogni mese */
     for (let m = 0; m < 12; m++) {
-      cum += meseH[m] - mediaMese;
+      cum += meseH[m] - caricoU * Q[m];
       if (cum > maxCum) maxCum = cum;
       if (cum < minCum) minCum = cum;
     }
@@ -1842,7 +2054,7 @@ function compute(ov) {
       maccNec: necMaccCasa, maccSugg, maccGap: macchine > 0 ? maccSugg - macchine : 0,
       necFraz, necInt: Math.ceil(necFraz - 1e-9), sat,
       suggFraz, sugg, gap: sugg - celle, oltreMax: max > 0 && sugg > max,
-      picH, picIdx, satPicco, picDentro, picFuori, satPiccoCasa, satPiccoTot, cellePiccoServono, capEstMese, taktMin, tcMedio, tcVA, maxPezzi, cv, targetCons, meseH,
+      picH, picIdx, qPicco, satPicco, picDentro, picFuori, satPiccoCasa, satPiccoTot, cellePiccoServono, capEstMese, taktMin, tcMedio, tcVA, maxPezzi, cv, targetCons, meseH,
       mesePz, picPz: Math.max.apply(null, mesePz), contrib,
       epei, setupGiro, anticipoOre, anticipoPz,
       ltGiorni: rep ? nz(rep.ltGiorni) : 0, buffer: rep ? rep.buffer !== false : false
@@ -1917,7 +2129,7 @@ function satCellDoppia(dentro, fuori) {
    che va al terzista; il tooltip mostra le due letture */
 function satBarra(r) {
   const fuori = r.sat != null && r.satCasa != null ? Math.max(0, r.sat - r.satCasa) : 0;
-  return satCellDoppia(r.satCasa, fuori).replace("<td>", '<td title="' + t("uomo") + " " + pct(r.satCasaU) + (r.satCasaM != null ? " · " + t("macchina") + " " + pct(r.satCasaM) : "") + '">');
+  return satCellDoppia(r.satCasa, fuori).replace("<td>", '<td class="calc" title="' + esc(SP.sat(r).filter(Boolean).join("\n")) + '">');
 }
 function verdict(r) {
   if (r.caricoH <= 0) return '<span class="tag t-idle">' + t("nessun carico") + "</span>";
@@ -1963,10 +2175,10 @@ function fattoreRodaggio(cfg, m, ing) {
 
 /* capacità mese per mese di un reparto: celle esistenti a pieno + celle nuove in rodaggio */
 function capMensile(cfg, capCella, celle, ingOverride) {
-  const base = capCella / 12;
+  const Q = quoteMese();
   const nuove = nz(cfg.nuoveCelle);
   const ing = ingOverride != null ? ingOverride : Math.min(11, Math.max(0, Math.round(nz(cfg.meseIngresso)) - 1));
-  return Array.from({ length: 12 }, (_, m) => base * celle + base * nuove * fattoreRodaggio(cfg, m, ing));
+  return Array.from({ length: 12 }, (_, m) => capCella * Q[m] * (celle + nuove * fattoreRodaggio(cfg, m, ing)));
 }
 
 function computeRodaggio(ov) {
@@ -2129,12 +2341,63 @@ function renderParams() {
   document.getElementById("annoMeno").disabled = nAnni() <= 1;
   document.getElementById("scenName").value = S.meta.nome || "";
 }
-function renderSetup() { renderFasi(); renderReparti(); renderExtra(); renderPianoAssunzioni(); renderFamiglie(); renderMensile(); renderParams(); }
+/* calendario: i giorni dell'anno divisi in parti uguali, il punto di partenza per correggere */
+function calendarioUniforme() {
+  const gg = nz(S.params.giorniLavorativi) || 225;
+  return Array(12).fill(Math.round(gg / 12 * 10) / 10);
+}
+function renderCalendario() {
+  const el = document.getElementById("tblCalendario"); if (!el) return;
+  const g = Array.isArray(S.params.giorniMese) && S.params.giorniMese.length === 12 ? S.params.giorniMese : null;
+  const v = g || calendarioUniforme(), tot = v.reduce((a, b) => a + nz(b), 0);
+  /* la tabella si costruisce una volta: ridisegnarla mentre scrivi farebbe perdere il cursore */
+  if (el.querySelectorAll("[data-gm]").length !== 12 || el.dataset.lang !== LANG) {
+    el.dataset.lang = LANG;
+    el.innerHTML = "<thead><tr>" + MESI_IT.map(m => '<th class="num">' + t(m) + "</th>").join("") + th("Totale", "num") + "</tr></thead><tbody><tr>"
+      + MESI_IT.map((_, m) => '<td class="num"><input type="number" min="0" max="31" step="0.5" style="width:58px" data-gm="' + m + '"></td>').join("")
+      + '<td class="num"><b id="calTot"></b></td></tr></tbody>';
+  }
+  el.querySelectorAll("[data-gm]").forEach(inp => {
+    const x = v[+inp.dataset.gm];
+    inp.placeholder = nf(x, 1);
+    if (document.activeElement !== inp) inp.value = g ? nz(x) : "";
+  });
+  document.getElementById("calTot").textContent = nf(tot, tot % 1 ? 1 : 0);
+  const gl = nz(S.params.giorniLavorativi);
+  document.getElementById("calNota").textContent = !g ? t("Nessun calendario: dodici parti uguali.")
+    : gl > 0 && Math.abs(tot - gl) > 0.5 ? t("Il totale non coincide con i giorni lavorativi all'anno") + " (" + nf(gl) + "): " + t("contano solo le proporzioni fra i mesi.") : "";
+}
+document.getElementById("calUniforme").onclick = () => { S.params.giorniMese = null; queueSave(); SIM = null; refreshOutputs(); renderCalendario(); };
+document.getElementById("calProposta").onclick = () => {
+  /* mese pieno ≈ 21 giorni; agosto con tre settimane di chiusura, dicembre con le feste */
+  const base = [21, 20, 22, 20, 21, 21, 22, 6, 21, 22, 20, 16];
+  const gl = nz(S.params.giorniLavorativi) || 225, tot = base.reduce((a, b) => a + b, 0);
+  S.params.giorniMese = base.map(x => Math.round(x * gl / tot * 2) / 2);
+  queueSave(); SIM = null; refreshOutputs(); renderCalendario();
+};
+function renderSetup() { renderFasi(); renderReparti(); renderExtra(); renderPianoAssunzioni(); renderFamiglie(); renderMensile(); renderParams(); renderCalendario(); }
 
 /* ============================================================
    RISULTATI
    ============================================================ */
-function kpi(n, l) { return '<div class="kpi"><div class="n">' + n + '</div><div class="l">' + t(l) + "</div></div>"; }
+/* spiegazione al passaggio del mouse: la cifra resta la stessa, il title racconta il calcolo */
+function spiega(html, righe) { return '<span class="calc" title="' + esc(righe.filter(Boolean).join("\n")) + '">' + html + "</span>"; }
+const n1 = v => nf(v, v % 1 ? 1 : 0);
+const SP = {
+  eff: r => r.ore * r.turni * r.operatori > 0 ? r.capCella / (r.ore * r.turni * r.operatori) : 0,
+  capCella: r => t("Capacità di una cella") + " = " + nf(r.ore) + " h × " + nf(r.turni) + " " + t("turni") + " × " + nf(SP.eff(r) * 100) + "% " + t("efficienza") + " × " + n1(r.operatori) + " " + t("op.") + " = " + nf(r.capCella) + " h",
+  capCasa: r => [t("Capacità di casa") + " = " + nf(r.celle) + " " + t("celle") + " × " + nf(r.capCella) + " h = " + nf(r.capInterna) + " h", SP.capCella(r)],
+  persone: r => [t("celle × operatori per cella × turni"), nf(r.celle) + " × " + n1(r.operatori) + " × " + nf(r.turni) + " = " + n1(r.persone)],
+  carico: r => [t("Carico") + " " + r.nome + " = " + nf(r.oreUomo) + " h " + t("lavoro") + " + " + nf(r.oreSetup) + " h " + t("attrezzaggio") + " = " + nf(r.caricoH) + " h"]
+    .concat(r.contrib.map(k => "  " + k.nome + ": " + nf(k.pezzi) + " " + t("pz") + " × " + nf(k.min, 1) + " min ÷ 60 = " + nf(k.ore) + " h" + (k.setup > 0 ? " + " + nf(k.setup) + " h " + t("setup") : ""))),
+  fuori: r => [t("Ore fuori = carico oltre il target, entro le celle esterne"), t("carico") + " " + nf(r.caricoH) + " − " + t("soglia") + " (" + nf(r.celle) + " × " + nf(r.capCella) + " h × " + t("target") + ") = " + nf(Math.max(0, r.caricoH - r.soglia)) + " h",
+    t("tetto esterne") + ": " + nf(r.esterne) + " × " + nf(r.capCella) + " h = " + nf(r.capEsterna) + " h", "= " + nf(r.oreFuori) + " h"],
+  sat: r => [t("Saturazione di casa") + " = " + t("carico rimasto in casa") + " ÷ " + t("capacità di casa"), nf(r.caricoDentro) + " h ÷ " + nf(r.capInterna) + " h = " + pct(r.satCasaU),
+    r.satCasaM != null ? t("macchina") + ": " + pct(r.satCasaM) + (r.satCasaM > (r.satCasaU || 0) ? " ← " + t("è lei il limite") : "") : ""],
+  sugg: r => [t("Celle al target = carico ÷ capacità di una cella ÷ target"), nf(r.caricoH) + " h ÷ " + nf(r.capCella) + " h ÷ " + pct(r.soglia > 0 && r.capInterna > 0 ? r.soglia / r.capInterna : nz(S.params.targetSaturazione) / 100) + " = " + nf(r.suggFraz, 2) + " → " + nf(r.sugg) + " " + t("arrotondato per eccesso")],
+  macc: r => [t("Macchine necessarie = carico macchina rimasto in casa ÷ ore macchina"), t("arrotondate al target") + ": " + nf(r.maccNec, 2) + " → " + nf(r.maccSugg) + ", " + t("ne hai") + " " + nf(r.macchine)]
+};
+function kpi(n, l, righe) { return '<div class="kpi"><div class="n">' + (righe ? spiega(n, righe) : n) + '</div><div class="l">' + t(l) + "</div></div>"; }
 
 function renderControlli() {
   const c = compute(), anno = S.meta.anno || 0, out = [];
@@ -2162,6 +2425,39 @@ function renderControlli() {
   const setupPerso = c.righe.filter(r => r.rep && nz(r.rep.lotto) <= 0 && r.contrib.some(k => k.setupMin > 0)).map(r => r.nome);
   if (setupPerso.length) out.push(["t-warn", t("Attrezzaggi non conteggiati: il lotto del reparto è a zero"), nomi(setupPerso)]);
 
+  const senzaReparto = c.righe.filter(r => !r.rep && r.caricoH > 0).map(r => r.fase.nome);
+  if (senzaReparto.length) out.push(["t-bad", t("Fasi con carico ma senza reparto: il loro carico non viene dimensionato"), nomi(senzaReparto)]);
+
+  const scartoAlto = S.famiglie.filter(f => nz(f.scarto) > 50).map(f => f.nome + " " + nf(nz(f.scarto)) + "%");
+  if (scartoAlto.length) out.push(["t-bad", t("Scarto oltre il 50%: probabile errore di battitura (il calcolo lo limita al 95%)"), nomi(scartoAlto)]);
+
+  const oltreMax = c.righe.filter(r => r.rep && r.max > 0 && r.celle > r.max).map(r => r.nome + " " + nf(r.celle) + "/" + nf(r.max));
+  if (oltreMax.length) out.push(["t-bad", t("Celle installate oltre il tetto di celle max"), nomi(oltreMax)]);
+
+  const accesaVuota = [];
+  S.famiglie.forEach(f => S.fasi.forEach(fa => { const x = f.tempi[fa.id]; if (x && x.on && nz(x.min) + nz(x.minMacchina) + nz(x.setup) <= 0) accesaVuota.push(f.nome + " · " + fa.nome); }));
+  if (accesaVuota.length) out.push(["t-warn", t("Fasi attive con tempi a zero: la famiglia passa dal reparto senza caricarlo"), nomi(accesaVuota)]);
+
+  const piccoScoperto = c.righe.filter(r => r.caricoH > 0 && r.satPiccoCasa != null && r.satPiccoCasa > 1 && (r.satCasa || 0) <= 1).map(r => r.nome + " (" + mese(r.picIdx) + " " + pct(r.satPiccoCasa) + ")");
+  if (piccoScoperto.length) out.push(["t-warn", t("Regge sull'anno ma non nel mese di picco"), nomi(piccoScoperto)]);
+
+  const eff = nz(S.params.efficienza), tgt = nz(S.params.targetSaturazione);
+  if (eff > 0 && (eff < 50 || eff > 95)) out.push(["t-warn", t("Efficienza insolita") + ": " + nf(eff) + "%", t("di solito sta fra 60% e 90%")]);
+  if (tgt > 95) out.push(["t-warn", t("Saturazione obiettivo oltre il 95%: con la variabilità reale le code esplodono"), nf(tgt) + "%"]);
+
+  const nomiF = S.famiglie.map(f => (f.nome || "").trim().toLowerCase()).filter(Boolean);
+  const doppi = [...new Set(nomiF.filter((n, i) => nomiF.indexOf(n) !== i))];
+  if (doppi.length) out.push(["t-warn", t("Famiglie con lo stesso nome: nei report si confondono"), nomi(doppi)]);
+
+  const crollo = nAnni() > 1 ? S.famiglie.filter(f => anniIdx().some(y => y > 0 && nz(f.forecastAnni[y - 1]) > 0 && nz(f.forecastAnni[y]) <= 0)).map(f => f.nome) : [];
+  if (crollo.length) out.push(["t-warn", t("Forecast che va a zero da un anno all'altro: è voluto o manca il dato?"), nomi(crollo)]);
+
+  const gm = S.params.giorniMese;
+  if (Array.isArray(gm) && gm.some(v => nz(v) > 23)) out.push(["t-warn", t("Calendario con mesi oltre 23 giorni lavorativi"), gm.map((v, m) => nz(v) > 23 ? mese(m) + " " + nf(nz(v)) : "").filter(Boolean).join(", ")]);
+
+  const ggB = giorniDa(S.meta.ultimoBackup);
+  if (fileStato !== "ok" && (ggB == null || ggB > 7)) out.push(["t-warn", t("Nessuna copia su file recente: i dati sono solo nel browser"), ggB == null ? t("mai") : ggB + " " + t("giorni fa")]);
+
   const senzaForecast = S.famiglie.filter(f => nz(f.forecastAnni[anno]) <= 0).map(f => f.nome);
   if (senzaForecast.length) out.push(["t-idle", t("Famiglie senza forecast nell'anno attivo"), nomi(senzaForecast)]);
 
@@ -2170,6 +2466,8 @@ function renderControlli() {
 
   if (!S.rilievi.length) out.push(["t-idle", t("Nessun tempo misurato: i tempi in uso sono stime"), ""]);
 
+  const grav = { "t-bad": 0, "t-warn": 1, "t-idle": 2 };
+  out.sort((a, b) => grav[a[0]] - grav[b[0]]);
   document.getElementById("controlliOut").innerHTML = out.length
     ? '<table><tbody>' + out.map(o => '<tr><td style="width:220px"><span class="tag ' + o[0] + '">'
         + (o[0] === "t-bad" ? t("da correggere") : o[0] === "t-warn" ? t("da verificare") : t("nota")) + "</span></td>"
@@ -2291,13 +2589,14 @@ function renderOreMese() {
    perché le ore dei mesi successivi non sono spendibili nel passato. */
 function esternoMensile(c) {
   return c.righe.filter(r => r.rep && r.caricoH > 0 && r.capCella > 0).map(r => {
-    const sogliaM = r.soglia / 12, capM = r.capCella / 12;
-    const ecc = r.meseH.map(x => Math.max(0, x - sogliaM));
+    const Q = quoteMese();
+    const ecc = r.meseH.map((x, m) => Math.max(0, x - r.soglia * Q[m]));
     const mesiFuori = ecc.filter(x => x > 1e-6).length;
     const orePicco = ecc.reduce((a, b) => a + b, 0);
-    const cellePicco = Math.max(...ecc) > 0 ? Math.ceil(Math.max(...ecc) / capM) : 0;
+    /* celle esterne che servono nel mese peggiore, ciascuno con la sua capacità */
+    const cellePicco = ecc.reduce((a, x, m) => x > 0 ? Math.max(a, Q[m] > 0 ? Math.ceil(x / (r.capCella * Q[m])) : Infinity) : a, 0);
     let dom = 0, cap = 0, deficit = 0;
-    r.meseH.forEach(x => { dom += x; cap += sogliaM; deficit = Math.max(deficit, dom - cap); });
+    r.meseH.forEach((x, m) => { dom += x; cap += r.soglia * Q[m]; deficit = Math.max(deficit, dom - cap); });
     const celleLiv = deficit > 0 ? Math.ceil(deficit / r.capCella) : 0;
     return { r, mesiFuori, orePicco, cellePicco, oreLiv: deficit, celleLiv };
   });
@@ -2367,8 +2666,12 @@ function renderRisultati() {
   const celleServ = c.righe.reduce((a, r) => a + r.necInt, 0);
   const pezzi = S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[S.meta.anno || 0]), 0);
   document.getElementById("kpis").innerHTML =
-    kpi(nf(pezzi), "pezzi a forecast") + kpi(nf(tot), "ore di carico all'anno") + kpi(nf(setupTot), "di cui attrezzaggio")
-    + kpi(nf(celleOggi), "celle installate") + kpi(nf(celleServ), "celle al minimo tecnico") + kpi(nf(c.oreFerme), "ore di capacità non usata");
+    kpi(nf(pezzi), "pezzi a forecast", [t("Somma del forecast delle famiglie per") + " " + S.meta.anni[S.meta.anno || 0]].concat(S.famiglie.filter(f => nz(f.forecastAnni[S.meta.anno || 0]) > 0).map(f => "  " + f.nome + ": " + nf(nz(f.forecastAnni[S.meta.anno || 0])))))
+    + kpi(nf(tot), "ore di carico all'anno", [t("Somma del carico dei reparti (lavoro + attrezzaggio)")].concat(c.righe.filter(r => r.caricoH > 0).map(r => "  " + r.nome + ": " + nf(r.caricoH) + " h")))
+    + kpi(nf(setupTot), "di cui attrezzaggio", [t("Ore di attrezzaggio: cambi di famiglia × minuti di setup ÷ 60")].concat(c.righe.filter(r => r.oreSetup > 0).map(r => "  " + r.nome + ": " + nf(r.cambi, 1) + " " + t("cambi") + " → " + nf(r.oreSetup) + " h")))
+    + kpi(nf(celleOggi), "celle installate", [t("Celle di casa per reparto")].concat(c.righe.filter(r => r.rep).map(r => "  " + r.nome + ": " + nf(r.celle))))
+    + kpi(nf(celleServ), "celle al minimo tecnico", [t("Celle che servono al 100% di saturazione: carico ÷ capacità di una cella, per eccesso")].concat(c.righe.filter(r => r.caricoH > 0).map(r => "  " + r.nome + ": " + nf(r.caricoH) + " ÷ " + nf(r.capCella) + " = " + nf(r.necFraz, 2) + " → " + nf(r.necInt))))
+    + kpi(nf(c.oreFerme), "ore di capacità non usata", [t("(celle − celle necessarie) × capacità di una cella")].concat(c.righe.filter(r => r.caricoH > 0 && r.celle > r.necFraz).map(r => "  " + r.nome + ": (" + nf(r.celle) + " − " + nf(r.necFraz, 2) + ") × " + nf(r.capCella) + " = " + nf((r.celle - r.necFraz) * r.capCella) + " h")));
 
   document.getElementById("tblPicco").innerHTML =
     "<thead><tr>" + th("Reparto") + th("Mese di picco") + th("Ore nel mese", "num") + th("di cui fuori", "num")
@@ -2377,15 +2680,18 @@ function renderRisultati() {
     + c.righe.map(r => {
       const ok = r.caricoH > 0;
       return "<tr><td>" + esc(r.nome) + "</td><td>" + (ok ? mese(r.picIdx) : "—") + "</td>"
-        + '<td class="num">' + (ok ? nf(r.picH) : "—") + "</td>"
+        + '<td class="num">' + (ok ? spiega(nf(r.picH), [t("Carico del mese = carico annuo distribuito secondo il profilo mensile delle famiglie"), t("È il mese più carico rispetto alla sua capacità")]) : "—") + "</td>"
         + '<td class="num"' + (r.picFuori > 0 ? ' style="color:var(--gold)"' : ' style="color:var(--dim)"') + ">" + (ok && r.picFuori > 0 ? nf(r.picFuori) : "—") + "</td>"
-        + '<td class="num">' + nf(r.celle * r.capCella / 12) + "</td>"
+        + '<td class="num">' + spiega(nf(r.celle * r.capCella * r.qPicco), [t("Capacità del mese") + " = " + t("capacità di casa") + " " + nf(r.capInterna) + " h × " + t("quota del mese") + " " + nf(r.qPicco * 100, 1) + "%",
+            Array.isArray(S.params.giorniMese) ? t("quota dal calendario dei giorni lavorativi") : t("senza calendario: un dodicesimo dell'anno")]) + "</td>"
         + '<td class="num" style="color:var(--dim)">' + (r.capEstMese > 0 ? nf(r.capEstMese) : "—") + "</td>"
-        + (ok ? satCellDoppia(r.satPiccoCasa, r.picFuori / (r.celle * r.capCella / 12 || 1)) : satCell(null) + '<td class="num">—</td>')
+        + (ok ? satCellDoppia(r.satPiccoCasa, r.picFuori / (r.celle * r.capCella * r.qPicco || 1)) : satCell(null) + '<td class="num">—</td>')
         + '<td class="num">' + (ok && r.cellePiccoServono > 0
-            ? (r.esterne >= r.cellePiccoServono ? '<span class="tag t-ok">' + r.cellePiccoServono + "</span>" : '<span class="tag t-warn">' + r.cellePiccoServono + " · " + t("ne hai") + " " + r.esterne + "</span>")
+            ? spiega(r.esterne >= r.cellePiccoServono ? '<span class="tag t-ok">' + r.cellePiccoServono + "</span>" : '<span class="tag t-warn">' + r.cellePiccoServono + " · " + t("ne hai") + " " + r.esterne + "</span>",
+              [t("(ore del mese − soglia al target) ÷ capacità mensile di una cella, per eccesso"), "(" + nf(r.picH) + " − " + nf(r.soglia * r.qPicco) + ") ÷ " + nf(r.capCella * r.qPicco) + " → " + r.cellePiccoServono])
             : "—") + "</td>"
-        + '<td class="num">' + (ok && r.anticipoOre > 0 ? nf(r.anticipoPz) + " " + U.pz() + ' <span style="color:var(--dim)">(' + nf(r.anticipoOre) + " " + U.h() + ")</span>" : "—") + "</td>"
+        + '<td class="num">' + (ok && r.anticipoOre > 0 ? spiega(nf(r.anticipoPz) + " " + U.pz() + ' <span style="color:var(--dim)">(' + nf(r.anticipoOre) + " " + U.h() + ")</span>",
+            [t("Producendo a ritmo livellato, la scorta da accumulare prima del picco"), t("= massimo − minimo dello scostamento cumulato fra carico del mese e ritmo livellato") + " = " + nf(r.anticipoOre) + " h", nf(r.anticipoOre) + " h × 60 ÷ " + nf(r.tcMedio, 1) + " min/" + t("pz") + " = " + nf(r.anticipoPz) + " " + t("pz")]) : "—") + "</td>"
         + "<td>" + (!ok ? '<span class="tag t-idle">' + t("nessun carico") + "</span>"
           : r.satPiccoCasa > 1 ? '<span class="tag t-bad">' + t("serve capacità extra") + "</span>"
           : r.satPiccoCasa >= .85 ? '<span class="tag t-warn">' + t("al limite") + "</span>"
@@ -2398,10 +2704,10 @@ function renderRisultati() {
     + c.righe.map(r => {
       const taktReale = r.taktMin != null && r.celle > 0 ? r.taktMin * r.celle : null;
       const ok = taktReale != null && r.tcMedio != null ? r.tcMedio <= taktReale : null;
-      return "<tr><td>" + esc(r.nome) + '</td><td class="num">' + (r.taktMin != null ? nf(r.taktMin, 1) + " " + U.min() : "—") + "</td>"
-        + '<td class="num">' + (taktReale != null ? nf(taktReale, 1) + " " + U.min() : "—") + "</td>"
-        + '<td class="num">' + (r.tcVA != null ? nf(r.tcVA, 1) + " " + U.min() : "—") + "</td>"
-        + '<td class="num">' + (r.tcMedio != null ? nf(r.tcMedio, 1) + " " + U.min() : "—") + "</td>"
+      return "<tr><td>" + esc(r.nome) + '</td><td class="num">' + (r.taktMin != null ? spiega(nf(r.taktMin, 1) + " " + U.min(), [t("Takt = capacità di una cella × 60 ÷ pezzi"), nf(r.capCella) + " h × 60 ÷ " + nf(r.pezzi) + " = " + nf(r.taktMin, 1) + " min"]) : "—") + "</td>"
+        + '<td class="num">' + (taktReale != null ? spiega(nf(taktReale, 1) + " " + U.min(), [t("takt di una cella × celle"), nf(r.taktMin, 1) + " × " + nf(r.celle) + " = " + nf(taktReale, 1) + " min"]) : "—") + "</td>"
+        + '<td class="num">' + (r.tcVA != null ? spiega(nf(r.tcVA, 1) + " " + U.min(), [t("ore di lavoro × 60 ÷ pezzi"), nf(r.oreUomo) + " h × 60 ÷ " + nf(r.pezzi) + " = " + nf(r.tcVA, 1) + " min"]) : "—") + "</td>"
+        + '<td class="num">' + (r.tcMedio != null ? spiega(nf(r.tcMedio, 1) + " " + U.min(), [t("(ore di lavoro + attrezzaggio) × 60 ÷ pezzi"), "(" + nf(r.oreUomo) + " + " + nf(r.oreSetup) + ") h × 60 ÷ " + nf(r.pezzi) + " = " + nf(r.tcMedio, 1) + " min"]) : "—") + "</td>"
         + '<td class="num"' + (r.operatori > 1 ? ' style="color:var(--gold)"' : "") + ">"
         + (r.tcMedio != null ? nf(r.tcMedio / r.operatori, 1) + " " + U.min() + (r.operatori > 1 ? " · " + r.operatori + " " + t("op.") : "") : "—") + "</td>"
         + '<td class="num">' + (r.caricoH > 0 ? nf(r.cv * 100, 0) + "%" : "—") + "</td>"
@@ -2433,19 +2739,19 @@ function renderBanco() {
     "<thead><tr>" + th("Reparto") + th("Carico (h)", "num") + th("Celle", "num") + th("Celle esterne", "num") + th("Operatori per cella", "num")
     + th("Persone", "num") + th("Capacità (h)", "num") + th("Ore fuori", "num") + th("Limite")
     + th("Saturazione", null, "min-width:110px") + "<th class='num'></th>" + th("Celle al target", "num") + th("Macchine: servono / hai", "num") + th("Esito") + "</tr></thead><tbody>"
-    + righe.map(r => '<tr data-banco-row="' + r.rep.id + '"' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + nf(r.caricoH) + "</td>"
+    + righe.map(r => '<tr data-banco-row="' + r.rep.id + '"' + (c.vincolo && r.fase.id === c.vincolo.fase.id ? ' class="vincolo"' : "") + "><td>" + esc(r.nome) + '</td><td class="num">' + spiega(nf(r.caricoH), SP.carico(r)) + "</td>"
       + inp(r, "celle", 0, 1) + inp(r, "est", 0, 1) + inp(r, "op", 0.5, 0.5) + bancoCelle(r) + "</tr>").join("")
     + '</tbody><tfoot><tr id="bancoTot">' + bancoTot(righe) + "</tr></tfoot>";
   bancoStato();
 }
 function bancoCelle(r) {
   const ok = r.caricoH > 0;
-  return '<td class="num">' + nf(r.persone, r.persone % 1 ? 1 : 0) + '</td><td class="num">' + nf(r.celle * r.capCella) + "</td>"
-    + '<td class="num"' + (r.oreFuori > 0 ? ' style="color:var(--gold)"' : ' style="color:var(--dim)"') + ">" + (r.oreFuori > 0 ? nf(r.oreFuori) : "—") + "</td>"
+  return '<td class="num">' + spiega(n1(r.persone), SP.persone(r)) + '</td><td class="num">' + spiega(nf(r.celle * r.capCella), SP.capCasa(r)) + "</td>"
+    + '<td class="num"' + (r.oreFuori > 0 ? ' style="color:var(--gold)"' : ' style="color:var(--dim)"') + ">" + (r.oreFuori > 0 ? spiega(nf(r.oreFuori), SP.fuori(r)) : "—") + "</td>"
     + "<td>" + (!ok ? "—" : r.risorsa === "macchina" ? '<span class="tag t-warn">' + t("macchina") + "</span>" : '<span class="tag t-idle">' + t("uomo") + "</span>") + "</td>"
     + (ok ? satBarra(r) : '<td class="num">—</td><td class="num">—</td>')
-    + '<td class="num">' + (ok ? nf(r.suggFraz, 2) + ' <span style="color:var(--dim)">→ ' + nf(r.sugg) + "</span>" : "—") + "</td>"
-    + '<td class="num">' + (r.macchine > 0 && ok ? nf(r.maccNec, 2) + ' <span style="color:var(--dim)">→ ' + nf(r.maccSugg) + " / " + nf(r.macchine) + "</span>" : "—") + "</td>"
+    + '<td class="num">' + (ok ? spiega(nf(r.suggFraz, 2) + ' <span style="color:var(--dim)">→ ' + nf(r.sugg) + "</span>", SP.sugg(r)) : "—") + "</td>"
+    + '<td class="num">' + (r.macchine > 0 && ok ? spiega(nf(r.maccNec, 2) + ' <span style="color:var(--dim)">→ ' + nf(r.maccSugg) + " / " + nf(r.macchine) + "</span>", SP.macc(r)) : "—") + "</td>"
     + "<td>" + verdict(r) + "</td>";
 }
 function bancoTot(righe) {
@@ -3332,7 +3638,7 @@ const GUIDA = {
       <dt>Una commessa dice «nessun tempo».</dt><dd>La sua famiglia non ha fasi accese con tempi: completala nella Fucina.</dd>
       <dt>Ho cambiato celle nel Responso e il piano è cambiato.</dt><dd>È voluto: EasyFabio usa la capacità salvata nella Fucina per l'anno selezionato.</dd>
       <dt>Le ore «in coda» sembrano tante.</dt><dd>Comprendono le ore notturne quando un reparto lavora meno ore di quello con il turno più lungo. Usale per confrontare i reparti, non come tempo esatto.</dd>
-      <dt>Dove finiscono i dati?</dt><dd>Nel browser di questo computer. Per sicurezza esporta regolarmente le copie del piano e il file dello scenario.</dd>
+      <dt>Dove finiscono i dati?</dt><dd>Nel browser di questo computer. Per non perderli collega un file in <b>Dati → Copia automatica su file</b> (Chrome o Edge, anche nella cartella di Google Drive): si riscrive da solo a ogni salvataggio. Se non c'è una copia da più di 7 giorni compare un avviso in cima.</dd>
     </dl>
   </div>
 </div>`,
@@ -3415,7 +3721,7 @@ const GUIDA = {
       <dt>A job says “no time”.</dt><dd>Its family has no steps switched on with times: complete it in the Forge.</dd>
       <dt>I changed cells in the Verdict and the plan changed.</dt><dd>That is intended: EasyFabio uses the capacity saved in the Forge for the selected year.</dd>
       <dt>Queue hours look high.</dt><dd>They include night hours when a department works fewer hours than the longest-shift one. Use them to compare departments, not as an exact time.</dd>
-      <dt>Where is the data kept?</dt><dd>In this computer's browser. Export plan copies and the scenario file regularly to be safe.</dd>
+      <dt>Where is the data kept?</dt><dd>In this computer's browser. To avoid losing it, link a file under <b>Data → Automatic copy to file</b> (Chrome or Edge, even in your Google Drive folder): it is rewritten on every save. If there is no copy for more than 7 days a warning appears at the top.</dd>
     </dl>
   </div>
 </div>`
@@ -3457,8 +3763,7 @@ function renderReport() {
   const titolo = esc(S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + esc(A[0].nome) + (A.length > 1 ? " → " + esc(A[A.length - 1].nome) : "");
   const sotto = nf(nz(P.turni) || 1) + " " + t("turno/i") + " · " + t("efficienza") + " " + nf(nz(P.efficienza)) + "% · " + t("target") + " " + nf(nz(P.targetSaturazione)) + "%";
   /* passando il mouse su una cifra compare come è stata calcolata */
-  const calc = (html, righe) => '<span class="rep-calc" title="' + esc(righe.join("\n")) + '">' + html + "</span>";
-  const n1 = v => nf(v, v % 1 ? 1 : 0);
+  const calc = spiega;
   const spPezzi = a => [t("Forecast dell'anno, somma delle famiglie") + ":"].concat(S.famiglie.filter(f => nz(f.forecastAnni[a.anno]) > 0).map(f => "  " + f.nome + ": " + nf(nz(f.forecastAnni[a.anno])))).concat(["= " + nf(a.pezzi) + " " + t("pz")]);
   const spCelle = a => [t("Celle di casa per reparto (esterne escluse)") + ":"].concat(a.righe.map(r => "  " + r.nome + ": " + nf(r.celle))).concat(["= " + nf(a.celle) + " " + t("celle")]);
   const spPersR = r => r.nome + ": " + nf(r.celle) + " " + t("celle") + " × " + n1(r.operatori) + " " + t("op./cella") + " × " + nf(r.turni) + " " + t("turni") + " = " + n1(r.persone);
@@ -4042,7 +4347,7 @@ let FORZA_RENDER = false;
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
 function refreshOutputs() { if (visibile("guida")) renderGuida(); if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
-function refreshAll() { (S.extra = S.extra || []).forEach(x => { if (!Array.isArray(x.n)) x.n = []; while (x.n.length < nAnni()) x.n.push(x.n.length ? nz(x.n[x.n.length - 1]) : 0); }); S.famiglie.forEach(f => { if (!Array.isArray(f.forecastAnni)) f.forecastAnni = []; while (f.forecastAnni.length < nAnni()) f.forecastAnni.push(0); }); applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); }
+function refreshAll() { (S.extra = S.extra || []).forEach(x => { if (!Array.isArray(x.n)) x.n = []; while (x.n.length < nAnni()) x.n.push(x.n.length ? nz(x.n[x.n.length - 1]) : 0); }); S.famiglie.forEach(f => { if (!Array.isArray(f.forecastAnni)) f.forecastAnni = []; while (f.forecastAnni.length < nAnni()) f.forecastAnni.push(0); }); applyStatic(); renderAnnoSeg(); pasteHelp(); renderSetup(); renderRilievi(); refreshOutputs(); renderBackup(); }
 
 /* ============================================================
    EVENTI
@@ -4085,6 +4390,11 @@ document.addEventListener("input", e => {
   if (el.dataset.meta) { S.meta.nome = el.value; queueSave(); renderVSM(); return; }
   if (el.dataset.anno != null && el.dataset.k == null) {
     S.meta.anni[+el.dataset.anno] = el.value; queueSave(); renderAnnoSeg(); renderFamiglie(); renderPiano(); return;
+  }
+  if (el.dataset.gm != null) {
+    if (!Array.isArray(S.params.giorniMese) || S.params.giorniMese.length !== 12) S.params.giorniMese = calendarioUniforme();
+    S.params.giorniMese[+el.dataset.gm] = Math.max(0, nz(el.value));
+    queueSave(); SIM = null; refreshOutputs(); renderCalendario(); return;
   }
   if (el.dataset.param) {
     S.params[el.dataset.param] = el.value === "" ? 0 : parseFloat(el.value);
@@ -4406,6 +4716,7 @@ document.getElementById("loadDemo").onclick = () => {
 function fname(prefix, ext) { return prefix + (S.meta.nome || "scenario").replace(/[^\w\-]+/g, "_") + "-" + VERSION + "." + ext; }
 document.getElementById("exportBtn").onclick = () => {
   S.meta.lang = LANG; S.meta.theme = THEME; S.meta.version = VERSION;
+  S.meta.ultimoBackup = Date.now(); queueSave(); renderBackup();
   const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = fname("solo-leveling-", "json"); a.click(); URL.revokeObjectURL(a.href);
@@ -4834,7 +5145,7 @@ window.addEventListener("beforeprint", () => { FORZA_RENDER = true; refreshOutpu
    AVVIO
    ============================================================ */
 captureStatic();
-(async () => { await load(); applyTheme(); refreshAll(); })();
+(async () => { await load(); applyTheme(); refreshAll(); await initFile(); })();
 </script>
 
 </body>
