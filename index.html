@@ -342,6 +342,16 @@ body.side-off #side{display:none}
 .rep-tab thead tr:first-child th{background:#7C4DEB;color:#fff;text-align:center}
 .rep-tab tfoot td{font-weight:700}
 .rep-note{margin-top:auto;font-size:11px;color:#7B7596}
+.rep-calc{cursor:help;text-decoration:underline dotted #B9AEDB;text-underline-offset:3px}
+.rep-fuori{font-size:13px;color:#5A5478}
+/* tabella per reparto: deve leggersi bene a colpo d'occhio */
+.rep-slide-tab{aspect-ratio:auto;min-height:0}
+.rep-slide-tab .rep-tit{font-size:21px}
+.rep-slide-tab .rep-sub{font-size:13px}
+.rep-tab-big{font-size:15.5px;width:100%}
+.rep-tab-big th,.rep-tab-big td{padding:7px 10px}
+.rep-tab-big thead th{font-size:14px}
+.rep-slide-tab .rep-note{font-size:12.5px;margin-top:12px}
 @media (max-width:700px){#repPreview{grid-template-columns:1fr}}
 .anni-btn{display:inline-flex;gap:6px;margin-left:6px}
 .anni-btn button{padding:5px 12px;font-size:13px}
@@ -963,6 +973,18 @@ const EN = {
   "Organico totale": "Total headcount",
   "Fuori dalle celle (operatori + manager)": "Outside the cells (operators + managers)",
   "in cella": "in cells",
+  "persone in cella": "people in cells", "Fuori cella": "Outside cells", "Persone fuori cella": "People outside cells", "op.": "op.",
+  "solo celle di casa · ▲ = vincolo · colore = saturazione": "in-house cells only · ▲ = constraint · colour = utilisation",
+  "solo celle di casa · ▲ = vincolo · colore = saturazione · passa il mouse su una cifra per vedere il calcolo": "in-house cells only · ▲ = constraint · colour = utilisation · hover a figure to see how it is calculated",
+  "Forecast dell'anno, somma delle famiglie": "Year forecast, sum of families", "Celle di casa per reparto (esterne escluse)": "In-house cells per department (outside excluded)",
+  "Persone in cella = celle × operatori per cella × turni": "People in cells = cells × operators per cell × shifts", "op./cella": "op./cell",
+  "Persone fuori dalle celle, dichiarate nella Fucina": "People outside the cells, declared in the Forge", "Saturazione di casa": "In-house utilisation",
+  "carico rimasto in casa": "load kept in-house", "capacità di casa": "in-house capacity", "Capacità di casa": "In-house capacity", "cella": "cell",
+  "ore × turni × efficienza × operatori": "hours × shifts × efficiency × operators", "Qui il limite è la macchina": "Here the machine is the limit",
+  "Il vincolo è il reparto con la saturazione più alta": "The constraint is the department with the highest utilisation",
+  "Ore interne": "In-house hours", "Ore esterne": "Outside hours", "carico mandato al terzista": "load sent to the subcontractor",
+  "carico che non sta né dentro né fuori": "load that fits neither inside nor outside", "celle × ore/cella": "cells × hours/cell",
+  "celle di casa salvate nella Fucina per": "in-house cells saved in the Forge for", "celle × operatori per cella × turni": "cells × operators per cell × shifts",
   "op. extra": "extra op.",
   "Totale celle": "Total cells",
   "Report pluriennale": "Multi-year report",
@@ -3434,15 +3456,30 @@ function renderReport() {
   const P = S.params;
   const titolo = esc(S.meta.nome || "Scenario") + " · " + t("Piano di capacità") + " " + esc(A[0].nome) + (A.length > 1 ? " → " + esc(A[A.length - 1].nome) : "");
   const sotto = nf(nz(P.turni) || 1) + " " + t("turno/i") + " · " + t("efficienza") + " " + nf(nz(P.efficienza)) + "% · " + t("target") + " " + nf(nz(P.targetSaturazione)) + "%";
+  /* passando il mouse su una cifra compare come è stata calcolata */
+  const calc = (html, righe) => '<span class="rep-calc" title="' + esc(righe.join("\n")) + '">' + html + "</span>";
+  const n1 = v => nf(v, v % 1 ? 1 : 0);
+  const spPezzi = a => [t("Forecast dell'anno, somma delle famiglie") + ":"].concat(S.famiglie.filter(f => nz(f.forecastAnni[a.anno]) > 0).map(f => "  " + f.nome + ": " + nf(nz(f.forecastAnni[a.anno])))).concat(["= " + nf(a.pezzi) + " " + t("pz")]);
+  const spCelle = a => [t("Celle di casa per reparto (esterne escluse)") + ":"].concat(a.righe.map(r => "  " + r.nome + ": " + nf(r.celle))).concat(["= " + nf(a.celle) + " " + t("celle")]);
+  const spPersR = r => r.nome + ": " + nf(r.celle) + " " + t("celle") + " × " + n1(r.operatori) + " " + t("op./cella") + " × " + nf(r.turni) + " " + t("turni") + " = " + n1(r.persone);
+  const spPers = a => [t("Persone in cella = celle × operatori per cella × turni") + ":"].concat(a.righe.map(r => "  " + spPersR(r))).concat(["= " + n1(a.personeCelle) + " " + t("persone")]);
+  const spExtra = a => [t("Persone fuori dalle celle, dichiarate nella Fucina") + ":"].concat((S.extra || []).filter(x => nz((x.n || [])[a.anno]) > 0).map(x => "  " + (x.ruolo || "—") + " (" + t(x.cat === "manager" ? "Manager" : "Operatore") + "): " + n1(nz(x.n[a.anno]))))
+    .concat(["= " + n1(a.extraOp) + " " + t("op. extra") + " + " + n1(a.extraMan) + " " + t("manager") + " = " + n1(a.extraOp + a.extraMan), t("Organico totale") + ": " + n1(a.personeCelle) + " + " + n1(a.extraOp + a.extraMan) + " = " + n1(a.persone)]);
+  const spSat = r => [t("Saturazione di casa") + " " + r.nome + ":",
+    t("carico rimasto in casa") + " " + nf(r.caricoDentro) + " h ÷ " + t("capacità di casa") + " " + nf(r.capInterna) + " h",
+    t("capacità di casa") + " = " + nf(r.celle) + " " + t("celle") + " × " + nf(r.capCella) + " h/" + t("cella") + " (" + t("ore × turni × efficienza × operatori") + ")",
+    r.satCasaM != null && r.satCasaM > (r.satCasaU || 0) ? t("Qui il limite è la macchina") + ": " + pct(r.satCasaM) : "= " + pct(r.satCasa)];
+  const spVinc = a => { const r = a.c.vincolo && a.righe.find(x => x.rep && a.c.vincolo.rep && x.rep.id === a.c.vincolo.rep.id); return [t("Il vincolo è il reparto con la saturazione più alta")].concat(r ? spSat(r) : []); };
   /* slide 1: tre colonne e grafico delle ore */
   const card = (a, i) => {
-    const p = i ? A[i - 1] : null;
+    const p = i ? A[i - 1] : null, fuori = a.extraOp + a.extraMan, pf = p ? p.extraOp + p.extraMan : 0;
     return '<div class="rep-card"><div class="rep-anno">' + esc(a.nome) + "</div>"
-      + '<div class="rep-big">' + nf(a.pezzi) + " <small>" + t("pz") + "</small>" + (p ? ' <span class="rep-var">' + segno(varPct(p.pezzi, a.pezzi)) + "</span>" : "") + "</div>"
-      + "<div>" + nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? ' <span class="rep-var">' + segnoN(a.celle - p.celle) + "</span>" : "") + (a.esterne ? " · " + nf(a.esterne) + " " + t("esterne") : "") + "</div>"
-      + "<div>" + nf(a.persone, a.persone % 1 ? 1 : 0) + " " + t("persone") + (p && a.persone !== p.persone ? ' <span class="rep-var">' + segnoN(a.persone - p.persone, (a.persone - p.persone) % 1 ? 1 : 0) + "</span>" : "") + "</div>"
-      + (a.extraOp || a.extraMan ? '<div class="rep-vinc">' + nf(a.personeCelle, 1) + " " + t("in cella") + " · " + nf(a.extraOp, 1) + " " + t("op. extra") + " · " + nf(a.extraMan, 1) + " " + t("manager") + "</div>" : "")
-      + '<div class="rep-vinc">' + t("Vincolo") + ": <b>" + esc(a.vincolo) + "</b>" + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : "") + "</div></div>";
+      + '<div class="rep-big">' + calc(nf(a.pezzi) + " <small>" + t("pz") + "</small>", spPezzi(a)) + (p ? ' <span class="rep-var">' + segno(varPct(p.pezzi, a.pezzi)) + "</span>" : "") + "</div>"
+      + "<div>" + calc(nf(a.celle) + " " + t("celle"), spCelle(a)) + (p && a.celle !== p.celle ? ' <span class="rep-var">' + segnoN(a.celle - p.celle) + "</span>" : "") + "</div>"
+      + "<div>" + calc(n1(a.personeCelle) + " " + t("persone in cella"), spPers(a)) + (p && a.personeCelle !== p.personeCelle ? ' <span class="rep-var">' + segnoN(a.personeCelle - p.personeCelle, (a.personeCelle - p.personeCelle) % 1 ? 1 : 0) + "</span>" : "") + "</div>"
+      + '<div class="rep-fuori">' + calc(t("Fuori cella") + ": " + n1(fuori) + (fuori ? " (" + n1(a.extraOp) + " " + t("op.") + " · " + n1(a.extraMan) + " " + t("manager") + ")" : ""), spExtra(a))
+      + (p && fuori !== pf ? ' <span class="rep-var">' + segnoN(fuori - pf, (fuori - pf) % 1 ? 1 : 0) + "</span>" : "") + "</div>"
+      + '<div class="rep-vinc">' + t("Vincolo") + ": <b>" + esc(a.vincolo) + "</b>" + (a.vincoloSat != null ? " " + calc(pct(a.vincoloSat), spVinc(a)) : "") + "</div></div>";
   };
   const max = Math.max(1, ...A.map(a => Math.max(a.oreTot, a.capCasa)));
   const W = 900, H = 200, passo = 780 / A.length, BW = Math.min(120, passo * .55), base = 160, sc = 130 / max;
@@ -3457,7 +3494,11 @@ function renderReport() {
     const yc = base - a.capCasa * sc;
     g += '<line x1="' + (x - 14) + '" x2="' + (x + BW + 14) + '" y1="' + yc.toFixed(1) + '" y2="' + yc.toFixed(1) + '" stroke="' + C.ink + '" stroke-width="2" stroke-dasharray="5 4"/>';
     g += '<text x="' + (x + BW / 2) + '" y="' + (base + 18) + '" text-anchor="middle" font-size="13" fill="' + C.ink + '" font-weight="600">' + esc(a.nome) + "</text>";
-    g += '<text x="' + (x + BW / 2) + '" y="' + (base + 35) + '" text-anchor="middle" font-size="11.5" fill="' + C.dim + '">' + nf(a.oreInt) + " + " + nf(a.oreEst) + (a.oreScop > 0 ? " + " + nf(a.oreScop) : "") + " h</text>";
+    g += '<text class="rep-calc" x="' + (x + BW / 2) + '" y="' + (base + 35) + '" text-anchor="middle" font-size="11.5" fill="' + C.dim + '"><title>'
+      + esc([t("Ore interne") + " = " + t("carico rimasto in casa") + " − " + t("ore scoperte") + " = " + nf(a.oreInt) + " h",
+        t("Ore esterne") + " = " + t("carico mandato al terzista") + " = " + nf(a.oreEst) + " h",
+        t("Ore scoperte") + " = " + t("carico che non sta né dentro né fuori") + " = " + nf(a.oreScop) + " h",
+        t("Capacità di casa") + " = Σ " + t("celle × ore/cella") + " = " + nf(a.capCasa) + " h"].join("\n")) + "</title>" + nf(a.oreInt) + " + " + nf(a.oreEst) + (a.oreScop > 0 ? " + " + nf(a.oreScop) : "") + " h</text>";
   });
   g += '<line x1="80" x2="' + (W - 40) + '" y1="' + base + '" y2="' + base + '" stroke="' + C.line + '"/></svg>';
   const leg = (col, l, tratt) => '<span><i class="swatch" style="' + (tratt ? "background:none;border-top:2px dashed " + col + ";height:0" : "background:" + col) + '"></i>' + l + "</span>";
@@ -3470,19 +3511,18 @@ function renderReport() {
   const cella = (a, id) => {
     const r = a.righe.find(x => x.rep.id === id); if (!r) return "<td></td><td></td><td></td>";
     const v = a.c.vincolo && a.c.vincolo.rep && a.c.vincolo.rep.id === id;
-    return '<td class="num">' + nf(r.celle) + (r.esterne ? "+" + nf(r.esterne) : "") + '</td><td class="num">' + nf(r.persone, r.persone % 1 ? 1 : 0)
-      + '</td><td class="num" style="background:' + satColor(r.caricoH > 0 ? r.satCasa : null) + '22;font-weight:' + (v ? 700 : 400) + '">' + (r.caricoH > 0 ? pct(r.satCasa) : "—") + (v ? " ▲" : "") + "</td>";
+    return '<td class="num">' + calc(nf(r.celle), [r.nome + ": " + t("celle di casa salvate nella Fucina per") + " " + a.nome]) + '</td><td class="num">' + calc(n1(r.persone), [t("celle × operatori per cella × turni"), spPersR(r)])
+      + '</td><td class="num" style="background:' + satColor(r.caricoH > 0 ? r.satCasa : null) + '22;font-weight:' + (v ? 700 : 400) + '">' + (r.caricoH > 0 ? calc(pct(r.satCasa), spSat(r)) : "—") + (v ? " ▲" : "") + "</td>";
   };
-  const s2 = '<div class="rep-slide"><div class="rep-tit">' + t("Celle, persone e saturazione per reparto") + '</div><div class="rep-sub">' + esc(S.meta.nome || "") + "</div>"
-    + '<table class="rep-tab"><thead><tr><th></th>' + A.map(a => '<th colspan="3" class="num">' + esc(a.nome) + "</th>").join("") + "</tr><tr><th>" + t("Reparto") + "</th>"
+  const s2 = '<div class="rep-slide rep-slide-tab"><div class="rep-tit">' + t("Celle, persone e saturazione per reparto") + '</div><div class="rep-sub">' + esc(S.meta.nome || "") + "</div>"
+    + '<table class="rep-tab rep-tab-big"><thead><tr><th></th>' + A.map(a => '<th colspan="3" class="num">' + esc(a.nome) + "</th>").join("") + "</tr><tr><th>" + t("Reparto") + "</th>"
     + A.map(() => '<th class="num">' + t("celle") + '</th><th class="num">' + t("pers.") + '</th><th class="num">' + t("sat.") + "</th>").join("") + "</tr></thead><tbody>"
     + reps.map(id => "<tr><td>" + esc(S.reparti.find(r => r.id === id).nome) + "</td>" + A.map(a => cella(a, id)).join("") + "</tr>").join("")
-    + "</tbody><tfoot><tr><td>" + t("Totale celle") + "</td>" + A.map(a => '<td class="num">' + nf(a.celle) + (a.esterne ? "+" + nf(a.esterne) : "") + '</td><td class="num">' + nf(a.personeCelle, a.personeCelle % 1 ? 1 : 0) + "</td><td></td>").join("") + "</tr>"
-    + (A.some(a => a.extraOp || a.extraMan) ? "<tr><td>" + t("Operatori fuori dalle celle") + "</td>" + A.map(a => '<td></td><td class="num">' + nf(a.extraOp, 1) + "</td><td></td>").join("") + "</tr>"
-      + "<tr><td>" + t("Manager") + "</td>" + A.map(a => '<td></td><td class="num">' + nf(a.extraMan, 1) + "</td><td></td>").join("") + "</tr>"
-      + "<tr><td>" + t("Organico totale") + "</td>" + A.map(a => '<td></td><td class="num">' + nf(a.persone, a.persone % 1 ? 1 : 0) + "</td><td></td>").join("") + "</tr>" : "")
+    + "</tbody><tfoot><tr><td>" + t("Totale celle") + "</td>" + A.map(a => '<td class="num">' + calc(nf(a.celle), spCelle(a)) + '</td><td class="num">' + calc(n1(a.personeCelle), spPers(a)) + "</td><td></td>").join("") + "</tr>"
+    + (A.some(a => a.extraOp || a.extraMan) ? "<tr><td>" + t("Persone fuori cella") + "</td>" + A.map(a => '<td></td><td class="num">' + calc(n1(a.extraOp + a.extraMan), spExtra(a)) + "</td><td></td>").join("") + "</tr>"
+      + "<tr><td>" + t("Organico totale") + "</td>" + A.map(a => '<td></td><td class="num">' + calc(n1(a.persone), spExtra(a).slice(-1)) + "</td><td></td>").join("") + "</tr>" : "")
     + "</tfoot></table>"
-    + '<div class="rep-note">' + t("celle di casa + esterne · ▲ = vincolo · colore = saturazione") + "</div></div>";
+    + '<div class="rep-note">' + t("solo celle di casa · ▲ = vincolo · colore = saturazione · passa il mouse su una cifra per vedere il calcolo") + "</div></div>";
   el.innerHTML = s1 + s2;
 }
 
@@ -3523,9 +3563,9 @@ async function creaPptx(solo) {
       { text: a.nome.toUpperCase(), options: { fontSize: 12, bold: true, color: DIM, breakLine: true } },
       { text: nf(a.pezzi) + " " + t("pz"), options: { fontSize: A.length > 3 ? 22 : 28, bold: true, color: VIOLA } },
       { text: p ? "  " + segno(varPct(p.pezzi, a.pezzi)) : "", options: { fontSize: 13, color: ROSA, breakLine: true } },
-      { text: nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? " (" + segnoN(a.celle - p.celle) + ")" : "") + (a.esterne ? " · " + nf(a.esterne) + " " + t("esterne") : ""), options: { fontSize: 14, color: INK, breakLine: true } },
-      { text: nf(a.persone, a.persone % 1 ? 1 : 0) + " " + t("persone") + (p && a.persone !== p.persone ? "  (" + segnoN(a.persone - p.persone, (a.persone - p.persone) % 1 ? 1 : 0) + ")" : ""), options: { fontSize: 14, color: INK, breakLine: true } },
-      ...(a.extraOp || a.extraMan ? [{ text: nf(a.personeCelle, 1) + " " + t("in cella") + " · " + nf(a.extraOp, 1) + " " + t("op. extra") + " · " + nf(a.extraMan, 1) + " " + t("manager"), options: { fontSize: 11, color: DIM, breakLine: true } }] : []),
+      { text: nf(a.celle) + " " + t("celle") + (p && a.celle !== p.celle ? " (" + segnoN(a.celle - p.celle) + ")" : ""), options: { fontSize: 14, color: INK, breakLine: true } },
+      { text: nf(a.personeCelle, a.personeCelle % 1 ? 1 : 0) + " " + t("persone in cella") + (p && a.personeCelle !== p.personeCelle ? "  (" + segnoN(a.personeCelle - p.personeCelle, (a.personeCelle - p.personeCelle) % 1 ? 1 : 0) + ")" : ""), options: { fontSize: 14, color: INK, breakLine: true } },
+      { text: t("Fuori cella") + ": " + nf(a.extraOp + a.extraMan, (a.extraOp + a.extraMan) % 1 ? 1 : 0) + (a.extraOp || a.extraMan ? " (" + nf(a.extraOp, a.extraOp % 1 ? 1 : 0) + " " + t("op.") + " · " + nf(a.extraMan, a.extraMan % 1 ? 1 : 0) + " " + t("manager") + ")" : ""), options: { fontSize: 12, color: DIM, breakLine: true } },
       { text: t("Vincolo") + ": " + a.vincolo + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : ""), options: { fontSize: 12, color: DIM } }
     ], { x: x + 0.15, y: 1.55, w: larg - 0.3, h: 2.0, fontFace: "Calibri", valign: "top", paraSpaceAfter: 3, fontSize: A.length > 3 ? 12 : 14 });
   });
@@ -3550,22 +3590,22 @@ async function creaPptx(solo) {
     { x: A.length > 3 ? 7.9 : 9.35, y: 4.3, w: A.length > 3 ? 4.95 : 3.5, colW: [1.25].concat(A.map(() => (A.length > 3 ? 3.7 : 2.25) / A.length)), fontFace: "Calibri", fontSize: A.length > 3 ? 9 : 10, color: INK, border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.3 });
   /* slide 2 */
   const s2 = pptx.addSlide();
-  testa(s2, t("Celle, persone e saturazione per reparto"), (S.meta.nome || "") + " · " + t("celle di casa + esterne · ▲ = vincolo · colore = saturazione"));
+  testa(s2, t("Celle, persone e saturazione per reparto"), (S.meta.nome || "") + " · " + t("solo celle di casa · ▲ = vincolo · colore = saturazione"));
   const intest1 = [{ text: "", options: { fill: { color: VIOLA } } }].concat(...A.map(a => [{ text: a.nome, options: { colspan: 3, align: "center", bold: true, color: "FFFFFF", fill: { color: VIOLA } } }]));
   const intest2 = [{ text: t("Reparto"), options: { bold: true, color: DIM } }].concat(...A.map(() => [t("celle"), t("pers."), t("sat.")].map(x => ({ text: x, options: { bold: true, color: DIM, align: "right" } }))));
   const corpo = A[0].righe.map(r0 => [{ text: r0.rep.nome, options: { bold: true } }].concat(...A.map(a => {
     const r = a.righe.find(x => x.rep.id === r0.rep.id); if (!r) return [{ text: "" }, { text: "" }, { text: "" }];
     const v = a.c.vincolo && a.c.vincolo.rep && a.c.vincolo.rep.id === r.rep.id, s = r.caricoH > 0 ? r.satCasa : null;
-    return [{ text: nf(r.celle) + (r.esterne ? "+" + nf(r.esterne) : ""), options: { align: "right" } },
+    return [{ text: nf(r.celle), options: { align: "right" } },
       { text: nf(r.persone, r.persone % 1 ? 1 : 0), options: { align: "right" } },
       { text: (s != null ? pct(s) : "—") + (v ? " ▲" : ""), options: { align: "right", bold: v, fill: { color: satHex(s) } } }];
   })));
   const piede = [{ text: t("Totale celle"), options: { bold: true } }].concat(...A.map(a => [
-    { text: nf(a.celle) + (a.esterne ? "+" + nf(a.esterne) : ""), options: { bold: true, align: "right" } },
+    { text: nf(a.celle), options: { bold: true, align: "right" } },
     { text: nf(a.personeCelle, a.personeCelle % 1 ? 1 : 0), options: { bold: true, align: "right" } }, { text: "" }]));
   const rigaP = (l, f, b) => [{ text: l, options: { bold: !!b } }].concat(...A.map(a => [{ text: "" }, { text: nf(f(a), f(a) % 1 ? 1 : 0), options: { align: "right", bold: !!b } }, { text: "" }]));
   const extraRighe = A.some(a => a.extraOp || a.extraMan)
-    ? [rigaP(t("Operatori fuori dalle celle"), a => a.extraOp), rigaP(t("Manager"), a => a.extraMan), rigaP(t("Organico totale"), a => a.persone, true)] : [];
+    ? [rigaP(t("Persone fuori cella"), a => a.extraOp + a.extraMan), rigaP(t("Organico totale"), a => a.persone, true)] : [];
   const volumi = [{ text: t("Volumi (pz)"), options: { color: DIM } }].concat(...A.map(a => [{ text: nf(a.pezzi), options: { colspan: 3, align: "center", color: DIM } }]));
   s2.addTable([intest1, intest2, ...corpo, piede, ...extraRighe, volumi], {
     x: 0.5, y: 1.4, w: 12.3, colW: [2.3].concat(Array(3 * A.length).fill(10 / (3 * A.length))), fontFace: "Calibri", fontSize: A.length > 3 ? 10 : 12, color: INK,
