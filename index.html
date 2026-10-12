@@ -1221,7 +1221,7 @@ const EN = {
   "carico rimasto in casa": "load kept in-house", "capacità di casa": "in-house capacity", "Capacità di casa": "In-house capacity", "cella": "cell",
   "ore × turni × efficienza × operatori": "hours × shifts × efficiency × operators", "Qui il limite è la macchina": "Here the machine is the limit",
   "Il vincolo è il reparto con la saturazione più alta": "The constraint is the department with the highest utilisation",
-  "Ore interne": "In-house hours", "Ore esterne": "Outside hours", "carico mandato al terzista": "load sent to the subcontractor",
+  "Ore interne": "In-house hours", "Ore vendibili": "Sellable hours", "ore vendibili": "sellable hours", "Ore vendibili per anno": "Sellable hours per year", "ore vendibili (capacità di casa, al netto dell'efficienza)": "sellable hours (in-house capacity, net of efficiency)", "ore/cella": "hours/cell", "Ore esterne": "Outside hours", "carico mandato al terzista": "load sent to the subcontractor",
   "carico che non sta né dentro né fuori": "load that fits neither inside nor outside", "celle × ore/cella": "cells × hours/cell",
   "celle di casa salvate nella Fucina per": "in-house cells saved in the Forge for", "celle × operatori per cella × turni": "cells × operators per cell × shifts",
   "op. extra": "extra op.",
@@ -4087,21 +4087,19 @@ function renderGuida() { document.getElementById("guidaBody").innerHTML = GUIDA[
    REPORT 3 ANNI: anteprima di due slide e PowerPoint modificabile
    ============================================================ */
 /* Numeri di ogni anno con lo stesso calcolo del Responso, sulla configurazione salvata
-   nella Fucina per quell'anno. Ore interne = carico che resta in casa e ci sta; esterne =
-   quelle mandate al terzista; scoperte = quelle che non stanno né dentro né fuori. */
+   nella Fucina per quell'anno. Le ore del report sono le ore vendibili: la capacità delle
+   celle di casa, già al netto dell'efficienza (celle × ore × turni × efficienza × operatori). */
 function datiReport() {
   return anniIdx().map(anno => {
     const c = compute({ anno });
     const R = c.righe.filter(r => r.rep);
     const somma = f => R.reduce((a, r) => a + f(r), 0);
-    const scoperte = somma(r => r.scoperteFuori);
     return {
       anno, nome: S.meta.anni[anno] || ("Anno " + (anno + 1)), c, righe: R,
       pezzi: S.famiglie.reduce((a, f) => a + nz(f.forecastAnni[anno]), 0),
       celle: somma(r => r.celle), esterne: somma(r => r.esterne), personeCelle: somma(r => r.persone),
       extraOp: extraAnno(anno).operatore, extraMan: extraAnno(anno).manager, persone: somma(r => r.persone) + extraAnno(anno).totale,
-      oreTot: somma(r => r.caricoH), oreEst: somma(r => r.oreFuori), oreScop: scoperte,
-      oreInt: somma(r => r.caricoDentro) - scoperte, capCasa: somma(r => r.capInterna),
+      capCasa: somma(r => r.capInterna),
       vincolo: c.vincolo ? c.vincolo.nome : "—", vincoloSat: c.vincolo ? (c.vincolo.satCasa != null ? c.vincolo.satCasa : c.vincolo.sat) : null,
       throughput: c.throughput
     };
@@ -4141,31 +4139,24 @@ function renderReport() {
       + (p && fuori !== pf ? ' <span class="rep-var">' + segnoN(fuori - pf, (fuori - pf) % 1 ? 1 : 0) + "</span>" : "") + "</div>"
       + '<div class="rep-vinc">' + t("Vincolo") + ": <b>" + esc(a.vincolo) + "</b>" + (a.vincoloSat != null ? " " + calc(pct(a.vincoloSat), spVinc(a)) : "") + "</div></div>";
   };
-  const max = Math.max(1, ...A.map(a => Math.max(a.oreTot, a.capCasa)));
+  const max = Math.max(1, ...A.map(a => a.capCasa));
   const W = 900, H = 200, passo = 780 / A.length, BW = Math.min(120, passo * .55), base = 160, sc = 130 / max;
   let g = '<svg viewBox="0 0 ' + W + " " + H + '" class="rep-chart" font-family="Inter,sans-serif">';
   A.forEach((a, i) => {
     const x = 80 + passo * i + (passo - BW) / 2;
-    let y = base;
-    [[a.oreInt, C.gold, t("interne")], [a.oreEst, C.ember, t("esterne")], [a.oreScop, C.bad, t("scoperte")]].forEach(([v, col]) => {
-      if (v <= 0) return; const h = v * sc; y -= h;
-      g += '<rect x="' + x + '" y="' + y.toFixed(1) + '" width="' + BW + '" height="' + h.toFixed(1) + '" fill="' + col + '" rx="3"/>';
-    });
-    const yc = base - a.capCasa * sc;
-    g += '<line x1="' + (x - 14) + '" x2="' + (x + BW + 14) + '" y1="' + yc.toFixed(1) + '" y2="' + yc.toFixed(1) + '" stroke="' + C.ink + '" stroke-width="2" stroke-dasharray="5 4"/>';
+    const h = a.capCasa * sc;
+    g += '<rect x="' + x + '" y="' + (base - h).toFixed(1) + '" width="' + BW + '" height="' + h.toFixed(1) + '" fill="' + C.gold + '" rx="3"/>';
     g += '<text x="' + (x + BW / 2) + '" y="' + (base + 18) + '" text-anchor="middle" font-size="13" fill="' + C.ink + '" font-weight="600">' + esc(a.nome) + "</text>";
     g += '<text class="rep-calc" x="' + (x + BW / 2) + '" y="' + (base + 35) + '" text-anchor="middle" font-size="11.5" fill="' + C.dim + '"><title>'
-      + esc([t("Ore interne") + " = " + t("carico rimasto in casa") + " − " + t("ore scoperte") + " = " + nf(a.oreInt) + " h",
-        t("Ore esterne") + " = " + t("carico mandato al terzista") + " = " + nf(a.oreEst) + " h",
-        t("Ore scoperte") + " = " + t("carico che non sta né dentro né fuori") + " = " + nf(a.oreScop) + " h",
-        t("Capacità di casa") + " = Σ " + t("celle × ore/cella") + " = " + nf(a.capCasa) + " h"].join("\n")) + "</title>" + nf(a.oreInt) + " + " + nf(a.oreEst) + (a.oreScop > 0 ? " + " + nf(a.oreScop) : "") + " h</text>";
+      + esc([t("Ore vendibili") + " = Σ " + t("celle × ore/cella") + " = " + nf(a.capCasa) + " h",
+        t("ore/cella") + " = " + t("ore × turni × efficienza × operatori")].join("\n")) + "</title>" + nf(a.capCasa) + " h</text>";
   });
   g += '<line x1="80" x2="' + (W - 40) + '" y1="' + base + '" y2="' + base + '" stroke="' + C.line + '"/></svg>';
   const leg = (col, l, tratt) => '<span><i class="swatch" style="' + (tratt ? "background:none;border-top:2px dashed " + col + ";height:0" : "background:" + col) + '"></i>' + l + "</span>";
   const s1 = '<div class="rep-slide"><div class="rep-tit">' + titolo + '</div><div class="rep-sub">' + sotto + "</div>"
     + '<div class="rep-cards">' + A.map(card).join("") + "</div>"
-    + '<div class="rep-sez">' + t("Ore di carico per anno") + "</div>" + g
-    + '<div class="legend rep-leg">' + leg(C.gold, t("ore interne")) + leg(C.ember, t("ore esterne (terzista)")) + (A.some(a => a.oreScop > 0) ? leg(C.bad, t("ore scoperte")) : "") + leg(C.ink, t("capacità di casa"), true) + "</div></div>";
+    + '<div class="rep-sez">' + t("Ore vendibili per anno") + "</div>" + g
+    + '<div class="legend rep-leg">' + leg(C.gold, t("ore vendibili (capacità di casa, al netto dell'efficienza)")) + "</div></div>";
   /* slide 2: matrice per reparto */
   const reps = A[0].righe.map(r => r.rep.id);
   const cella = (a, id) => {
@@ -4229,22 +4220,17 @@ async function creaPptx(solo) {
       { text: t("Vincolo") + ": " + a.vincolo + (a.vincoloSat != null ? " " + pct(a.vincoloSat) : ""), options: { fontSize: 12, color: DIM } }
     ], { x: x + 0.15, y: 1.55, w: larg - 0.3, h: 2.0, fontFace: "Calibri", valign: "top", paraSpaceAfter: 3, fontSize: A.length > 3 ? 12 : 14 });
   });
-  s1.addText(t("Ore di carico per anno"), { x: 0.5, y: 3.85, w: 6, h: 0.35, fontFace: "Calibri", fontSize: 14, bold: true, color: INK });
-  const lab = A.map(a => a.nome), serie = [
-    { name: t("ore interne"), labels: lab, values: A.map(a => Math.round(a.oreInt)) },
-    { name: t("ore esterne (terzista)"), labels: lab, values: A.map(a => Math.round(a.oreEst)) }
-  ];
-  const conScop = A.some(a => a.oreScop > 0);
-  if (conScop) serie.push({ name: t("ore scoperte"), labels: lab, values: A.map(a => Math.round(a.oreScop)) });
+  s1.addText(t("Ore vendibili per anno"), { x: 0.5, y: 3.85, w: 6, h: 0.35, fontFace: "Calibri", fontSize: 14, bold: true, color: INK });
+  const lab = A.map(a => a.nome), serie = [{ name: t("ore vendibili"), labels: lab, values: A.map(a => Math.round(a.capCasa)) }];
   s1.addChart(pptx.ChartType.bar, serie, {
-    x: 0.5, y: 4.2, w: A.length > 3 ? 7.2 : 8.6, h: 3.1, barDir: "col", barGrouping: "stacked", chartColors: [VIOLA, ROSA, ROSSO].slice(0, serie.length),
+    x: 0.5, y: 4.2, w: A.length > 3 ? 7.2 : 8.6, h: 3.1, barDir: "col", barGrouping: "standard", chartColors: [VIOLA],
     showLegend: true, legendPos: "b", legendFontSize: 11, catAxisLabelFontSize: 12, valAxisLabelFontSize: 10, valAxisLabelFormatCode: "#,##0",
     showValue: true, dataLabelFontSize: 10, dataLabelColor: "FFFFFF", dataLabelFormatCode: "#,##0", valGridLine: { color: "EEEEEE" }, catGridLine: { style: "none" }
   });
   const rig = [[t("Ore"), ...A.map(a => a.nome)].map(v => ({ text: v, options: { bold: true, color: "FFFFFF", fill: { color: VIOLA } } })),
-    [t("Carico totale"), ...A.map(a => nf(a.oreTot))], [t("Capacità di casa"), ...A.map(a => nf(a.capCasa))],
-    [t("Interne"), ...A.map(a => nf(a.oreInt))], [t("Esterne"), ...A.map(a => nf(a.oreEst))]];
-  if (conScop) rig.push([t("Scoperte"), ...A.map(a => nf(a.oreScop))]);
+    [t("Ore vendibili"), ...A.map(a => nf(a.capCasa))],
+    [t("Celle"), ...A.map(a => nf(a.celle))],
+    [t("Ore per cella"), ...A.map(a => a.celle ? nf(a.capCasa / a.celle) : "—")]];
   s1.addTable(rig.map(r => r.map((c, j) => typeof c === "object" ? c : { text: c, options: { align: j ? "right" : "left" } })),
     /* più anni, tabella più larga: a 5 anni le cifre andavano a capo */
     { x: A.length > 3 ? 7.9 : 9.35, y: 4.3, w: A.length > 3 ? 4.95 : 3.5, colW: [1.25].concat(A.map(() => (A.length > 3 ? 3.7 : 2.25) / A.length)), fontFace: "Calibri", fontSize: A.length > 3 ? 9 : 10, color: INK, border: { type: "solid", color: "E4DDF3", pt: 0.75 }, rowH: 0.3 });
