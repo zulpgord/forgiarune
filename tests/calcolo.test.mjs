@@ -66,10 +66,15 @@ test("lo scarto aumenta i pezzi da lavorare", () => {
   const r = caso("S.famiglie[0].scarto = 20;");
   vicino(r.caricoH, 600 / 0.8 * 2);
 });
-test("celle esterne: va fuori solo il carico oltre il target", () => {
-  /* soglia = 1600 × 0,8 = 1280; carico 1800 → 520 h fuori, entro 1 cella esterna da 800 h */
+test("ore fuori = carico richiesto − capacità disponibile", () => {
+  /* capacità disponibile 1600 h (= ore vendibili); carico 1800 → 200 h fuori, coperte dalla cella esterna */
   const r = caso("S.famiglie[0].forecastAnni[0] = 900; S.reparti[0].anni[0].celleEsterne = 1;");
-  vicino(r.caricoH, 1800); vicino(r.oreFuori, 520);
+  vicino(r.caricoH, 1800); vicino(r.capInterna, 1600); vicino(r.oreFuori, 200);
+  vicino(r.caricoDentro, 1600); vicino(r.scoperteFuori, 0);
+});
+test("ore fuori senza celle esterne restano scoperte", () => {
+  const r = caso("S.famiglie[0].forecastAnni[0] = 900;");
+  vicino(r.oreFuori, 200); vicino(r.scoperteFuori, 200);
 });
 test("senza calendario la capacità del mese è un dodicesimo", () => {
   const r = caso();
