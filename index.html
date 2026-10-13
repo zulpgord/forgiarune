@@ -1150,7 +1150,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v6.7";
+const VERSION = "v6.8";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -2076,6 +2076,13 @@ function nz(v) { const n = parseFloat(v); return isFinite(n) ? n : 0; }
 
 /* Quota della capacità annua che cade in ciascun mese. Con i giorni lavorativi mese per
    mese la capacità segue il calendario (agosto corto, dicembre corto); senza, dodici parti uguali. */
+/* quota di ogni mese nel profilo di consegna di una famiglia (somma 1). Un profilo tutto
+   a zero vale piatto e i valori negativi non contano: altrimenti il carico della famiglia
+   spariva dai mesi pur restando nel totale annuo. */
+function pesiMese(f) {
+  const v = (f.mensile || []).slice(0, 12).map(x => Math.max(0, nz(x))), tot = v.reduce((a, b) => a + b, 0);
+  return tot > 0 && v.length === 12 ? v.map(x => x / tot) : Array(12).fill(1 / 12);
+}
 function quoteMese() {
   const g = S.params.giorniMese;
   if (!Array.isArray(g) || g.length !== 12) return Array(12).fill(1 / 12);
@@ -2131,8 +2138,8 @@ function compute(ov) {
       oreUomo += hU; oreMacc += hM; oreSetup += hS; cambi += nCambi;
       pezzi += q; pezziNetti += netto;
       contrib.push({ id: f.id, nome: f.nome, ore: hU, setup: hS, oreMacc: hM, pezzi: q, min: nz(x.min), setupMin: nz(x.setup) });
-      const tot = f.mensile.reduce((a, b) => a + nz(b), 0) || 100;
-      for (let m = 0; m < 12; m++) { meseH[m] += (hU + hS) * nz(f.mensile[m]) / tot; mesePz[m] += q * nz(f.mensile[m]) / tot; }
+      const pm = pesiMese(f);
+      for (let m = 0; m < 12; m++) { meseH[m] += (hU + hS) * pm[m]; mesePz[m] += q * pm[m]; }
     });
 
     const caricoU = oreUomo + oreSetup;
@@ -3763,8 +3770,7 @@ function nuovaCommessa(o) { return Object.assign({ id: uid(), codice: prossimoCo
     const nuove = [];
     S.famiglie.forEach(f => {
       const n = Math.round(nz(f.forecastAnni[anno])); if (n <= 0) return;
-      const tot = f.mensile.reduce((a, b) => a + nz(b), 0) || 1;
-      const quote = ripartisci(f.mensile.map(v => nz(v) / tot * n), n);
+      const quote = ripartisci(pesiMese(f).map(v => v * n), n);
       quote.forEach((q, m) => {
         /* il profilo è per mese di calendario: i mesi già passati vanno all'anno dopo */
         const y = Date.UTC(y0, m + 1, 0) / 864e5 < base ? y0 + 1 : y0;

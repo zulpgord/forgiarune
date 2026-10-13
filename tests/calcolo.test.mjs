@@ -76,6 +76,10 @@ test("ore fuori senza celle esterne restano scoperte", () => {
   const r = caso("S.famiglie[0].forecastAnni[0] = 900;");
   vicino(r.oreFuori, 200); vicino(r.scoperteFuori, 200);
 });
+test("un profilo di consegna tutto a zero non fa sparire il carico dai mesi", () => {
+  const r = caso("S.famiglie[0].mensile = Array(12).fill(0);");
+  vicino(r.meseH.reduce((a, b) => a + b, 0), r.caricoH);
+});
 test("senza calendario la capacità del mese è un dodicesimo", () => {
   const r = caso();
   vicino(r.qPicco, 1 / 12);
