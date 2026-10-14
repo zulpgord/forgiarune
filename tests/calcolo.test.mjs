@@ -76,6 +76,19 @@ test("ore fuori senza celle esterne restano scoperte", () => {
   const r = caso("S.famiglie[0].forecastAnni[0] = 900;");
   vicino(r.oreFuori, 200); vicino(r.scoperteFuori, 200);
 });
+test("gli anni si riordinano in ordine crescente con i loro dati", () => {
+  caso(`S.meta.anni = ["2026", "2027", "2025"]; S.meta.anno = 1;
+    S.famiglie[0].forecastAnni = [100, 200, 50]; S.reparti[0].anni[2].celleAttuali = 9;`);
+  assert.equal(run("riordinaAnni()"), true);
+  assert.equal(run("S.meta.anni.join()"), "2025,2026,2027");
+  assert.equal(run("S.famiglie[0].forecastAnni.join()"), "50,100,200");
+  assert.equal(run("S.reparti[0].anni[0].celleAttuali"), 9);
+  assert.equal(run("S.meta.anni[S.meta.anno]"), "2027");
+});
+test("nomi misti fra Anno N e anno di calendario: nessun riordino", () => {
+  caso(`S.meta.anni = ["2026", "Anno 2", "Anno 3"];`);
+  assert.equal(run("riordinaAnni()"), false);
+});
 test("un profilo di consegna tutto a zero non fa sparire il carico dai mesi", () => {
   const r = caso("S.famiglie[0].mensile = Array(12).fill(0);");
   vicino(r.meseH.reduce((a, b) => a + b, 0), r.caricoH);
