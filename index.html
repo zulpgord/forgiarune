@@ -45,6 +45,11 @@ body{
 h1,h2,h3,.display{font-family:"Poppins",Georgia,serif;font-weight:700;letter-spacing:.06em;margin:0}
 
 header{border-bottom:2px solid var(--border);background:var(--panel-2);box-shadow:0 6px 24px var(--shadow);position:sticky;top:0;z-index:50}
+/* intestazione fissa sopra la pagina, con uno spazio riservato costante (--hh0 = altezza piena):
+   così quando si compatta la pagina non si accorcia e lo scroll non rimbalza sulla soglia */
+header{position:fixed!important;left:0;right:0}
+body{padding-top:var(--hh0, 0px)}
+html{overflow-anchor:none}
 /* intestazione compatta quando si scorre: resta visibile con schede, anno e scenario */
 header.compact .head-inner{padding-top:6px;gap:12px;align-items:center}
 header.compact .mark{width:30px;height:30px}
@@ -501,7 +506,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 .foldall button:hover{color:var(--gold)}
 @media print{
   header{position:static!important}
-  body{background:#fff;color:#000}
+  body{background:#fff;color:#000;padding-top:0!important}
   header nav,.row-actions,.seg,#pasteBox,footer .by{display:none!important}
   section[hidden]{display:block!important}
   .panel{break-inside:avoid;box-shadow:none}
@@ -5325,13 +5330,23 @@ document.addEventListener("input", e => {
 (function () {
   const h = document.querySelector("header");
   /* altezza dell'intestazione: serve al menu laterale per restare appena sotto */
-  const hh = () => document.documentElement.style.setProperty("--hh", h.offsetHeight + "px");
+  /* --hh0 è lo spazio riservato sotto l'intestazione fissa: si misura solo quando è piena,
+     quindi compattarla non cambia l'altezza della pagina (era la causa dello sfarfallio) */
+  const hh = () => {
+    document.documentElement.style.setProperty("--hh", h.offsetHeight + "px");
+    if (!h.classList.contains("compact")) document.documentElement.style.setProperty("--hh0", h.offsetHeight + "px");
+  };
   hh(); addEventListener("resize", hh); new ResizeObserver(hh).observe(h);
-  /* soglie diverse per entrare e uscire: evita lo sfarfallio quando l'altezza cambia */
+  /* soglie diverse per entrare e uscire, e al massimo un cambio per fotogramma */
+  let attesa = false;
   addEventListener("scroll", () => {
-    const y = scrollY;
-    if (y > 140 && !h.classList.contains("compact")) h.classList.add("compact");
-    else if (y < 30 && h.classList.contains("compact")) h.classList.remove("compact");
+    if (attesa) return; attesa = true;
+    requestAnimationFrame(() => {
+      attesa = false;
+      const y = scrollY;
+      if (y > 140 && !h.classList.contains("compact")) h.classList.add("compact");
+      else if (y < 30 && h.classList.contains("compact")) h.classList.remove("compact");
+    });
   }, { passive: true });
 })();
 /* ogni pannello si apre e si chiude cliccando il titolo; lo stato resta nel browser */
