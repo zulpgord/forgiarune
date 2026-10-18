@@ -62,6 +62,20 @@ test("persone = celle × operatori × turni", () => {
   const r = caso("S.reparti[0].anni[0].operatori = 2; S.params.turni = 2;");
   vicino(r.persone, 2 * 2 * 2);
 });
+test("persone del reparto: 4 celle e 5 persone danno la capacità di 5 persone", () => {
+  /* ore 1000 × efficienza 80% = 800 h nette a persona */
+  const r = caso("S.reparti[0].anni[0].celleAttuali = 4; S.reparti[0].anni[0].persone = 5;");
+  vicino(r.persone, 5); vicino(r.operatori, 1.25); vicino(r.capInterna, 5 * 800);
+});
+test("persone del reparto vuote: una persona per cella per turno, come prima", () => {
+  const r = caso("S.reparti[0].anni[0].celleAttuali = 4;");
+  vicino(r.persone, 4); vicino(r.capInterna, 4 * 800);
+});
+test("con le persone dichiarate le ore vendibili seguono le persone", () => {
+  /* carico 1200 h; 2 celle e 1 persona: capacità 800 → vendibili 800, fuori 400 */
+  const r = caso("S.reparti[0].anni[0].persone = 1;");
+  vicino(r.capInterna, 800); vicino(r.caricoDentro, 800); vicino(r.oreFuori, 400);
+});
 test("lo scarto aumenta i pezzi da lavorare", () => {
   const r = caso("S.famiglie[0].scarto = 20;");
   vicino(r.caricoH, 600 / 0.8 * 2);
