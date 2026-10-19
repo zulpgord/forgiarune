@@ -1191,7 +1191,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v6.16";
+const VERSION = "v6.17";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "persone", "oreOverride", "nuoveCelle", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -2519,8 +2519,8 @@ function renderReparti() {
   const opts = f => S.fasi.map(x => '<option value="' + x.id + '"' + (x.id === f ? " selected" : "") + ">" + esc(x.nome) + "</option>").join("");
   el.innerHTML = "<thead><tr>" + th("Reparto") + th("Fase lavorata") + th("Celle oggi", "num") + th("Celle esterne", "num") + th("Celle max", "num")
     + th("Macchine", "num") + th("Persone nel reparto", "num") + th("Ore nette per cella: vuoto = generale", "num") + th("Ripristino (gg)", "num") + th("Lotto (pz)", "num")
-    + th("Buffer") + "<th style='width:90px'></th></tr></thead><tbody>"
-    + S.reparti.map(r => { const c = cfgRep(r);
+    + th("Buffer") + th("Ordine") + "<th style='width:90px'></th></tr></thead><tbody>"
+    + S.reparti.map((r, i) => { const c = cfgRep(r);
       return '<tr><td><input class="wide" value="' + esc(r.nome) + '" data-k="reparto" data-id="' + r.id + '" data-f="nome"></td>'
       + '<td><select data-k="reparto" data-id="' + r.id + '" data-f="faseId">' + opts(r.faseId) + "</select></td>"
       + '<td class="num"><input type="number" min="0" step="1" value="' + nz(c.celleAttuali) + '" data-k="reparto" data-id="' + r.id + '" data-f="celleAttuali"></td>'
@@ -2532,6 +2532,8 @@ function renderReparti() {
       + '<td class="num"><input type="number" min="0" step="0.5" style="width:78px" value="' + nz(r.ltGiorni) + '" data-k="reparto" data-id="' + r.id + '" data-f="ltGiorni"></td>'
       + '<td class="num"><input type="number" min="0" step="1" style="width:82px" value="' + nz(r.lotto) + '" data-k="reparto" data-id="' + r.id + '" data-f="lotto"></td>'
       + '<td><input type="checkbox" ' + (r.buffer !== false ? "checked" : "") + ' data-k="reparto" data-id="' + r.id + '" data-f="buffer" aria-label="' + t("Tieni un magazzino a valle") + '"></td>'
+      + '<td style="white-space:nowrap"><button class="act ghost" data-move="reparto" data-id="' + r.id + '" data-dir="-1" title="' + t("Su") + '" aria-label="' + t("Su") + '"' + (i === 0 ? " disabled" : "") + ">↑</button> "
+      + '<button class="act ghost" data-move="reparto" data-id="' + r.id + '" data-dir="1" title="' + t("Giù") + '" aria-label="' + t("Giù") + '"' + (i === S.reparti.length - 1 ? " disabled" : "") + ">↓</button></td>"
       + '<td><button class="danger" data-del="reparto" data-id="' + r.id + '">' + t("Elimina") + "</button></td></tr>"; }).join("")
     + "</tbody>";
 }
@@ -5429,8 +5431,10 @@ document.addEventListener("click", e => {
     queueSave(); refreshAll(); return;
   }
   if (mv) {
-    const i = S.fasi.findIndex(x => x.id === mv.dataset.id), j = i + parseInt(mv.dataset.dir, 10);
-    if (j >= 0 && j < S.fasi.length) { const x = S.fasi[i]; S.fasi[i] = S.fasi[j]; S.fasi[j] = x; queueSave(); refreshAll(); }
+    /* sposta una fase o un reparto di una posizione (l'ordine dei reparti vale per la Fucina) */
+    const L = mv.dataset.move === "reparto" ? S.reparti : S.fasi;
+    const i = L.findIndex(x => x.id === mv.dataset.id), j = i + parseInt(mv.dataset.dir, 10);
+    if (i >= 0 && j >= 0 && j < L.length) { const x = L[i]; L[i] = L[j]; L[j] = x; queueSave(); refreshAll(); }
   }
 });
 
