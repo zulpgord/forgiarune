@@ -120,8 +120,18 @@ test("con il calendario un agosto corto diventa il mese di picco", () => {
 });
 test("la capacità mensile somma alla capacità annua anche col calendario", () => {
   caso("S.params.giorniMese = [21,20,22,20,21,21,22,5,21,22,20,10];");
-  const cap = run("capMensile(cfgRep(S.reparti[0], 0), 800, 2)");
+  /* 2 persone da 800 h nette su 2 celle */
+  const cap = run("capMensile(cfgRep(S.reparti[0], 0), 800, 2, 2)");
   vicino(cap.reduce((a, b) => a + b, 0), 1600);
+});
+test("piano di assunzione in persone: una persona nuova a gennaio rende secondo la curva", () => {
+  /* curva 50/75/90/100 per trimestre: in un anno vale (0,5+0,75+0,9+1) × 3 ÷ 12 = 0,7875 persone */
+  caso("cfgRep(S.reparti[0], 0).nuovePersone = 1; cfgRep(S.reparti[0], 0).meseIngresso = 1; cfgRep(S.reparti[0], 0).curva = [50, 75, 90, 100];");
+  vicino(run("computeRodaggio().righe[0].guadagno"), 0.7875);
+});
+test("le celle nuove dei dati vecchi diventano persone nuove", () => {
+  caso("delete S.reparti[0].anni[0].nuovePersone; S.reparti[0].anni[0].nuoveCelle = 2; S.reparti[0].anni[0].operatori = 1; S.params.turni = 2;");
+  vicino(run("cfgRep(S.reparti[0], 0).nuovePersone"), 4);
 });
 test("persone fuori cella entrano nell'organico del report", () => {
   caso("S.extra = [{ id: 'x', ruolo: 'Capo', cat: 'manager', n: [1, 1, 1] }, { id: 'y', ruolo: 'Jolly', cat: 'operatore', n: [2, 2, 2] }];");
