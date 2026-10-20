@@ -130,6 +130,19 @@ test("la capacità mensile somma alla capacità annua anche col calendario", () 
   const cap = run("capMensile(cfgRep(S.reparti[0], 0), 800, 2, 2)");
   vicino(cap.reduce((a, b) => a + b, 0), 1600);
 });
+test("ore erogate: agosto all'80% ridistribuito sugli altri mesi, totale invariato", () => {
+  caso("S.params.erogMese = [100,100,100,100,100,100,100,80,100,100,100,100];");
+  const cap = run("capMensile(cfgRep(S.reparti[0], 0), 800, 2, 2)");
+  vicino(cap.reduce((a, b) => a + b, 0), 1600);
+  /* agosto vale 0,8 ÷ 11,8 dell'anno, gli altri 1 ÷ 11,8 */
+  vicino(cap[7], 1600 * 0.8 / 11.8); vicino(cap[0], 1600 / 11.8);
+});
+test("ore erogate manuali: ogni mese vale la percentuale scritta", () => {
+  caso("S.params.erogMese = [100,100,100,100,100,100,100,80,100,100,100,100]; S.params.erogAuto = false;");
+  const cap = run("capMensile(cfgRep(S.reparti[0], 0), 800, 2, 2)");
+  vicino(cap[7], 1600 / 12 * 0.8); vicino(cap[0], 1600 / 12);
+  vicino(cap.reduce((a, b) => a + b, 0), 1600 * 11.8 / 12);
+});
 test("piano di assunzione in persone: una persona nuova a gennaio rende secondo la curva", () => {
   /* curva 50/75/90/100 per trimestre: in un anno vale (0,5+0,75+0,9+1) × 3 ÷ 12 = 0,7875 persone */
   caso("cfgRep(S.reparti[0], 0).nuovePersone = 1; cfgRep(S.reparti[0], 0).meseIngresso = 1; cfgRep(S.reparti[0], 0).curva = [50, 75, 90, 100];");
