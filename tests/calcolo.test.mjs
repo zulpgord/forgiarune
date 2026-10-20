@@ -76,6 +76,12 @@ test("con le persone dichiarate le ore vendibili seguono le persone", () => {
   const r = caso("S.reparti[0].anni[0].persone = 1;");
   vicino(r.capInterna, 800); vicino(r.caricoDentro, 800); vicino(r.oreFuori, 400);
 });
+test("piano pluriennale: persone al target e quante aggiungerne", () => {
+  /* carico 1800 h, 800 h nette a persona, target 80%: 1800 ÷ 800 ÷ 0,8 = 2,81 → 3 persone; oggi 2 → +1 */
+  caso("S.famiglie[0].forecastAnni[0] = 900;");
+  const x = run("datiPiano()[0].righe[0]");
+  assert.equal(x.serve, 3); vicino(x.oggi, 2); vicino(x.delta, 1);
+});
 test("lo scarto aumenta i pezzi da lavorare", () => {
   const r = caso("S.famiglie[0].scarto = 20;");
   vicino(r.caricoH, 600 / 0.8 * 2);
