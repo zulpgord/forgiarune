@@ -82,6 +82,18 @@ test("piano pluriennale: persone al target e quante aggiungerne", () => {
   const x = run("datiPiano()[0].righe[0]");
   assert.equal(x.serve, 3); vicino(x.oggi, 2); vicino(x.delta, 1);
 });
+test("output del piano: i pezzi li limitano le ore erogate e il forecast", () => {
+  /* 2 persone × 800 h = 1600 h erogate, 2 h a pezzo: si possono fare 800 pz; il forecast ne chiede 900 */
+  caso("S.famiglie[0].forecastAnni[0] = 900;");
+  const o = run("outputPiano()");
+  vicino(o.rich, 900); vicino(o.cap, 800); vicino(o.out, 800);
+});
+test("output del piano: una persona assunta a gennaio aggiunge pezzi secondo il rodaggio", () => {
+  /* +0,7875 persone nell'anno = +630 h = +315 pz: producibili 1115, prodotti 900 (tutto il forecast) */
+  caso("S.famiglie[0].forecastAnni[0] = 900; cfgRep(S.reparti[0], 0).nuovePersone = 1; cfgRep(S.reparti[0], 0).meseIngresso = 1; cfgRep(S.reparti[0], 0).curva = [50, 75, 90, 100];");
+  const o = run("outputPiano()");
+  vicino(o.cap, 1115); vicino(o.out, 900);
+});
 test("lo scarto aumenta i pezzi da lavorare", () => {
   const r = caso("S.famiglie[0].scarto = 20;");
   vicino(r.caricoH, 600 / 0.8 * 2);
