@@ -94,6 +94,19 @@ test("output del piano: una persona assunta a gennaio aggiunge pezzi secondo il 
   const o = run("outputPiano()");
   vicino(o.cap, 1115); vicino(o.out, 900);
 });
+test("tempi delle famiglie per anno: cambiare un anno non tocca gli altri", () => {
+  /* dati vecchi: un solo «tempi» → diventa il primo anno e gli altri lo copiano */
+  caso("tempiFam(S.famiglie[0], 1).f1.min = 60;");
+  vicino(run("compute({ anno: 0 }).righe[0].caricoH"), 1200);
+  vicino(run("compute({ anno: 1 }).righe[0].caricoH"), 600);
+  vicino(run("compute({ anno: 2 }).righe[0].caricoH"), 1200);
+});
+test("i tempi seguono l'anno quando gli anni si riordinano", () => {
+  caso("S.meta.anni = ['2027', '2026', '2028']; tempiFam(S.famiglie[0], 0).f1.min = 60;");
+  run("riordinaAnni()");
+  vicino(run("tempiFam(S.famiglie[0], 1).f1.min"), 60);
+  vicino(run("tempiFam(S.famiglie[0], 0).f1.min"), 120);
+});
 test("lo scarto aumenta i pezzi da lavorare", () => {
   const r = caso("S.famiglie[0].scarto = 20;");
   vicino(r.caricoH, 600 / 0.8 * 2);
