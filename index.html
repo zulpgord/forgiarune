@@ -1236,7 +1236,7 @@ details.panel[open] > summary::after{content:"";transform:rotate(45deg)}
 /* ============================================================
    VERSIONE / LINGUA / TEMA
    ============================================================ */
-const VERSION = "v6.32";
+const VERSION = "v6.33";
 /* campi del reparto che cambiano da un anno all'altro */
 const CAMPI_ANNO = ["celleAttuali", "celleEsterne", "celleMax", "operatori", "persone", "oreOverride", "nuoveCelle", "nuovePersone", "meseIngresso", "curva"];
 const KEY = "runeforge:state:v1";
@@ -5396,7 +5396,7 @@ let FORZA_RENDER = false;
 /* in stampa le schede nascoste tornano visibili: prima di stampare va ridisegnato tutto */
 function visibile(tab) { if (FORZA_RENDER) return true; const s = document.getElementById("tab-" + tab); return !s || !s.hidden; }
 
-function refreshOutputs() { popolaDimAnno(); popolaGoal(); renderParetoVol(); if (visibile("guida")) renderGuida(); if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); renderOreFabbrica(); if (visibile("moduli")) renderModuli(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderOutputMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
+function refreshOutputs() { const res = document.querySelector("#resilienza figcaption"); if (res) { res.innerHTML = citazioneResilienza(); document.querySelector("#resilienza .res-card").setAttribute("aria-label", t("Resilienza")); } popolaDimAnno(); popolaGoal(); renderParetoVol(); if (visibile("guida")) renderGuida(); if (visibile("piano")) renderPiano2(); renderControlli(); renderMix(); renderEsterno(); renderMensileEst(); renderOreFabbrica(); if (visibile("moduli")) renderModuli(); if (visibile("simulazione")) { renderRodaggio(); renderOreMese(); renderOutputMese(); renderBenefici(); } renderRisultati(); renderCosti(); renderPoliv(); renderSimulazione(); renderPiano(); renderYamazumi(); renderScorte(); renderVSM(); renderScenari(); }
 /* Anni in ordine crescente: se tutti i nomi contengono un numero ("2027", "Anno 3") gli anni si
    ordinano su quel numero e con loro si spostano tutti i dati per anno (celle e operatori dei
    reparti, forecast delle famiglie, persone fuori cella), così niente si mescola.
@@ -6643,12 +6643,18 @@ document.addEventListener("click", e => {
 });
 
 /* pulsante «Resilienza»: l'immagine con la citazione, si chiude con un clic fuori, Esc o ✕ */
+/* citazione nella lingua scelta, con le virgolette di quella lingua */
+function citazioneResilienza() {
+  const v = LANG === "zh" ? ["「", "」"] : LANG === "en" ? ["“", "”"] : ["«", "»"];
+  return "<blockquote>" + v[0] + t("Era un oggetto troppo grande per chiamarlo spada. Troppo spesso, troppo pesante e grezzo. Non era altro che un enorme blocco di ferro.") + v[1]
+    + "</blockquote><cite>" + (LANG === "zh" ? "三浦建太郎 · 《烙印战士》" : "Kentaro Miura · Berserk") + "</cite>";
+}
 function apriResilienza() {
   if (document.getElementById("resilienza")) return;
   const w = document.createElement("div"); w.id = "resilienza"; w.className = "welcome";
   w.innerHTML = '<figure class="res-card" role="dialog" aria-modal="true" aria-label="' + t("Resilienza") + '"><button class="res-x" aria-label="' + t("Chiudi") + '">✕</button>'
     + '<img src="' + RES_IMG + '" alt="">'
-    + "<figcaption><blockquote>«" + t("Era un oggetto troppo grande per chiamarlo spada. Troppo spesso, troppo pesante e grezzo. Non era altro che un enorme blocco di ferro.") + "»</blockquote><cite>Kentaro Miura · Berserk</cite></figcaption></figure>";
+    + "<figcaption>" + citazioneResilienza() + "</figcaption></figure>";
   const chiudi = () => { w.remove(); document.removeEventListener("keydown", esc); };
   const esc = e => { if (e.key === "Escape") chiudi(); };
   w.addEventListener("click", e => { if (e.target === w || e.target.closest(".res-x")) chiudi(); });
